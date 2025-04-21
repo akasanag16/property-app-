@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -44,7 +44,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           return;
         }
 
-        setNotifications(data as Notification[] || []);
+        setNotifications(data || []);
       } catch (err) {
         console.error('Error in fetchNotifications:', err);
       }
@@ -88,13 +88,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const markAsRead = async (id: string) => {
     try {
       // Use the RPC function to mark notification as read
-      const { error } = await supabase
-        .rpc('mark_notification_as_read', { notification_id_param: id });
-
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return;
-      }
+      await supabase.rpc('mark_notification_as_read', { notification_id_param: id });
 
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
@@ -109,13 +103,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     try {
       // Use the RPC function to mark all notifications as read
-      const { error } = await supabase
-        .rpc('mark_all_notifications_as_read', { user_id_param: user.id });
-
-      if (error) {
-        console.error('Error marking all notifications as read:', error);
-        return;
-      }
+      await supabase.rpc('mark_all_notifications_as_read', { user_id_param: user.id });
 
       setNotifications(prev =>
         prev.map(n => ({ ...n, is_read: true }))

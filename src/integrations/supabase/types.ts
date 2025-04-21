@@ -70,6 +70,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -288,7 +324,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_notification: {
+        Args: {
+          user_id_param: string
+          title_param: string
+          message_param: string
+          type_param: string
+          related_entity_id_param?: string
+          related_entity_type_param?: string
+        }
+        Returns: string
+      }
+      get_user_notifications: {
+        Args: { user_id_param: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }[]
+      }
+      mark_all_notifications_as_read: {
+        Args: { user_id_param: string }
+        Returns: undefined
+      }
+      mark_notification_as_read: {
+        Args: { notification_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       request_status: "pending" | "accepted" | "completed"
