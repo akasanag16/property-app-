@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,16 +32,35 @@ export function usePropertyForm(onSuccess: () => void) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
+      
+      const invalidFiles = newFiles.filter(file => !file.type.startsWith('image/'));
+      if (invalidFiles.length > 0) {
+        toast.error("Only image files are allowed");
+        return;
+      }
+      
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const oversizedFiles = newFiles.filter(file => file.size > maxSize);
+      if (oversizedFiles.length > 0) {
+        toast.error(`Some images are too large. Maximum size is 5MB per image.`);
+        return;
+      }
+      
       const newImageUrls = newFiles.map(file => URL.createObjectURL(file));
       setImages(prev => [...prev, ...newFiles]);
       setImageUrls(prev => [...prev, ...newImageUrls]);
+      
+      console.log(`Added ${newFiles.length} new images. Total: ${images.length + newFiles.length}`);
     }
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
     URL.revokeObjectURL(imageUrls[index]);
-    setImageUrls(imageUrls.filter((_, i) => i !== index));
+    
+    setImages(prevImages => prevImages.filter((_, i) => i !== index));
+    setImageUrls(prevUrls => prevUrls.filter((_, i) => i !== index));
+    
+    console.log(`Removed image at index ${index}. Remaining: ${images.length - 1}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,19 +119,21 @@ export function usePropertyForm(onSuccess: () => void) {
 
   const uploadImages = async (propertyId: string) => {
     try {
+      const results = [];
+      
       for (let i = 0; i < images.length; i++) {
         const file = images[i];
         const fileExt = file.name.split('.').pop();
         const filePath = `${propertyId}/${Date.now()}-${i}.${fileExt}`;
         
-        console.log("Uploading image:", filePath);
+        console.log(`Uploading image ${i+1}/${images.length}: ${filePath}`);
         
         const { error: uploadError } = await supabase.storage
           .from('property_images')
           .upload(filePath, file);
           
         if (uploadError) {
-          console.error("Error uploading image:", uploadError);
+          console.error(`Error uploading image ${i+1}:`, uploadError);
           throw uploadError;
         }
         
@@ -121,7 +141,7 @@ export function usePropertyForm(onSuccess: () => void) {
           .from('property_images')
           .getPublicUrl(filePath);
           
-        console.log("Image URL:", publicUrlData.publicUrl);
+        console.log(`Image ${i+1} URL:`, publicUrlData.publicUrl);
         
         const { error: imageError } = await supabase
           .from('property_images')
@@ -132,13 +152,19 @@ export function usePropertyForm(onSuccess: () => void) {
           });
           
         if (imageError) {
-          console.error("Error saving image reference:", imageError);
+          console.error(`Error saving image ${i+1} reference:`, imageError);
           throw imageError;
         }
+        
+        results.push({ path: filePath, url: publicUrlData.publicUrl });
       }
-    } catch (uploadError) {
+      
+      console.log(`Successfully uploaded ${results.length} images for property ${propertyId}`);
+      return results;
+    } catch (uploadError: any) {
       console.error("Error processing images:", uploadError);
-      toast.error("Property added but there was an issue with uploading images");
+      toast.error("Property added but there was an issue with uploading some images");
+      return [];
     }
   };
 
