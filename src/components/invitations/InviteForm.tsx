@@ -53,38 +53,24 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (propertyError) throw propertyError;
 
-      // Using rpc for inserting notification to avoid type issues
-      const { error: notificationError } = await supabase
-        .rpc('create_notification', {
-          user_id_param: propertyData.owner_id,
-          title_param: `New ${inviteType} Invitation Sent`,
-          message_param: `Invitation sent to ${email} for property "${propertyData.name}"`,
-          type_param: 'invitation_sent',
-          related_entity_id_param: propertyId,
-          related_entity_type_param: 'property'
-        })
-        .then(result => {
-          if (result.error) {
-            throw result.error;
-          }
-          return { error: null };
-        })
-        .catch(err => {
-          console.error('Error in create_notification RPC:', err);
-          
-          // Fallback to raw SQL if the RPC doesn't exist yet
-          return supabase.from('notifications')
-            .insert({
-              user_id: propertyData.owner_id,
-              title: `New ${inviteType} Invitation Sent`,
-              message: `Invitation sent to ${email} for property "${propertyData.name}"`,
-              type: 'invitation_sent',
-              related_entity_id: propertyId,
-              related_entity_type: 'property'
-            });
-        });
+      try {
+        // Using RPC for creating notification
+        const { error: notificationError } = await supabase
+          .rpc('create_notification', {
+            user_id_param: propertyData.owner_id,
+            title_param: `New ${inviteType} Invitation Sent`,
+            message_param: `Invitation sent to ${email} for property "${propertyData.name}"`,
+            type_param: 'invitation_sent',
+            related_entity_id_param: propertyId,
+            related_entity_type_param: 'property'
+          });
 
-      if (notificationError) throw notificationError;
+        if (notificationError) throw notificationError;
+      } catch (error: any) {
+        console.error('Error creating notification:', error);
+        // We don't want to fail the entire invite process if just the notification fails
+        // so we log but don't throw
+      }
       
       toast.success(`Invitation sent to ${email}`);
       setEmail("");

@@ -13,6 +13,7 @@ type Notification = {
   created_at: string;
   related_entity_id?: string;
   related_entity_type?: string;
+  user_id: string;
 };
 
 type NotificationContextType = {
@@ -33,30 +34,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Fetch existing notifications
     const fetchNotifications = async () => {
-      const { data, error } = await supabase
-        .rpc('get_user_notifications', { user_id_param: user.id })
-        .then(result => {
-          if (result.error) {
-            throw result.error;
-          }
-          return { data: result.data as Notification[], error: null };
-        })
-        .catch(err => {
-          console.error('Error in get_user_notifications RPC:', err);
-          
-          // Fallback to raw SQL query if RPC doesn't exist yet
-          return supabase.from('notifications')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-        });
+      try {
+        // Use the RPC function to get notifications
+        const { data, error } = await supabase
+          .rpc('get_user_notifications', { user_id_param: user.id });
 
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        return;
+        if (error) {
+          console.error('Error fetching notifications:', error);
+          return;
+        }
+
+        setNotifications(data as Notification[] || []);
+      } catch (err) {
+        console.error('Error in fetchNotifications:', err);
       }
-
-      setNotifications(data || []);
     };
 
     fetchNotifications();
@@ -95,61 +86,43 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   const markAsRead = async (id: string) => {
-    // Use raw SQL via RPC to update the notification
-    const { error } = await supabase
-      .rpc('mark_notification_as_read', { notification_id_param: id })
-      .then(result => {
-        if (result.error) {
-          throw result.error;
-        }
-        return { error: null };
-      })
-      .catch(err => {
-        console.error('Error in mark_notification_as_read RPC:', err);
-        
-        // Fallback to a raw query if the RPC doesn't exist yet
-        return supabase.from('notifications')
-          .update({ is_read: true })
-          .eq('id', id);
-      });
+    try {
+      // Use the RPC function to mark notification as read
+      const { error } = await supabase
+        .rpc('mark_notification_as_read', { notification_id_param: id });
 
-    if (error) {
-      console.error('Error marking notification as read:', error);
-      return;
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return;
+      }
+
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (err) {
+      console.error('Error in markAsRead:', err);
     }
-
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-    );
   };
 
   const markAllAsRead = async () => {
-    // Use raw SQL via RPC to update all notifications
-    const { error } = await supabase
-      .rpc('mark_all_notifications_as_read', { user_id_param: user?.id })
-      .then(result => {
-        if (result.error) {
-          throw result.error;
-        }
-        return { error: null };
-      })
-      .catch(err => {
-        console.error('Error in mark_all_notifications_as_read RPC:', err);
-        
-        // Fallback to a raw query if the RPC doesn't exist yet
-        return supabase.from('notifications')
-          .update({ is_read: true })
-          .eq('user_id', user?.id);
-      });
+    if (!user) return;
+    
+    try {
+      // Use the RPC function to mark all notifications as read
+      const { error } = await supabase
+        .rpc('mark_all_notifications_as_read', { user_id_param: user.id });
 
-    if (error) {
-      console.error('Error marking all notifications as read:', error);
-      return;
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        return;
+      }
+
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, is_read: true }))
+      );
+    } catch (err) {
+      console.error('Error in markAllAsRead:', err);
     }
-
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, is_read: true }))
-    );
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
