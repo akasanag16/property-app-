@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -31,6 +32,11 @@ export default function OwnerDashboard() {
     handleClosePropertyForm();
     toast.success("Property added successfully");
   };
+
+  // Count properties that likely have tenants (using details.type as a proxy since status doesn't exist)
+  const occupiedPropertiesCount = properties.filter(p => 
+    p.details?.type === 'apartment' || p.details?.type === 'house'
+  ).length;
 
   const container = {
     hidden: { opacity: 0 },
@@ -84,7 +90,7 @@ export default function OwnerDashboard() {
                 </div>
               </div>
               <h3 className="text-2xl font-bold mb-1">
-                <AnimatedCounter from={0} to={properties.filter(p => p.status === 'occupied').length} />
+                <AnimatedCounter from={0} to={occupiedPropertiesCount} />
               </h3>
               <p className="text-sm text-gray-600">Occupied Properties</p>
             </GradientCard>
