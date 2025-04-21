@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,7 @@ type PropertyCardProps = {
   bathrooms?: number;
   area?: number;
   rent?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   onClick?: () => void;
   className?: string;
 };

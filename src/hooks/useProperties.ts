@@ -15,7 +15,7 @@ export type Property = {
     area?: number;
     rent?: number;
   };
-  image_url?: string;
+  image_url?: string | null;
 };
 
 export function useProperties(userId?: string) {
@@ -39,7 +39,7 @@ export function useProperties(userId?: string) {
         return;
       }
       
-      // Fix: For GET requests, use query parameters instead of a request body
+      // Use POST method with action parameter
       const { data, error } = await supabase.functions.invoke(
         "create-property", 
         {
@@ -59,23 +59,9 @@ export function useProperties(userId?: string) {
         return;
       }
       
-      // Transform the data to match our Property type
-      const transformedProperties = data.map(item => {
-        // Find primary image if available
-        const primaryImage = item.property_images?.find(img => img.is_primary);
-        
-        return {
-          id: item.id,
-          name: item.name,
-          address: item.address,
-          details: item.details as Property['details'],
-          image_url: primaryImage?.url
-        };
-      });
-      
-      console.log("Fetched properties:", transformedProperties);
-      setProperties(transformedProperties);
-      setFilteredProperties(transformedProperties);
+      console.log("Fetched properties:", data);
+      setProperties(data);
+      setFilteredProperties(data);
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast.error("Failed to load properties");

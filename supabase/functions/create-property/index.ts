@@ -47,6 +47,7 @@ serve(async (req) => {
             address, 
             details,
             property_images (
+              id,
               url,
               is_primary
             )
@@ -62,8 +63,17 @@ serve(async (req) => {
           );
         }
         
+        // Transform data to include the primary image URL directly
+        const transformedData = data.map(property => {
+          const primaryImage = property.property_images?.find(img => img.is_primary);
+          return {
+            ...property,
+            image_url: primaryImage?.url || null
+          };
+        });
+        
         return new Response(
-          JSON.stringify(data),
+          JSON.stringify(transformedData),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
