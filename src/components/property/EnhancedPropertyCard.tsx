@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Home, DollarSign, Bed, Bath, SquareFoot } from "lucide-react";
+import { Home, DollarSign, Bed, Bath, SquareDot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PropertyCardProps = {
@@ -102,7 +101,7 @@ export function EnhancedPropertyCard({
           
           {area !== undefined && (
             <div className="flex items-center text-gray-600">
-              <SquareFoot className="h-4 w-4 mr-1" />
+              <SquareDot className="h-4 w-4 mr-1" />
               <span>{area} sq ft</span>
             </div>
           )}
