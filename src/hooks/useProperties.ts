@@ -111,9 +111,9 @@ export function useProperties(userId?: string) {
     
     fetchProperties();
 
-    // Set up realtime subscription
-    const channel = supabase
-      .channel('property-changes')
+    // Set up realtime subscription for properties table
+    const propertiesChannel = supabase
+      .channel('properties-changes')
       .on(
         'postgres_changes',
         {
@@ -123,13 +123,32 @@ export function useProperties(userId?: string) {
           filter: `owner_id=eq.${userId}`,
         },
         () => {
+          console.log("Properties change detected");
+          fetchProperties();
+        }
+      )
+      .subscribe();
+      
+    // Set up realtime subscription for property_images table
+    const imagesChannel = supabase
+      .channel('property-images-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'property_images'
+        },
+        () => {
+          console.log("Property images change detected");
           fetchProperties();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(propertiesChannel);
+      supabase.removeChannel(imagesChannel);
     };
   }, [userId, refreshKey]);
 

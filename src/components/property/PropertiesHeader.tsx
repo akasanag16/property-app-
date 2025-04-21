@@ -1,6 +1,8 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Filter, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 type PropertiesHeaderProps = {
   onAddProperty: () => void;
@@ -15,6 +17,19 @@ export function PropertiesHeader({
   onToggleFilters, 
   showFilters 
 }: PropertiesHeaderProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    onRefresh();
+    toast.success("Properties refreshed");
+    
+    // Simulate refresh state for better UX
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
+  };
+  
   return (
     <div className="flex justify-between items-center">
       <h1 className="text-2xl font-bold">My Properties</h1>
@@ -31,10 +46,11 @@ export function PropertiesHeader({
         <Button
           variant="outline"
           size="sm"
-          onClick={onRefresh}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? "Refreshing..." : "Refresh"}
         </Button>
         
         <Button

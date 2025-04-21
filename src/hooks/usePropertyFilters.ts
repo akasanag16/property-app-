@@ -1,10 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Property } from "@/hooks/useProperties";
 import { PropertyFilterValues } from "@/components/property/PropertyFilter";
 
 export function usePropertyFilters(properties: Property[]) {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>(properties);
+
+  // Update filtered properties when properties array changes
+  useEffect(() => {
+    setFilteredProperties(properties);
+  }, [properties]);
 
   const handleFilterChange = (filters: PropertyFilterValues) => {
     if (!properties.length) return;

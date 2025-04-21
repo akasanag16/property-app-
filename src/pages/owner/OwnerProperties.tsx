@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PropertyFilter } from "@/components/property/PropertyFilter";
@@ -8,6 +8,7 @@ import { PropertiesList } from "@/components/property/PropertiesList";
 import { PropertiesHeader } from "@/components/property/PropertiesHeader";
 import { useProperties } from "@/hooks/useProperties";
 import { usePropertyFilters } from "@/hooks/usePropertyFilters";
+import { toast } from "sonner";
 
 export default function OwnerProperties() {
   const { user } = useAuth();
@@ -15,6 +16,18 @@ export default function OwnerProperties() {
   const { filteredProperties, handleFilterChange } = usePropertyFilters(properties);
   const [showFilters, setShowFilters] = useState(false);
   const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
+
+  // Notify user when realtime is active
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      toast.info("Real-time updates active", {
+        description: "Property changes will appear automatically",
+        duration: 4000,
+      });
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <DashboardLayout>
@@ -27,7 +40,7 @@ export default function OwnerProperties() {
         />
 
         <p className="text-gray-600">
-          View and manage your properties here.
+          View and manage your properties here. Changes are updated in real-time.
         </p>
 
         {showFilters && (
