@@ -5,16 +5,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PropertyCard } from "@/components/property/PropertyCard";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { PropertyForm } from "@/components/property/PropertyForm";
 import { Plus, RefreshCw } from "lucide-react";
 
 type Property = {
@@ -28,9 +20,7 @@ export default function OwnerDashboard() {
   const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
-  const [newProperty, setNewProperty] = useState({ name: "", address: "" });
-  const [addingProperty, setAddingProperty] = useState(false);
+  const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Handle refresh button click
@@ -55,46 +45,6 @@ export default function OwnerDashboard() {
       toast.error("Failed to load properties");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Add new property
-  const handleAddProperty = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProperty.name || !newProperty.address) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
-    setAddingProperty(true);
-    try {
-      const { data, error } = await supabase
-        .from("properties")
-        .insert({
-          name: newProperty.name,
-          address: newProperty.address,
-          owner_id: user?.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error adding property:", error);
-        throw error;
-      }
-      
-      // Add new property to state
-      if (data) {
-        setProperties([data, ...properties]);
-        toast.success("Property added successfully");
-        setNewProperty({ name: "", address: "" });
-        setIsAddPropertyOpen(false);
-      }
-    } catch (error: any) {
-      console.error("Error adding property:", error);
-      toast.error(error.message || "Failed to add property");
-    } finally {
-      setAddingProperty(false);
     }
   };
 
@@ -138,44 +88,13 @@ export default function OwnerDashboard() {
             Refresh
           </Button>
           
-          <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Property
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Property</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddProperty} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Property Name</Label>
-                  <Input
-                    id="name"
-                    value={newProperty.name}
-                    onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
-                    placeholder="Enter property name"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={newProperty.address}
-                    onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
-                    placeholder="Enter property address"
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={addingProperty}>
-                  {addingProperty ? "Adding..." : "Add Property"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            size="sm" 
+            onClick={() => setShowAddPropertyForm(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Property
+          </Button>
         </div>
       </div>
       
@@ -189,7 +108,7 @@ export default function OwnerDashboard() {
         <div className="text-center py-12 bg-gray-50 rounded-lg border">
           <h2 className="text-xl font-semibold mb-2">No Properties Found</h2>
           <p className="text-gray-500 mb-4">Get started by adding your first property</p>
-          <Button onClick={() => setIsAddPropertyOpen(true)}>
+          <Button onClick={() => setShowAddPropertyForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Property
           </Button>
@@ -205,6 +124,14 @@ export default function OwnerDashboard() {
             />
           ))}
         </div>
+      )}
+
+      {showAddPropertyForm && (
+        <PropertyForm
+          isOpen={showAddPropertyForm}
+          onClose={() => setShowAddPropertyForm(false)}
+          onSuccess={handleRefresh}
+        />
       )}
     </DashboardLayout>
   );
