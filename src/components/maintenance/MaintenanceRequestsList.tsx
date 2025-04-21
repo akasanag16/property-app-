@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,19 +16,18 @@ type MaintenanceRequest = {
     name: string;
   };
   tenant: {
-    first_name: string;
-    last_name: string;
-    email: string;
+    first_name: string | null;
+    last_name: string | null;
   };
   assigned_service_provider: {
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
   } | null;
 };
 
 type MaintenanceRequestsListProps = {
   userRole: "owner" | "tenant" | "service_provider";
-  refreshKey?: number; // To force refresh the list
+  refreshKey?: number;
 };
 
 export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: MaintenanceRequestsListProps) {
@@ -46,7 +44,7 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
         .select(`
           *,
           property:properties(name),
-          tenant:profiles!maintenance_requests_tenant_id_fkey(first_name, last_name, email),
+          tenant:profiles!maintenance_requests_tenant_id_fkey(first_name, last_name),
           assigned_service_provider:profiles!maintenance_requests_assigned_service_provider_id_fkey(first_name, last_name)
         `)
         .order("created_at", { ascending: false });
@@ -57,26 +55,27 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
       } else if (userRole === "service_provider") {
         query = query.eq("assigned_service_provider_id", user?.id);
       }
-      // For owners, RLS policies will filter the relevant requests
 
       const { data, error } = await query;
 
       if (error) throw error;
-      
-      // Ensure we're properly handling the data typing
-      const typedData = data?.map(item => {
-        // Make sure tenant property always has the expected shape
-        if (!item.tenant || typeof item.tenant === 'string' || 'error' in item.tenant) {
-          // If tenant is missing or malformed, provide default values
-          item.tenant = {
-            first_name: 'Unknown',
-            last_name: 'User',
-            email: 'unknown@example.com'
-          };
-        }
-        return item as MaintenanceRequest;
-      }) || [];
-      
+
+      // Ensure proper typing of the data
+      const typedData: MaintenanceRequest[] = (data || []).map(item => ({
+        ...item,
+        tenant: {
+          first_name: item.tenant?.first_name || "Unknown",
+          last_name: item.tenant?.last_name || "User",
+        },
+        property: {
+          name: item.property?.name || "Unknown Property"
+        },
+        assigned_service_provider: item.assigned_service_provider ? {
+          first_name: item.assigned_service_provider.first_name,
+          last_name: item.assigned_service_provider.last_name
+        } : null
+      }));
+
       setRequests(typedData);
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
@@ -202,9 +201,9 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
             <span>Reported: {formatDate(request.created_at)}</span>
           </div>
           
-          {userRole === "owner" && (
+          {userRole === "owner" && request.tenant && (
             <div className="text-sm text-gray-500 mb-3">
-              <span>Tenant: {request.tenant.first_name} {request.tenant.last_name} ({request.tenant.email})</span>
+              <span>Tenant: {request.tenant.first_name} {request.tenant.last_name}</span>
             </div>
           )}
           
