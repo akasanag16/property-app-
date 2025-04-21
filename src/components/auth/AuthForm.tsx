@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { signIn, signUp, type UserRole } from "@/lib/auth";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 type AuthMode = "login" | "signup";
 
@@ -36,6 +38,10 @@ export function AuthForm() {
 
     try {
       if (mode === "signup") {
+        if (!firstName.trim() || !lastName.trim()) {
+          throw new Error("Please provide both first and last name");
+        }
+        
         await signUp({ email, password, role, firstName, lastName });
         toast.success(
           "Account created! Please sign in with your new credentials."
@@ -62,9 +68,12 @@ export function AuthForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow-lg">
+    <div className="w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
       <div className="text-center">
         <h2 className="text-2xl font-bold">{mode === "login" ? "Sign In" : "Create Account"}</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          {mode === "login" ? "Welcome back" : "Join our platform"}
+        </p>
       </div>
 
       {error && (
@@ -73,29 +82,42 @@ export function AuthForm() {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <motion.form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
         {mode === "signup" && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
-            </div>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -111,7 +133,7 @@ export function AuthForm() {
                 </SelectContent>
               </Select>
             </div>
-          </>
+          </motion.div>
         )}
 
         <div className="space-y-2">
@@ -122,6 +144,7 @@ export function AuthForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete={mode === "login" ? "username" : "email"}
           />
         </div>
 
@@ -133,21 +156,33 @@ export function AuthForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
           />
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Loading..." : mode === "login" ? "Sign In" : "Create Account"}
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {mode === "login" ? "Signing In..." : "Creating Account..."}
+            </>
+          ) : (
+            mode === "login" ? "Sign In" : "Create Account"
+          )}
         </Button>
-      </form>
+      </motion.form>
 
       <div className="text-center text-sm">
         {mode === "login" ? (
           <p>
             Don't have an account?{" "}
             <button
-              onClick={() => setMode("signup")}
-              className="text-blue-600 hover:underline"
+              onClick={() => {
+                setMode("signup");
+                setError(null);
+              }}
+              className="text-primary hover:underline font-medium"
+              type="button"
             >
               Sign up
             </button>
@@ -156,8 +191,12 @@ export function AuthForm() {
           <p>
             Already have an account?{" "}
             <button
-              onClick={() => setMode("login")}
-              className="text-blue-600 hover:underline"
+              onClick={() => {
+                setMode("login");
+                setError(null);
+              }}
+              className="text-primary hover:underline font-medium"
+              type="button"
             >
               Sign in
             </button>
