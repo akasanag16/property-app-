@@ -251,6 +251,7 @@ export type Database = {
           is_used: boolean | null
           link_token: string
           property_id: string
+          status: string | null
         }
         Insert: {
           created_at?: string | null
@@ -260,6 +261,7 @@ export type Database = {
           is_used?: boolean | null
           link_token: string
           property_id: string
+          status?: string | null
         }
         Update: {
           created_at?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           is_used?: boolean | null
           link_token?: string
           property_id?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -352,6 +355,7 @@ export type Database = {
           is_used: boolean | null
           link_token: string
           property_id: string
+          status: string | null
         }
         Insert: {
           created_at?: string | null
@@ -361,6 +365,7 @@ export type Database = {
           is_used?: boolean | null
           link_token: string
           property_id: string
+          status?: string | null
         }
         Update: {
           created_at?: string | null
@@ -370,6 +375,7 @@ export type Database = {
           is_used?: boolean | null
           link_token?: string
           property_id?: string
+          status?: string | null
         }
         Relationships: [
           {

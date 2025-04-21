@@ -27,15 +27,11 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
     setLoading(true);
     try {
-      // Generate a unique link token
+      const tableName = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       const linkToken = crypto.randomUUID();
       
-      // Choose the right table based on invite type
-      const table = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
-      
-      // Insert the invitation directly into the database table
       const { error: inviteError } = await supabase
-        .from(table)
+        .from(tableName)
         .insert({
           property_id: propertyId,
           email,
@@ -45,31 +41,6 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (inviteError) throw inviteError;
 
-      // Create a notification for the property owner
-      try {
-        const { data: propertyData, error: propertyError } = await supabase
-          .from('properties')
-          .select('name, owner_id')
-          .eq('id', propertyId)
-          .single();
-
-        if (propertyError) throw propertyError;
-
-        // Using RPC for creating notification
-        await supabase
-          .rpc('create_notification', {
-            user_id_param: propertyData.owner_id,
-            title_param: `New ${inviteType} Invitation Sent`,
-            message_param: `Invitation sent to ${email} for property "${propertyData.name}"`,
-            type_param: 'invitation_sent',
-            related_entity_id_param: propertyId,
-            related_entity_type_param: 'property'
-          });
-      } catch (error: any) {
-        console.error('Error creating notification:', error);
-        // We don't want to fail the entire invite process if just the notification fails
-      }
-      
       toast.success(`Invitation sent to ${email}`);
       setEmail("");
       if (onInviteSuccess) onInviteSuccess();

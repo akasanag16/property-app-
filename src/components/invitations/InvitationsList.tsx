@@ -26,10 +26,8 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       setLoading(true);
       setError(false);
 
-      // Determine which table to query based on the type
       const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       
-      // Use the from() method with the table name instead of querying through the properties relation
       const { data, error: fetchError } = await supabase
         .from(tableName)
         .select("*")
@@ -50,19 +48,19 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
 
   const handleResendInvitation = async (id: string) => {
     try {
-      // Call the handle-invitation edge function to resend the invitation
       const { error } = await supabase.functions.invoke("handle-invitation", {
-        method: "POST",
         body: { 
           action: "resend", 
           invitation_id: id,
-          invitation_type: type // Add the type so we know which table to update
+          invitation_type: type
         },
       });
 
       if (error) throw error;
       
       toast.success("Invitation resent successfully!");
+      // Refresh the list to show updated status
+      fetchInvitations();
     } catch (err) {
       console.error("Error resending invitation:", err);
       toast.error("Failed to resend invitation");
@@ -112,7 +110,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
               <p className="text-xs text-gray-500">
                 Sent {new Date(invitation.created_at).toLocaleDateString()}
               </p>
-              {invitation.status !== "pending" && (
+              {invitation.status && (
                 <Badge variant={invitation.status === "accepted" ? "success" : "info"}>
                   {invitation.status}
                 </Badge>
