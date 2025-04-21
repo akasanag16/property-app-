@@ -34,7 +34,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       const table = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       
       // Insert the invitation into the database
-      const { error } = await supabase
+      const { error: inviteError } = await supabase
         .from(table)
         .insert({
           property_id: propertyId,
@@ -42,10 +42,29 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           link_token: linkToken,
         });
 
-      if (error) {
-        console.error("Error sending invitation:", error);
-        throw error;
-      }
+      if (inviteError) throw inviteError;
+
+      // Create a notification for the property owner
+      const { data: propertyData, error: propertyError } = await supabase
+        .from('properties')
+        .select('name, owner_id')
+        .eq('id', propertyId)
+        .single();
+
+      if (propertyError) throw propertyError;
+
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: propertyData.owner_id,
+          title: `New ${inviteType} Invitation Sent`,
+          message: `Invitation sent to ${email} for property "${propertyData.name}"`,
+          type: 'invitation_sent',
+          related_entity_id: propertyId,
+          related_entity_type: 'property'
+        });
+
+      if (notificationError) throw notificationError;
       
       toast.success(`Invitation sent to ${email}`);
       setEmail("");
