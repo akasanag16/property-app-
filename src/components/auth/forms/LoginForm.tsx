@@ -54,7 +54,7 @@ export function LoginForm({
       className="space-y-6"
     >
       <div className="text-center">
-        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#D946EF]">
           Welcome Back
         </h2>
         <p className="text-sm text-gray-600 mt-2">Sign in to your account</p>
@@ -76,7 +76,7 @@ export function LoginForm({
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
-            className="w-full"
+            className="w-full focus:border-[#8B5CF6] focus:ring-[#8B5CF6]"
             disabled={loading}
           />
         </div>
@@ -90,14 +90,14 @@ export function LoginForm({
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="w-full"
+            className="w-full focus:border-[#8B5CF6] focus:ring-[#8B5CF6]"
             disabled={loading}
           />
         </div>
 
         <Button 
           type="submit" 
-          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700" 
+          className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:from-[#7E5BD5] hover:to-[#C739D6] text-white" 
           disabled={loading}
         >
           {loading ? (
@@ -116,7 +116,7 @@ export function LoginForm({
           Don't have an account?{" "}
           <button
             onClick={() => onModeChange("signup")}
-            className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+            className="text-[#8B5CF6] hover:text-[#D946EF] font-medium transition-colors"
             type="button"
             disabled={loading}
           >
@@ -126,7 +126,7 @@ export function LoginForm({
         <p>
           <button
             onClick={() => onModeChange("reset")}
-            className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+            className="text-[#8B5CF6] hover:text-[#D946EF] font-medium transition-colors"
             type="button"
             disabled={loading}
           >
@@ -137,3 +137,4 @@ export function LoginForm({
     </motion.div>
   );
 }
+

@@ -56,7 +56,9 @@ export function SignupForm({
   return (
     <>
       <div className="text-center">
-        <h2 className="text-2xl font-bold">Create Account</h2>
+        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#D946EF]">
+          Create Account
+        </h2>
         <p className="text-sm text-gray-600 mt-1">Join our platform</p>
       </div>
 
@@ -142,7 +144,11 @@ export function SignupForm({
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:from-[#7E5BD5] hover:to-[#C739D6] text-white" 
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -159,7 +165,7 @@ export function SignupForm({
           Already have an account?{" "}
           <button
             onClick={() => onModeChange("login")}
-            className="text-primary hover:underline font-medium"
+            className="text-[#8B5CF6] hover:text-[#D946EF] font-medium"
             type="button"
           >
             Sign in
