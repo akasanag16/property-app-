@@ -24,7 +24,7 @@ serve(async (req) => {
     // Create a Supabase client with the service role key for admin privileges
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { action, token, email, userId, propertyId, role, firstName, lastName, password } = await req.json();
+    const { action, token, email, userId, propertyId, role, firstName, lastName, password, invitation_id, invitation_type } = await req.json();
     
     // Validate request
     if (!action) {
@@ -41,10 +41,10 @@ serve(async (req) => {
       
       // Query the database directly to validate the token
       const { data, error } = await supabase.from('tenant_invitations')
-        .select('property_id')
+        .select('property_id, status')
         .eq('link_token', token)
         .eq('email', email)
-        .eq('is_used', false)
+        .eq('status', 'pending')
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
       
@@ -59,10 +59,10 @@ serve(async (req) => {
       } else {
         // Check service provider invitations
         const { data: spData, error: spError } = await supabase.from('service_provider_invitations')
-          .select('property_id')
+          .select('property_id, status')
           .eq('link_token', token)
           .eq('email', email)
-          .eq('is_used', false)
+          .eq('status', 'pending')
           .gt('expires_at', new Date().toISOString())
           .maybeSingle();
         
@@ -109,6 +109,38 @@ serve(async (req) => {
         password
       });
     }
+    else if (action === "resend") {
+      // Resend an invitation
+      if (!invitation_id) {
+        throw new Error("Missing invitation ID");
+      }
+      
+      const table = invitation_type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
+      
+      // Update the expiration date to extend it by 7 days from now
+      const { error: updateError } = await supabase
+        .from(table)
+        .update({ 
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
+        })
+        .eq('id', invitation_id);
+        
+      if (updateError) throw updateError;
+      
+      // Fetch the updated invitation to return
+      const { data: updatedInvitation, error: fetchError } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', invitation_id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      result = { 
+        success: true,
+        invitation: updatedInvitation
+      };
+    }
     else {
       throw new Error("Invalid action");
     }
@@ -147,10 +179,13 @@ async function acceptInvitation(supabase, { token, email, userId, propertyId, ro
         
       if (linkError) throw linkError;
       
-      // 2. Mark invitation as used
+      // 2. Mark invitation as used and accepted
       const { error: updateError } = await supabase
         .from('tenant_invitations')
-        .update({ is_used: true })
+        .update({ 
+          status: 'accepted',
+          is_used: true 
+        })
         .eq('link_token', token)
         .eq('email', email);
         
@@ -166,10 +201,13 @@ async function acceptInvitation(supabase, { token, email, userId, propertyId, ro
         
       if (linkError) throw linkError;
       
-      // 2. Mark invitation as used
+      // 2. Mark invitation as used and accepted
       const { error: updateError } = await supabase
         .from('service_provider_invitations')
-        .update({ is_used: true })
+        .update({ 
+          status: 'accepted',
+          is_used: true 
+        })
         .eq('link_token', token)
         .eq('email', email);
         

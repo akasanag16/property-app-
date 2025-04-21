@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 type InvitationsListProps = {
   propertyId: string;
@@ -28,13 +29,14 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       // Determine which table to query based on the type
       const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       
-      const { data, error } = await supabase
+      // Use the from() method with the table name instead of querying through the properties relation
+      const { data, error: fetchError } = await supabase
         .from(tableName)
         .select("*")
         .eq("property_id", propertyId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
       setInvitations(data || []);
     } catch (err) {
@@ -48,9 +50,14 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
 
   const handleResendInvitation = async (id: string) => {
     try {
+      // Call the handle-invitation edge function to resend the invitation
       const { error } = await supabase.functions.invoke("handle-invitation", {
         method: "POST",
-        body: { action: "resend", invitation_id: id },
+        body: { 
+          action: "resend", 
+          invitation_id: id,
+          invitation_type: type // Add the type so we know which table to update
+        },
       });
 
       if (error) throw error;
@@ -101,10 +108,16 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
         >
           <div>
             <p className="font-medium text-gray-800">{invitation.email}</p>
-            <p className="text-xs text-gray-500">
-              Sent {new Date(invitation.created_at).toLocaleDateString()}
-              {invitation.status !== "pending" && ` • ${invitation.status}`}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-500">
+                Sent {new Date(invitation.created_at).toLocaleDateString()}
+              </p>
+              {invitation.status !== "pending" && (
+                <Badge variant={invitation.status === "accepted" ? "success" : "info"}>
+                  {invitation.status}
+                </Badge>
+              )}
+            </div>
           </div>
           {invitation.status === "pending" && (
             <Button 

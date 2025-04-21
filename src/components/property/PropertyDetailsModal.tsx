@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Home, DollarSign, Bed, Bath, SquareDot, User, Calendar, MapPin, ClipboardList } from "lucide-react";
+import { Home, DollarSign, Bed, Bath, SquareDot, MapPin } from "lucide-react";
 import type { Property } from "@/hooks/useProperties";
 import { InvitationsList } from "@/components/invitations/InvitationsList";
 import { InviteForm } from "@/components/invitations/InviteForm";
@@ -31,7 +31,7 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
     
     // Switch to the appropriate tab based on the last invite type
     const inviteForm = document.querySelector('form') as HTMLFormElement;
-    const inviteTypeSelect = inviteForm?.querySelector('[id^="radix-"][role="combobox"]') as HTMLElement;
+    const inviteTypeSelect = inviteForm?.querySelector('[id="inviteType"]') as HTMLElement;
     const selectedValue = inviteTypeSelect?.getAttribute('data-value') || 'tenant';
     
     if (selectedValue === 'tenant') {

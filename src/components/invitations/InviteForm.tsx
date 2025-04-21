@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,29 +33,30 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       // Choose the right table based on invite type
       const table = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       
-      // Insert the invitation into the database
+      // Insert the invitation directly into the database table
       const { error: inviteError } = await supabase
         .from(table)
         .insert({
           property_id: propertyId,
           email,
           link_token: linkToken,
+          status: "pending"
         });
 
       if (inviteError) throw inviteError;
 
       // Create a notification for the property owner
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
-        .select('name, owner_id')
-        .eq('id', propertyId)
-        .single();
-
-      if (propertyError) throw propertyError;
-
       try {
+        const { data: propertyData, error: propertyError } = await supabase
+          .from('properties')
+          .select('name, owner_id')
+          .eq('id', propertyId)
+          .single();
+
+        if (propertyError) throw propertyError;
+
         // Using RPC for creating notification
-        const { error: notificationError } = await supabase
+        await supabase
           .rpc('create_notification', {
             user_id_param: propertyData.owner_id,
             title_param: `New ${inviteType} Invitation Sent`,
@@ -63,12 +65,9 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
             related_entity_id_param: propertyId,
             related_entity_type_param: 'property'
           });
-
-        if (notificationError) throw notificationError;
       } catch (error: any) {
         console.error('Error creating notification:', error);
         // We don't want to fail the entire invite process if just the notification fails
-        // so we log but don't throw
       }
       
       toast.success(`Invitation sent to ${email}`);
@@ -90,7 +89,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           value={inviteType} 
           onValueChange={(value) => setInviteType(value as "tenant" | "service_provider")}
         >
-          <SelectTrigger>
+          <SelectTrigger id="inviteType">
             <SelectValue placeholder="Select role to invite" />
           </SelectTrigger>
           <SelectContent>
