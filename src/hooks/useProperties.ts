@@ -33,11 +33,17 @@ export function useProperties(userId?: string) {
       setLoading(true);
       console.log("Fetching properties for user:", userId);
       
-      // Use the edge function to fetch properties to bypass RLS
+      if (!userId) {
+        console.log("No user ID provided, using sample data");
+        useSampleProperties();
+        return;
+      }
+      
+      // Fix: For GET requests, use query parameters instead of a request body
       const { data, error } = await supabase.functions.invoke(
         "create-property", 
         {
-          method: "GET",
+          method: "POST",
           body: { action: "fetch", owner_id: userId }
         }
       );

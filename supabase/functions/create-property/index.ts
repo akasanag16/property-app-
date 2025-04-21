@@ -20,21 +20,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse request body - either JSON or URL parameters
+    // Parse request body
     let requestData;
     
-    if (req.method === "GET") {
-      // For GET requests, try to parse the URL parameters (from edge function body)
-      try {
-        requestData = await req.json();
-      } catch (e) {
-        requestData = {};
-      }
+    // If it's a POST request, parse the request body
+    if (req.method === "POST") {
+      requestData = await req.json();
       
-      const action = requestData.action;
-      const ownerId = requestData.owner_id;
-      
-      if (action === "fetch") {
+      // Handle the "fetch" action in POST requests
+      if (requestData.action === "fetch") {
+        const ownerId = requestData.owner_id;
+        
         if (!ownerId) {
           return new Response(
             JSON.stringify({ error: "Missing owner_id parameter" }),
@@ -71,14 +67,10 @@ serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    } 
-    // If it's a POST request, we're creating a property
-    else if (req.method === "POST") {
-      // Get the request body
-      const { name, address, owner_id, details } = await req.json();
       
-      console.log("Creating property:", { name, address, owner_id });
-
+      // Handle property creation
+      const { name, address, owner_id, details } = requestData;
+      
       if (!name || !address || !owner_id) {
         return new Response(
           JSON.stringify({ error: "Missing required fields" }),
@@ -117,12 +109,6 @@ serve(async (req) => {
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    // If we got here, no valid action was specified
-    return new Response(
-      JSON.stringify({ error: "Invalid action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
