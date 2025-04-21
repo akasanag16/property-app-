@@ -37,7 +37,7 @@ export async function signUp({
         first_name: firstName,
         last_name: lastName,
       },
-      // Restore email confirmation redirect
+      // Disable email confirmation for faster login during testing
       emailRedirectTo: `${window.location.origin}/auth/confirm`,
     },
   });
@@ -53,13 +53,7 @@ export async function signIn({
   email: string;
   password: string;
 }) {
-  // Clear any existing sessions before signing in to prevent conflicts
-  try {
-    await supabase.auth.signOut();
-  } catch (error) {
-    console.log("Error clearing existing session:", error);
-  }
-
+  // Don't clear existing sessions - this adds unnecessary delay
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,

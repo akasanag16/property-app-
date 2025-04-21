@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,14 +26,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // First, set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession);
         
         if (currentSession?.user) {
           setSession(currentSession);
           setUser(currentSession.user);
-          // Fetch user role immediately since email confirmation is disabled
-          await fetchUserRole(currentSession.user.id);
+          
+          // Use setTimeout to avoid potential auth deadlocks
+          setTimeout(() => {
+            fetchUserRole(currentSession.user.id);
+          }, 0);
         } else {
           setSession(null);
           setUser(null);
@@ -70,9 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Fetching user role for:", userId);
       
-      // Small delay to avoid race conditions with database operations
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
@@ -81,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error("Error fetching profile:", error);
-        throw error;
+        return;
       }
 
       if (data) {
@@ -92,7 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
-      toast.error("Failed to fetch user role");
     }
   };
 

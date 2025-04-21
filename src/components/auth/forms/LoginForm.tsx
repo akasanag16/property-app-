@@ -26,18 +26,23 @@ export function LoginForm({
     setLoading(true);
     setError(null);
 
+    // Show immediate feedback
+    const toastId = toast.loading("Signing in...");
+
     try {
       const { session } = await signIn({ email, password });
       if (session) {
-        toast.success("Signed in successfully");
+        toast.success("Signed in successfully", { id: toastId });
+        // Immediately redirect to dashboard without waiting for additional operations
         navigate("/dashboard");
       } else {
         setError("Login successful but no session was created. Please try again.");
+        toast.error("Authentication failed", { id: toastId });
       }
     } catch (error) {
       console.error("Auth error:", error);
       setError(error instanceof Error ? error.message : "Authentication failed");
-      toast.error(error instanceof Error ? error.message : "Authentication failed");
+      toast.error(error instanceof Error ? error.message : "Authentication failed", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -75,6 +80,7 @@ export function LoginForm({
             required
             autoComplete="username"
             className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+            disabled={loading}
           />
         </div>
 
@@ -88,6 +94,7 @@ export function LoginForm({
             required
             autoComplete="current-password"
             className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+            disabled={loading}
           />
         </div>
 
@@ -114,6 +121,7 @@ export function LoginForm({
             onClick={() => onModeChange("signup")}
             className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             type="button"
+            disabled={loading}
           >
             Sign up
           </button>
@@ -123,6 +131,7 @@ export function LoginForm({
             onClick={() => onModeChange("reset")}
             className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             type="button"
+            disabled={loading}
           >
             Forgot password?
           </button>
