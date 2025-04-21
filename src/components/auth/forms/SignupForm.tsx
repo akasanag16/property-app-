@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,13 +40,10 @@ export function SignupForm({
         throw new Error("Please provide both first and last name");
       }
       
-      const { user } = await signUp({ email, password, role, firstName, lastName });
+      await signUp({ email, password, role, firstName, lastName });
       
-      if (user) {
-        toast.success("Account created successfully! You can now sign in.");
-        // Since email confirmation is disabled, redirect to dashboard
-        navigate("/dashboard");
-      }
+      toast.success("Account created! Please check your email to verify your account.");
+      onModeChange("login");
     } catch (error) {
       console.error("Auth error:", error);
       setError(error instanceof Error ? error.message : "Registration failed");

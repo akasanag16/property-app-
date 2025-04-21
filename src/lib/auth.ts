@@ -37,8 +37,8 @@ export async function signUp({
         first_name: firstName,
         last_name: lastName,
       },
-      // Since email confirmation is disabled, users can sign in immediately
-      emailRedirectTo: `${window.location.origin}/auth`,
+      // Restore email confirmation redirect
+      emailRedirectTo: `${window.location.origin}/auth/confirm`,
     },
   });
   
