@@ -74,53 +74,21 @@ export function PropertyCard({ id, name, address }: PropertyCardProps) {
           </TabsContent>
           
           <TabsContent value="tenants" className="pt-4">
-            {error ? (
-              <div className="text-center py-4 space-y-2">
-                <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
-                <p className="text-sm text-gray-600">
-                  Unable to load tenant invitations.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setError(false)}
-                >
-                  Try Again
-                </Button>
-              </div>
-            ) : (
-              <InvitationsList 
-                key={`tenant-${inviteRefreshKey}`}
-                propertyId={id} 
-                type="tenant"
-                onError={handleError}
-              />
-            )}
+            <InvitationsList 
+              key={`tenant-${inviteRefreshKey}`}
+              propertyId={id} 
+              type="tenant"
+              onError={handleError}
+            />
           </TabsContent>
           
           <TabsContent value="service-providers" className="pt-4">
-            {error ? (
-              <div className="text-center py-4 space-y-2">
-                <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
-                <p className="text-sm text-gray-600">
-                  Unable to load service provider invitations.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setError(false)}
-                >
-                  Try Again
-                </Button>
-              </div>
-            ) : (
-              <InvitationsList 
-                key={`sp-${inviteRefreshKey}`}
-                propertyId={id} 
-                type="service_provider"
-                onError={handleError}
-              />
-            )}
+            <InvitationsList 
+              key={`sp-${inviteRefreshKey}`}
+              propertyId={id} 
+              type="service_provider"
+              onError={handleError}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
