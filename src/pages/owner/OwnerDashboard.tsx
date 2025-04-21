@@ -79,6 +79,7 @@ export default function OwnerDashboard() {
                 key={property.id}
                 variants={item}
                 transition={{ delay: index * 0.1 }}
+                className="hover:scale-105 transition-transform duration-300"
               >
                 <PropertyCard
                   id={property.id}

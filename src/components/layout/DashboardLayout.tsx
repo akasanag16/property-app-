@@ -1,3 +1,4 @@
+
 import { ReactNode, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
   LogOut, 
   ChevronLeft, 
   Menu, 
-  BellRing
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -38,7 +39,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           { href: "/owner/properties", label: "Properties", icon: <House className="h-5 w-5" /> },
           { href: "/owner/tenants", label: "Tenants", icon: <Users className="h-5 w-5" /> },
           { href: "/owner/service-providers", label: "Service Providers", icon: <Wrench className="h-5 w-5" /> },
-          { href: "/owner/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
+          { href: "/owner/maintenance", label: "Maintenance", icon: <Settings className="h-5 w-5" /> },
         ];
       case "tenant":
         return [
@@ -63,13 +64,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen flex flex-col md:flex-row bg-gray-100">
+      <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
         {/* Mobile header */}
-        <div className="md:hidden bg-white p-4 flex justify-between items-center border-b">
+        <div className="md:hidden bg-white p-4 flex justify-between items-center border-b shadow-sm">
           <button onClick={toggleSidebar} className="p-2">
             <Menu className="h-6 w-6" />
           </button>
-          <div className="text-lg font-bold">Property Maintenance</div>
+          <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600">Property Maintenance</div>
           <NotificationBell />
         </div>
 
@@ -83,25 +84,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         >
           <div className="flex flex-col h-full">
             {/* Sidebar header */}
-            <div className="p-4 border-b flex justify-between items-center">
-              {sidebarOpen && <h1 className="font-bold text-lg">Property Maintenance</h1>}
+            <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-fuchsia-50 flex justify-between items-center">
+              {sidebarOpen && (
+                <h1 className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600">
+                  Property Maintenance
+                </h1>
+              )}
               <button 
                 onClick={toggleSidebar} 
-                className={cn("p-2 rounded-full hover:bg-gray-100", !sidebarOpen && "mx-auto")}
+                className={cn("p-2 rounded-full hover:bg-white/70", !sidebarOpen && "mx-auto")}
               >
-                <ChevronLeft className={cn("h-5 w-5 transition-transform", !sidebarOpen && "rotate-180")} />
+                <ChevronLeft className={cn("h-5 w-5 transition-transform text-purple-700", !sidebarOpen && "rotate-180")} />
               </button>
             </div>
             
             {/* User info */}
-            <div className={cn("p-4 border-b", !sidebarOpen && "flex justify-center")}>
-              <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
+            <div className={cn("p-4 border-b bg-purple-50/50", !sidebarOpen && "flex justify-center")}>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white flex items-center justify-center font-bold text-lg">
                 {user?.email?.charAt(0).toUpperCase() || "U"}
               </div>
               {sidebarOpen && (
                 <div className="mt-2">
-                  <div className="font-medium truncate">{user?.email}</div>
-                  <div className="text-sm text-gray-500 capitalize">{userRole?.replace("_", " ") || "User"}</div>
+                  <div className="font-medium truncate text-gray-800">{user?.email}</div>
+                  <div className="text-sm text-purple-700 capitalize">{userRole?.replace("_", " ") || "User"}</div>
                 </div>
               )}
             </div>
@@ -114,12 +119,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Link
                       to={link.href}
                       className={cn(
-                        "flex items-center rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100",
-                        location.pathname === link.href && "bg-gray-100 font-medium",
+                        "flex items-center rounded-md px-3 py-2 text-gray-700 hover:bg-purple-50",
+                        location.pathname === link.href && "bg-purple-100 text-purple-700 font-medium",
                         !sidebarOpen && "justify-center px-2"
                       )}
                     >
-                      {link.icon}
+                      <span className={cn(
+                        location.pathname === link.href ? "text-purple-600" : "text-gray-500"
+                      )}>
+                        {link.icon}
+                      </span>
                       {sidebarOpen && <span className="ml-3">{link.label}</span>}
                     </Link>
                   </li>
@@ -131,7 +140,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className={cn("p-4 border-t", !sidebarOpen && "flex justify-center")}>
               <Button 
                 variant="outline" 
-                className={cn("w-full flex items-center justify-center", !sidebarOpen && "w-auto p-2")} 
+                className={cn(
+                  "w-full flex items-center justify-center border-purple-200 hover:bg-purple-50 hover:text-purple-700", 
+                  !sidebarOpen && "w-auto p-2"
+                )} 
                 onClick={signOut}
               >
                 <LogOut className="h-5 w-5" />
@@ -142,7 +154,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Main content */}
-        <div className="flex-1 transition-all duration-300">
+        <div className="flex-1 transition-all duration-300 bg-gradient-to-b from-purple-50/30 to-white">
           <div className="p-4 md:p-6">
             <div className="hidden md:flex justify-end mb-4">
               <NotificationBell />

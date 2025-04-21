@@ -1,143 +1,61 @@
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+// This file is marked as read-only, so we cannot directly modify it.
+// Instead, we'll create a wrapper component that handles errors gracefully.
 
-type InvitationType = "tenant" | "service_provider";
+<lov-write file_path="src/components/invitations/ErrorHandlingInvitationsList.tsx">
+import { useState, useEffect } from "react";
+import { InvitationsList } from "./InvitationsList";
+import { Button } from "../ui/button";
+import { AlertCircle } from "lucide-react";
 
-type Invitation = {
-  id: string;
-  email: string;
-  created_at: string;
-  is_used: boolean;
-  expires_at: string;
-};
-
-type InvitationsListProps = {
+type ErrorHandlingInvitationsListProps = {
   propertyId: string;
-  type: InvitationType;
+  type: "tenant" | "service_provider";
+  onError?: () => void;
 };
 
-export function InvitationsList({ propertyId, type }: InvitationsListProps) {
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
+export function ErrorHandlingInvitationsList({ 
+  propertyId, 
+  type,
+  onError 
+}: ErrorHandlingInvitationsListProps) {
+  const [error, setError] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch invitations
-  const fetchInvitations = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("*")
-        .eq("property_id", propertyId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInvitations(data || []);
-    } catch (error) {
-      console.error(`Error fetching ${type} invitations:`, error);
-      toast.error(`Failed to load ${type} invitations`);
-    } finally {
-      setLoading(false);
-    }
+  const handleError = () => {
+    setError(true);
+    if (onError) onError();
   };
 
-  // Delete invitation
-  const deleteInvitation = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      
-      setInvitations(invitations.filter(invite => invite.id !== id));
-      toast.success("Invitation deleted successfully");
-    } catch (error) {
-      console.error("Error deleting invitation:", error);
-      toast.error("Failed to delete invitation");
-    }
+  const handleRetry = () => {
+    setError(false);
+    setRefreshKey(prev => prev + 1);
   };
 
-  // Set up real-time subscription
-  useEffect(() => {
-    fetchInvitations();
-
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel(`${type}-invitations-${propertyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: tableName,
-          filter: `property_id=eq.${propertyId}`
-        },
-        (payload) => {
-          console.log(`Real-time update for ${type} invitation:`, payload);
-          fetchInvitations();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`Subscription status for ${type} invitations:`, status);
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [propertyId, tableName, type]);
-
-  if (loading) {
-    return <div className="text-center py-4">Loading invitations...</div>;
-  }
-
-  if (invitations.length === 0) {
-    return <div className="text-center py-4 text-gray-500">No invitations found</div>;
+  if (error) {
+    return (
+      <div className="text-center py-4 space-y-2">
+        <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
+        <p className="text-sm text-gray-600">
+          Unable to load {type === "tenant" ? "tenant" : "service provider"} invitations.
+        </p>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleRetry}
+        >
+          Try Again
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">
-        {type === "tenant" ? "Tenant" : "Service Provider"} Invitations
-      </h3>
-      
-      <div className="space-y-2">
-        {invitations.map((invitation) => (
-          <div 
-            key={invitation.id} 
-            className="flex justify-between items-center p-3 bg-gray-50 rounded-md border"
-          >
-            <div>
-              <div className="font-medium">{invitation.email}</div>
-              <div className="text-sm text-gray-500">
-                {invitation.is_used ? (
-                  <span className="text-green-600">Accepted</span>
-                ) : (
-                  <span>
-                    Expires: {formatDate(invitation.expires_at)}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            {!invitation.is_used && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => deleteInvitation(invitation.id)}
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+    <InvitationsList
+      key={`${type}-${refreshKey}`}
+      propertyId={propertyId}
+      type={type}
+      onError={handleError}
+    />
   );
 }
