@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,6 @@ export function AuthForm() {
   const [role, setRole] = useState<UserRole>("owner");
   const [loading, setLoading] = useState(false);
   
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -35,20 +34,23 @@ export function AuthForm() {
     try {
       if (mode === "signup") {
         await signUp({ email, password, role, firstName, lastName });
-        toast({
-          title: "Account created",
-          description: "Please check your email to verify your account.",
-        });
+        toast.success(
+          "Account created! Please check your email to verify your account."
+        );
+        // Switch to login mode after signup
+        setMode("login");
       } else {
-        await signIn({ email, password });
-        navigate("/dashboard");
+        const { session } = await signIn({ email, password });
+        if (session) {
+          toast.success("Signed in successfully");
+          navigate("/dashboard");
+        }
       }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
-      });
+      console.error("Auth error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Authentication failed"
+      );
     } finally {
       setLoading(false);
     }

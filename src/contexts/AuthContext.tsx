@@ -27,17 +27,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // First, set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
         if (event === "SIGNED_OUT") {
           setUserRole(null);
+        } else if (event === "SIGNED_IN" && currentSession?.user) {
+          // When signed in, fetch user role
+          fetchUserRole(currentSession.user.id);
         }
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Existing session:", currentSession);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user role from profiles table
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log("Fetching user role for:", userId);
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
@@ -68,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
+        console.log("User role fetched:", data.role);
         setUserRole(data.role as UserRole);
       }
     } catch (error) {
