@@ -30,13 +30,15 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       const tableName = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       const linkToken = crypto.randomUUID();
       
-      // Direct insertion without using a policy that could cause recursion
-      const { error: inviteError } = await supabase.rpc('create_invitation', {
-        p_property_id: propertyId,
-        p_email: email,
-        p_link_token: linkToken,
-        p_type: inviteType
-      });
+      // Direct insertion to the invitation table
+      const { error: inviteError } = await supabase
+        .from(tableName)
+        .insert({
+          property_id: propertyId,
+          email: email,
+          link_token: linkToken,
+          status: 'pending'
+        });
 
       if (inviteError) throw inviteError;
 

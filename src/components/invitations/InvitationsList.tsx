@@ -26,11 +26,14 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       setLoading(true);
       setError(false);
 
-      // Using RPC function to avoid recursion issues in RLS policies
-      const { data, error: fetchError } = await supabase.rpc('get_property_invitations', {
-        p_property_id: propertyId,
-        p_type: type
-      });
+      const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
+      
+      // Direct query to the invitation table instead of using RPC function
+      const { data, error: fetchError } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
