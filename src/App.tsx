@@ -15,6 +15,10 @@ import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import TenantDashboard from "./pages/tenant/TenantDashboard";
 import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
 import Unauthorized from "./pages/Unauthorized";
+import OwnerTenants from "./pages/owner/OwnerTenants";
+import OwnerServiceProviders from "./pages/owner/OwnerServiceProviders";
+import OwnerMaintenance from "./pages/owner/OwnerMaintenance";
+import OwnerProperties from "./pages/owner/OwnerProperties";
 
 const queryClient = new QueryClient();
 
@@ -40,16 +44,24 @@ const App = () => (
             {/* Owner-specific routes */}
             <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
               <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+              <Route path="/owner/properties" element={<OwnerProperties />} />
+              <Route path="/owner/tenants" element={<OwnerTenants />} />
+              <Route path="/owner/service-providers" element={<OwnerServiceProviders />} />
+              <Route path="/owner/maintenance" element={<OwnerMaintenance />} />
             </Route>
             
             {/* Tenant-specific routes */}
             <Route element={<ProtectedRoute allowedRoles={["tenant"]} />}>
               <Route path="/tenant-dashboard" element={<TenantDashboard />} />
+              <Route path="/tenant/properties" element={<TenantDashboard />} />
+              <Route path="/tenant/maintenance" element={<TenantDashboard />} />
             </Route>
             
             {/* Service provider-specific routes */}
             <Route element={<ProtectedRoute allowedRoles={["service_provider"]} />}>
               <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
+              <Route path="/service-provider/properties" element={<ServiceProviderDashboard />} />
+              <Route path="/service-provider/maintenance" element={<ServiceProviderDashboard />} />
             </Route>
             
             {/* Not found route */}

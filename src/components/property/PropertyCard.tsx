@@ -25,10 +25,22 @@ type PropertyCardProps = {
 
 export function PropertyCard({ id, name, address }: PropertyCardProps) {
   const [inviteRefreshKey, setInviteRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState("invite");
 
   const handleInviteSuccess = () => {
     // Force refresh invitations list when new invite is created
     setInviteRefreshKey(prev => prev + 1);
+    
+    // Switch to the appropriate tab based on the last invite type
+    const inviteForm = document.querySelector('form') as HTMLFormElement;
+    const inviteTypeSelect = inviteForm?.querySelector('[id^="radix-"][role="combobox"]') as HTMLElement;
+    const selectedValue = inviteTypeSelect?.getAttribute('data-value') || 'tenant';
+    
+    if (selectedValue === 'tenant') {
+      setActiveTab('tenants');
+    } else {
+      setActiveTab('service-providers');
+    }
   };
 
   return (
@@ -38,7 +50,7 @@ export function PropertyCard({ id, name, address }: PropertyCardProps) {
         <CardDescription>{address}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="invite" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="invite">Invite</TabsTrigger>
             <TabsTrigger value="tenants">Tenants</TabsTrigger>

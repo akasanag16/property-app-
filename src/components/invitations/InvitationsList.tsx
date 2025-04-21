@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 type InvitationType = "tenant" | "service_provider";
 
@@ -28,6 +29,7 @@ export function InvitationsList({ propertyId, type }: InvitationsListProps) {
   // Fetch invitations
   const fetchInvitations = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
@@ -68,7 +70,7 @@ export function InvitationsList({ propertyId, type }: InvitationsListProps) {
 
     // Subscribe to real-time changes
     const channel = supabase
-      .channel('table-db-changes')
+      .channel(`${type}-invitations-${propertyId}`)
       .on(
         'postgres_changes',
         {
@@ -78,25 +80,18 @@ export function InvitationsList({ propertyId, type }: InvitationsListProps) {
           filter: `property_id=eq.${propertyId}`
         },
         (payload) => {
-          // Refresh the list when data changes
+          console.log(`Real-time update for ${type} invitation:`, payload);
           fetchInvitations();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Subscription status for ${type} invitations:`, status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [propertyId, tableName]);
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  }, [propertyId, tableName, type]);
 
   if (loading) {
     return <div className="text-center py-4">Loading invitations...</div>;

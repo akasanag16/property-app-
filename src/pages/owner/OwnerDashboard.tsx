@@ -35,9 +35,11 @@ export default function OwnerDashboard() {
   // Fetch properties
   const fetchProperties = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("properties")
         .select("*")
+        .eq("owner_id", user?.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -70,18 +72,21 @@ export default function OwnerDashboard() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding property:", error);
+        throw error;
+      }
       
       // Add new property to state
       if (data) {
+        setProperties([data, ...properties]);
         toast.success("Property added successfully");
         setNewProperty({ name: "", address: "" });
         setIsAddPropertyOpen(false);
-        // Properties will be updated through the real-time subscription
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding property:", error);
-      toast.error("Failed to add property");
+      toast.error(error.message || "Failed to add property");
     } finally {
       setAddingProperty(false);
     }
@@ -89,17 +94,20 @@ export default function OwnerDashboard() {
 
   // Set up real-time subscription
   useEffect(() => {
+    if (!user?.id) return;
+    
     fetchProperties();
 
     // Subscribe to real-time changes
     const channel = supabase
-      .channel('table-db-changes')
+      .channel('property-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'properties',
+          filter: `owner_id=eq.${user.id}`,
         },
         (payload) => {
           // Refresh the list when data changes
@@ -111,7 +119,7 @@ export default function OwnerDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <DashboardLayout>

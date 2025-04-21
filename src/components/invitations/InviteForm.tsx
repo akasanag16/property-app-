@@ -42,14 +42,17 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           link_token: linkToken,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error sending invitation:", error);
+        throw error;
+      }
       
       toast.success(`Invitation sent to ${email}`);
       setEmail("");
       if (onInviteSuccess) onInviteSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending invitation:", error);
-      toast.error("Failed to send invitation");
+      toast.error(error.message || "Failed to send invitation");
     } finally {
       setLoading(false);
     }
