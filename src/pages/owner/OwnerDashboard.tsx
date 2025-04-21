@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PropertyCard } from "@/components/property/PropertyCard";
@@ -7,36 +7,32 @@ import { PropertyForm } from "@/components/property/PropertyForm";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyPropertyState } from "@/components/property/EmptyPropertyState";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { useProperties } from "@/hooks/useProperties";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { GradientCard } from "@/components/ui/gradient-card";
-import { Building, Home, Users, Wrench } from "lucide-react";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 export default function OwnerDashboard() {
   const { user } = useAuth();
   const { properties, loading, handleRefresh } = useProperties(user?.id);
   const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
 
-  const handleOpenPropertyForm = () => {
-    setShowAddPropertyForm(true);
-  };
-
-  const handleClosePropertyForm = () => {
-    setShowAddPropertyForm(false);
-  };
-
-  const handlePropertyFormSuccess = () => {
-    handleRefresh();
-    handleClosePropertyForm();
-    toast.success("Property added successfully");
-  };
-
-  // Count properties that likely have tenants (using details.type as a proxy since status doesn't exist)
+  // Count properties that likely have tenants (using details.type as a proxy)
   const occupiedPropertiesCount = properties.filter(p => 
     p.details?.type === 'apartment' || p.details?.type === 'house'
   ).length;
+
+  // Notify user when realtime is active
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      toast.info("Real-time updates active", {
+        description: "Property changes will appear automatically",
+        duration: 4000,
+      });
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const container = {
     hidden: { opacity: 0 },
@@ -59,76 +55,18 @@ export default function OwnerDashboard() {
         <DashboardHeader 
           email={user?.email}
           onRefresh={handleRefresh}
-          onAddProperty={handleOpenPropertyForm}
+          onAddProperty={() => setShowAddPropertyForm(true)}
         />
 
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          <motion.div variants={item}>
-            <GradientCard gradient="purple" className="relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <Building className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">
-                <AnimatedCounter from={0} to={properties.length} />
-              </h3>
-              <p className="text-sm text-gray-600">Total Properties</p>
-            </GradientCard>
-          </motion.div>
-
-          <motion.div variants={item}>
-            <GradientCard gradient="blue" className="relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Home className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">
-                <AnimatedCounter from={0} to={occupiedPropertiesCount} />
-              </h3>
-              <p className="text-sm text-gray-600">Occupied Properties</p>
-            </GradientCard>
-          </motion.div>
-
-          <motion.div variants={item}>
-            <GradientCard gradient="green" className="relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">
-                <AnimatedCounter from={0} to={12} />
-              </h3>
-              <p className="text-sm text-gray-600">Active Tenants</p>
-            </GradientCard>
-          </motion.div>
-
-          <motion.div variants={item}>
-            <GradientCard gradient="orange" className="relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Wrench className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">
-                <AnimatedCounter from={0} to={5} />
-              </h3>
-              <p className="text-sm text-gray-600">Pending Maintenance</p>
-            </GradientCard>
-          </motion.div>
-        </motion.div>
+        <DashboardStats 
+          properties={properties} 
+          occupiedCount={occupiedPropertiesCount} 
+        />
 
         {loading ? (
           <LoadingSpinner />
         ) : properties.length === 0 ? (
-          <EmptyPropertyState onAddProperty={handleOpenPropertyForm} />
+          <EmptyPropertyState onAddProperty={() => setShowAddPropertyForm(true)} />
         ) : (
           <motion.div 
             variants={container}
@@ -156,8 +94,8 @@ export default function OwnerDashboard() {
       {showAddPropertyForm && (
         <PropertyForm
           isOpen={showAddPropertyForm}
-          onClose={handleClosePropertyForm}
-          onSuccess={handlePropertyFormSuccess}
+          onClose={() => setShowAddPropertyForm(false)}
+          onSuccess={handleRefresh}
         />
       )}
     </DashboardLayout>
