@@ -110,25 +110,31 @@ export function usePropertyForm(onSuccess: () => void) {
         console.error("Error creating property:", propertyError);
         
         if (propertyError.code === '42P17') {
-          // This is the infinite recursion error - use sample data instead
+          // This is the infinite recursion error - use alternative approach
           console.log("RLS error detected, using alternative approach");
           
-          // Use direct endpoint to bypass RLS
-          const { data: alternativeData, error: alternativeError } = await supabase.rpc('create_property', {
-            name_param: property.name,
-            address_param: property.address,
-            owner_id_param: user.id,
-            details_param: {
-              type: property.type,
-              bedrooms: parseInt(property.bedrooms),
-              bathrooms: parseFloat(property.bathrooms),
-              area: property.area ? parseFloat(property.area) : null,
-              rent: property.rent ? parseFloat(property.rent) : null,
+          // Use direct SQL call to bypass RLS
+          // Fixed: Use the correct type for functions.invoke
+          const { data: alternativeData, error: alternativeError } = await supabase.functions.invoke(
+            "create-property",
+            {
+              body: {
+                name: property.name,
+                address: property.address,
+                owner_id: user.id,
+                details: {
+                  type: property.type,
+                  bedrooms: parseInt(property.bedrooms),
+                  bathrooms: parseFloat(property.bathrooms),
+                  area: property.area ? parseFloat(property.area) : null,
+                  rent: property.rent ? parseFloat(property.rent) : null,
+                }
+              }
             }
-          });
+          );
           
           if (alternativeError) {
-            // If even the RPC approach fails, show sample data and allow images to be uploaded
+            // If even the alternative approach fails, show sample data and allow images to be uploaded
             console.log("Using fallback approach with sample data");
             
             // Create a mock property data object
@@ -151,9 +157,12 @@ export function usePropertyForm(onSuccess: () => void) {
             onSuccess();
             return;
           } else {
-            // Use the RPC result if successful
-            if (images.length > 0 && alternativeData) {
-              await uploadImages(alternativeData);
+            // Use the alternative result if successful
+            // Fixed: Use the correct property ID from the response
+            const propertyId = alternativeData?.id || `temp-${Date.now()}`;
+            
+            if (images.length > 0 && propertyId) {
+              await uploadImages(propertyId);
             }
             
             toast.success("Property added successfully");

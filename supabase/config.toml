@@ -1,1 +1,15 @@
+
 project_id = "smooniqpqenxdbkceppn"
+
+[api]
+enabled = true
+port = 8080
+schemas = ["public", "storage"]
+
+[db]
+port = 5432
+shadow_port = 5433
+major_version = 15
+
+[functions.create-property]
+verify_jwt = true
