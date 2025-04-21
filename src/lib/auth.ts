@@ -17,7 +17,7 @@ export async function signUp({
   firstName: string;
   lastName: string;
 }) {
-  // First check if the user already exists to provide a clearer message
+  // First check if the user already exists
   const { data: existingUser } = await supabase
     .from('profiles')
     .select('id')
@@ -37,6 +37,8 @@ export async function signUp({
         first_name: firstName,
         last_name: lastName,
       },
+      // Since email confirmation is disabled, users can sign in immediately
+      emailRedirectTo: `${window.location.origin}/auth`,
     },
   });
   

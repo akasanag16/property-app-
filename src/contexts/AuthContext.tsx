@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,20 +25,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // First, set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession);
         
-        // Only update session and user if the session has changed
-        if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
+        if (currentSession?.user) {
           setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-        }
-
-        if (event === "SIGNED_OUT") {
+          setUser(currentSession.user);
+          // Fetch user role immediately since email confirmation is disabled
+          await fetchUserRole(currentSession.user.id);
+        } else {
+          setSession(null);
+          setUser(null);
           setUserRole(null);
-        } else if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && currentSession?.user) {
-          // Fetch user role on sign in or token refresh
-          fetchUserRole(currentSession.user.id);
         }
       }
     );
@@ -48,16 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log("Existing session:", currentSession);
         
-        if (currentSession) {
+        if (currentSession?.user) {
           setSession(currentSession);
           setUser(currentSession.user);
-          
-          // Get user role from profiles table
-          if (currentSession.user) {
-            await fetchUserRole(currentSession.user.id);
-          }
+          await fetchUserRole(currentSession.user.id);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);

@@ -15,12 +15,14 @@ import {
 import { signUp, type UserRole } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export function SignupForm({
   onModeChange,
 }: {
   onModeChange: (mode: "login") => void;
 }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -39,13 +41,17 @@ export function SignupForm({
         throw new Error("Please provide both first and last name");
       }
       
-      await signUp({ email, password, role, firstName, lastName });
-      toast.success("Account created! Please check your email to verify your account.");
-      onModeChange("login");
+      const { user } = await signUp({ email, password, role, firstName, lastName });
+      
+      if (user) {
+        toast.success("Account created successfully! You can now sign in.");
+        // Since email confirmation is disabled, redirect to dashboard
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Auth error:", error);
-      setError(error instanceof Error ? error.message : "Authentication failed");
-      toast.error(error instanceof Error ? error.message : "Authentication failed");
+      setError(error instanceof Error ? error.message : "Registration failed");
+      toast.error(error instanceof Error ? error.message : "Registration failed");
     } finally {
       setLoading(false);
     }
