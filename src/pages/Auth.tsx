@@ -1,7 +1,7 @@
 
 import { AuthForm } from "@/components/auth/AuthForm";
 import { motion } from "framer-motion";
-import { TenantIcon, HomeIcon, ToolIcon } from "lucide-react";
+import { Home as HomeIcon, User as TenantIcon, Wrench as ToolIcon } from "lucide-react";
 
 export default function Auth() {
   return (
