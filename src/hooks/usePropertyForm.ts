@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,9 +80,10 @@ export function usePropertyForm(onSuccess: () => void) {
       setIsSubmitting(true);
       console.log("Adding property for user ID:", user.id);
       
-      // Create a timeout to abort the request if it takes too long
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => {
+        setIsSubmitting(false);
+        toast.error("Request timed out. Please try again.");
+      }, 10000);
       
       const { data: propertyData, error: propertyError } = await supabase
         .from("properties")
@@ -100,8 +100,7 @@ export function usePropertyForm(onSuccess: () => void) {
           }
         })
         .select()
-        .single()
-        .abortSignal(controller.signal);
+        .single();
       
       clearTimeout(timeoutId);
       
@@ -109,7 +108,6 @@ export function usePropertyForm(onSuccess: () => void) {
         console.error("Error creating property:", propertyError);
         
         if (propertyError.code === '42P17') {
-          // Handle infinite recursion error specifically
           toast.error("There's an issue with the database permissions. Please contact support.");
           return;
         }
