@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 
 type Property = {
   id: string;
@@ -31,6 +31,12 @@ export default function OwnerDashboard() {
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [newProperty, setNewProperty] = useState({ name: "", address: "" });
   const [addingProperty, setAddingProperty] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   // Fetch properties
   const fetchProperties = async () => {
@@ -38,7 +44,7 @@ export default function OwnerDashboard() {
       setLoading(true);
       const { data, error } = await supabase
         .from("properties")
-        .select("*")
+        .select("id, name, address, created_at")
         .eq("owner_id", user?.id)
         .order("created_at", { ascending: false });
 
@@ -109,7 +115,7 @@ export default function OwnerDashboard() {
           table: 'properties',
           filter: `owner_id=eq.${user.id}`,
         },
-        (payload) => {
+        () => {
           // Refresh the list when data changes
           fetchProperties();
         }
@@ -119,51 +125,58 @@ export default function OwnerDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, refreshKey]);
 
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Property Owner Dashboard</h1>
         
-        <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Property
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Property</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddProperty} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Property Name</Label>
-                <Input
-                  id="name"
-                  value={newProperty.name}
-                  onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
-                  placeholder="Enter property name"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={newProperty.address}
-                  onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
-                  placeholder="Enter property address"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={addingProperty}>
-                {addingProperty ? "Adding..." : "Add Property"}
+        <div className="flex space-x-2">
+          <Button size="sm" variant="outline" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          
+          <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Property
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Property</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddProperty} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Property Name</Label>
+                  <Input
+                    id="name"
+                    value={newProperty.name}
+                    onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
+                    placeholder="Enter property name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={newProperty.address}
+                    onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
+                    placeholder="Enter property address"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={addingProperty}>
+                  {addingProperty ? "Adding..." : "Add Property"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       
       <p className="text-gray-600 mb-8">Welcome, {user?.email}</p>
