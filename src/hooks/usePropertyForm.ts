@@ -86,7 +86,7 @@ export function usePropertyForm(onSuccess: () => void) {
         toast.error("Request timed out. Please try again.");
       }, 10000);
       
-      // Use a simpler query approach to avoid the infinite recursion
+      // Try direct insertion first
       const { data: propertyData, error: propertyError } = await supabase
         .from("properties")
         .insert({
@@ -109,15 +109,15 @@ export function usePropertyForm(onSuccess: () => void) {
       if (propertyError) {
         console.error("Error creating property:", propertyError);
         
-        if (propertyError.code === '42P17') {
+        if (propertyError.code === '42P17' || propertyError.message?.includes('infinite recursion')) {
           // This is the infinite recursion error - use alternative approach
-          console.log("RLS error detected, using alternative approach");
+          console.log("RLS error detected, using edge function");
           
-          // Use direct SQL call to bypass RLS
-          // Fixed: Use the correct type for functions.invoke
+          // Use edge function to bypass RLS
           const { data: alternativeData, error: alternativeError } = await supabase.functions.invoke(
             "create-property",
             {
+              method: "POST",
               body: {
                 name: property.name,
                 address: property.address,
@@ -134,6 +134,7 @@ export function usePropertyForm(onSuccess: () => void) {
           );
           
           if (alternativeError) {
+            console.error("Error using edge function:", alternativeError);
             // If even the alternative approach fails, show sample data and allow images to be uploaded
             console.log("Using fallback approach with sample data");
             

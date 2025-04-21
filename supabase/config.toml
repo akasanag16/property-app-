@@ -13,3 +13,4 @@ major_version = 15
 
 [functions.create-property]
 verify_jwt = true
+
