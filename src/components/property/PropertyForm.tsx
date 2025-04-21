@@ -92,6 +92,8 @@ export function PropertyForm({ isOpen, onClose, onSuccess }: PropertyFormProps) 
     try {
       setIsSubmitting(true);
       
+      console.log("Adding property for user ID:", user.id);
+      
       // Insert the property into the database
       const { data: propertyData, error: propertyError } = await supabase
         .from("properties")
@@ -110,39 +112,57 @@ export function PropertyForm({ isOpen, onClose, onSuccess }: PropertyFormProps) 
         .select()
         .single();
       
-      if (propertyError) throw propertyError;
+      if (propertyError) {
+        console.error("Error creating property:", propertyError);
+        throw propertyError;
+      }
+      
+      console.log("Property created:", propertyData);
       
       // Upload images if we have a property ID and files to upload
       if (propertyData.id && images.length > 0) {
-        const uploadPromises = images.map(async (file, index) => {
-          const fileExt = file.name.split('.').pop();
-          const filePath = `${propertyData.id}/${Date.now()}-${index}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('property-images')
-            .upload(filePath, file);
+        try {
+          for (let i = 0; i < images.length; i++) {
+            const file = images[i];
+            const fileExt = file.name.split('.').pop();
+            const filePath = `${propertyData.id}/${Date.now()}-${i}.${fileExt}`;
             
-          if (uploadError) throw uploadError;
-          
-          // Get the public URL for the uploaded image
-          const { data: publicUrlData } = supabase.storage
-            .from('property-images')
-            .getPublicUrl(filePath);
+            console.log("Uploading image:", filePath);
             
-          // Insert the image reference into the property_images table
-          const { error: imageError } = await supabase
-            .from('property_images')
-            .insert({
-              property_id: propertyData.id,
-              url: publicUrlData.publicUrl,
-              is_primary: index === 0, // Make first image the primary one
-            });
+            const { error: uploadError } = await supabase.storage
+              .from('property_images')
+              .upload(filePath, file);
+              
+            if (uploadError) {
+              console.error("Error uploading image:", uploadError);
+              throw uploadError;
+            }
             
-          if (imageError) throw imageError;
-        });
-        
-        // Wait for all uploads to complete
-        await Promise.all(uploadPromises);
+            // Get the public URL for the uploaded image
+            const { data: publicUrlData } = supabase.storage
+              .from('property_images')
+              .getPublicUrl(filePath);
+              
+            console.log("Image URL:", publicUrlData.publicUrl);
+            
+            // Insert the image reference into the property_images table
+            const { error: imageError } = await supabase
+              .from('property_images')
+              .insert({
+                property_id: propertyData.id,
+                url: publicUrlData.publicUrl,
+                is_primary: i === 0, // Make first image the primary one
+              });
+              
+            if (imageError) {
+              console.error("Error saving image reference:", imageError);
+              throw imageError;
+            }
+          }
+        } catch (uploadError) {
+          console.error("Error processing images:", uploadError);
+          toast.error("Property added but there was an issue with uploading images");
+        }
       }
       
       toast.success("Property added successfully");
@@ -163,9 +183,9 @@ export function PropertyForm({ isOpen, onClose, onSuccess }: PropertyFormProps) 
       // Close modal and notify parent
       onClose();
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding property:", error);
-      toast.error("Failed to add property");
+      toast.error(error.message || "Failed to add property");
     } finally {
       setIsSubmitting(false);
     }
