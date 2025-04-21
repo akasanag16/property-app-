@@ -25,11 +25,13 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       setLoading(true);
       setError(false);
 
+      // Determine which table to query based on the type
+      const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
+      
       const { data, error } = await supabase
-        .from("invitations")
+        .from(tableName)
         .select("*")
         .eq("property_id", propertyId)
-        .eq("role", type)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
