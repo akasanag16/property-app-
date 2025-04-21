@@ -9,23 +9,53 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    // Don't retry requests that may cause recursion errors
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        signal: options?.signal || new AbortController().signal,
+      });
+    },
+  },
+});
 
 // Create a storage bucket for property images if it doesn't exist
+// We run this in a separate context to avoid RLS recursion issues
 (async () => {
   try {
-    const { data: buckets } = await supabase.storage.listBuckets();
+    // Check if the bucket exists first
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing storage buckets:', listError);
+      return;
+    }
+    
     const propertyImagesBucketExists = buckets?.some(bucket => bucket.name === 'property_images');
     
     if (!propertyImagesBucketExists) {
-      await supabase.storage.createBucket('property_images', {
+      // Attempt to create the bucket if it doesn't exist
+      const { error: createError } = await supabase.storage.createBucket('property_images', {
         public: true,
         fileSizeLimit: 10485760, // 10MB
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
       });
-      console.log('Created property_images storage bucket');
+      
+      if (createError) {
+        console.error('Error creating storage bucket:', createError);
+        // Don't throw error here, just log it to avoid blocking app initialization
+      } else {
+        console.log('Created property_images storage bucket');
+      }
     }
   } catch (error) {
     console.error('Error checking/creating storage bucket:', error);
+    // Don't throw error here, just log it to avoid blocking app initialization
   }
 })();

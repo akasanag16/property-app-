@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +81,10 @@ export function usePropertyForm(onSuccess: () => void) {
       setIsSubmitting(true);
       console.log("Adding property for user ID:", user.id);
       
+      // Create a timeout to abort the request if it takes too long
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const { data: propertyData, error: propertyError } = await supabase
         .from("properties")
         .insert({
@@ -95,14 +100,24 @@ export function usePropertyForm(onSuccess: () => void) {
           }
         })
         .select()
-        .single();
+        .single()
+        .abortSignal(controller.signal);
+      
+      clearTimeout(timeoutId);
       
       if (propertyError) {
         console.error("Error creating property:", propertyError);
+        
+        if (propertyError.code === '42P17') {
+          // Handle infinite recursion error specifically
+          toast.error("There's an issue with the database permissions. Please contact support.");
+          return;
+        }
+        
         throw propertyError;
       }
       
-      if (propertyData.id && images.length > 0) {
+      if (propertyData?.id && images.length > 0) {
         await uploadImages(propertyData.id);
       }
       
@@ -111,7 +126,14 @@ export function usePropertyForm(onSuccess: () => void) {
       onSuccess();
     } catch (error: any) {
       console.error("Error adding property:", error);
-      toast.error(error.message || "Failed to add property");
+      
+      if (error.message?.includes('AbortError')) {
+        toast.error("Request timed out. Please try again.");
+      } else if (error.code === '42P17' || error.message?.includes('infinite recursion')) {
+        toast.error("There's an issue with the database permissions. Please try refreshing the page.");
+      } else {
+        toast.error(error.message || "Failed to add property");
+      }
     } finally {
       setIsSubmitting(false);
     }
