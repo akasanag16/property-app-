@@ -17,6 +17,17 @@ export async function signUp({
   firstName: string;
   lastName: string;
 }) {
+  // First check if the user already exists to provide a clearer message
+  const { data: existingUser } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', email)
+    .maybeSingle();
+
+  if (existingUser) {
+    throw new Error("An account with this email already exists. Please sign in instead.");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -40,6 +51,13 @@ export async function signIn({
   email: string;
   password: string;
 }) {
+  // Clear any existing sessions before signing in to prevent conflicts
+  try {
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.log("Error clearing existing session:", error);
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,

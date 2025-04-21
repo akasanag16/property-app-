@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -24,18 +25,20 @@ export function AuthForm() {
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<UserRole>("owner");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       if (mode === "signup") {
         await signUp({ email, password, role, firstName, lastName });
         toast.success(
-          "Account created! Please check your email to verify your account."
+          "Account created! Please sign in with your new credentials."
         );
         // Switch to login mode after signup
         setMode("login");
@@ -44,13 +47,15 @@ export function AuthForm() {
         if (session) {
           toast.success("Signed in successfully");
           navigate("/dashboard");
+        } else {
+          // This should rarely happen, but just in case
+          setError("Login successful but no session was created. Please try again.");
         }
       }
     } catch (error) {
       console.error("Auth error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Authentication failed"
-      );
+      setError(error instanceof Error ? error.message : "Authentication failed");
+      toast.error(error instanceof Error ? error.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -61,6 +66,12 @@ export function AuthForm() {
       <div className="text-center">
         <h2 className="text-2xl font-bold">{mode === "login" ? "Sign In" : "Create Account"}</h2>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {mode === "signup" && (
