@@ -39,7 +39,45 @@ serve(async (req) => {
         throw new Error("Missing token or email");
       }
       
-      result = await validateToken(supabase, token, email);
+      // Query the database directly to validate the token
+      const { data, error } = await supabase.from('tenant_invitations')
+        .select('property_id')
+        .eq('link_token', token)
+        .eq('email', email)
+        .eq('is_used', false)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (data) {
+        result = {
+          valid: true,
+          propertyId: data.property_id,
+          role: 'tenant'
+        };
+      } else {
+        // Check service provider invitations
+        const { data: spData, error: spError } = await supabase.from('service_provider_invitations')
+          .select('property_id')
+          .eq('link_token', token)
+          .eq('email', email)
+          .eq('is_used', false)
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
+        
+        if (spError) throw spError;
+        
+        if (spData) {
+          result = {
+            valid: true,
+            propertyId: spData.property_id,
+            role: 'service_provider'
+          };
+        } else {
+          result = { valid: false };
+        }
+      }
     } 
     else if (action === "acceptInvitation") {
       // Accept an invitation and set up the account
@@ -91,26 +129,6 @@ serve(async (req) => {
     );
   }
 });
-
-async function validateToken(supabase, token, email) {
-  // Use the stored procedure to validate the token
-  const { data, error } = await supabase.rpc('validate_invitation_token', {
-    token,
-    email
-  });
-  
-  if (error) throw error;
-  
-  if (!data || data.length === 0 || !data[0].is_valid) {
-    return { valid: false };
-  }
-  
-  return {
-    valid: true,
-    propertyId: data[0].property_id,
-    role: data[0].role
-  };
-}
 
 async function acceptInvitation(supabase, { token, email, userId, propertyId, role }) {
   // Start a transaction

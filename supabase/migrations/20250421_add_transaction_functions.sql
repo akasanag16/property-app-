@@ -6,7 +6,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- This function starts a transaction
+  -- Begin a transaction
+  -- Since transactions are automatically started in Postgres,
+  -- this is mostly for consistency in the API
+  NULL;
 END;
 $$;
 
@@ -16,7 +19,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- This function commits a transaction
+  -- Commit the current transaction
+  COMMIT;
 END;
 $$;
 
@@ -26,7 +30,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- This function rolls back a transaction
+  -- Roll back the current transaction
+  ROLLBACK;
 END;
 $$;
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,14 +42,17 @@ export default function AcceptInvitation() {
           return;
         }
 
-        // Use the new validation function
-        const { data, error } = await supabase.rpc('validate_invitation_token', {
-          token,
-          email
+        // Use the edge function to validate the token
+        const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
+          body: { 
+            action: "validateToken",
+            token,
+            email
+          }
         });
 
-        if (error || !data || !data.length || !data[0].is_valid) {
-          console.error("Invitation validation error:", error || "Invalid token");
+        if (functionError || !data || !data.valid) {
+          console.error("Invitation validation error:", functionError || "Invalid token");
           setError("This invitation is invalid or has expired.");
           setValidating(false);
           return;
@@ -63,8 +65,8 @@ export default function AcceptInvitation() {
         setInvitationData({
           token,
           email,
-          propertyId: data[0].property_id,
-          role: data[0].role as UserRole
+          propertyId: data.propertyId,
+          role: data.role as UserRole
         });
         
         setIsValid(true);
@@ -101,61 +103,23 @@ export default function AcceptInvitation() {
     setError("");
     
     try {
-      // 1. Sign up the user with the specified role
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: invitationData.role,
-            first_name: firstName,
-            last_name: lastName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      // Use the edge function to create the user and accept the invitation
+      const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
+        body: {
+          action: "createInvitedUser",
+          token: invitationData.token,
+          email: invitationData.email,
+          propertyId: invitationData.propertyId,
+          role: invitationData.role,
+          firstName,
+          lastName,
+          password
         }
       });
       
-      if (signUpError) throw signUpError;
+      if (functionError) throw new Error(functionError.message);
       
-      // 2. Create the appropriate link record based on role
-      if (invitationData.role === 'tenant') {
-        // Create tenant-property link
-        const { error: linkError } = await supabase
-          .from('tenant_property_link')
-          .insert({
-            tenant_id: signUpData.user?.id,
-            property_id: invitationData.propertyId
-          });
-          
-        if (linkError) throw linkError;
-        
-        // Mark invitation as used
-        await supabase
-          .from('tenant_invitations')
-          .update({ is_used: true })
-          .eq('link_token', invitationData.token)
-          .eq('email', invitationData.email);
-      } 
-      else if (invitationData.role === 'service_provider') {
-        // Create service provider-property link
-        const { error: linkError } = await supabase
-          .from('service_provider_property_link')
-          .insert({
-            service_provider_id: signUpData.user?.id,
-            property_id: invitationData.propertyId
-          });
-          
-        if (linkError) throw linkError;
-        
-        // Mark invitation as used
-        await supabase
-          .from('service_provider_invitations')
-          .update({ is_used: true })
-          .eq('link_token', invitationData.token)
-          .eq('email', invitationData.email);
-      }
-      
-      toast.success("Account created successfully! Please verify your email.");
+      toast.success("Account created successfully! Please sign in to continue.");
       setTimeout(() => navigate("/auth"), 2000);
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
