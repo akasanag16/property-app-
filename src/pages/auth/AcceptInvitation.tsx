@@ -146,12 +146,17 @@ export default function AcceptInvitation() {
 
       // Create property link
       const linkTable = type === "tenant" ? "tenant_property_link" : "service_provider_property_link";
-      const linkColumn = type === "tenant" ? "tenant_id" : "service_provider_id";
       
-      const linkData = {
-        property_id: invitationData.propertyId,
-        [linkColumn]: authData.user.id,
-      };
+      // Create properly typed link data based on the user type
+      const linkData = type === "tenant" 
+        ? {
+            property_id: invitationData.propertyId,
+            tenant_id: authData.user.id
+          }
+        : {
+            property_id: invitationData.propertyId,
+            service_provider_id: authData.user.id
+          };
 
       const { error: linkError } = await supabase
         .from(linkTable)

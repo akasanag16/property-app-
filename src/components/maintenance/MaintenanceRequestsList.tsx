@@ -62,7 +62,22 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
       const { data, error } = await query;
 
       if (error) throw error;
-      setRequests(data || []);
+      
+      // Ensure we're properly handling the data typing
+      const typedData = data?.map(item => {
+        // Make sure tenant property always has the expected shape
+        if (!item.tenant || typeof item.tenant === 'string' || 'error' in item.tenant) {
+          // If tenant is missing or malformed, provide default values
+          item.tenant = {
+            first_name: 'Unknown',
+            last_name: 'User',
+            email: 'unknown@example.com'
+          };
+        }
+        return item as MaintenanceRequest;
+      }) || [];
+      
+      setRequests(typedData);
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
       toast.error("Failed to load maintenance requests");
