@@ -34,10 +34,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Fetch existing notifications
     const fetchNotifications = async () => {
       const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .rpc('get_user_notifications', { user_id_param: user.id })
+        .then(result => {
+          if (result.error) {
+            throw result.error;
+          }
+          return { data: result.data as Notification[], error: null };
+        })
+        .catch(err => {
+          console.error('Error in get_user_notifications RPC:', err);
+          
+          // Fallback to raw SQL query if RPC doesn't exist yet
+          return supabase.from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+        });
 
       if (error) {
         console.error('Error fetching notifications:', error);
@@ -83,10 +95,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   const markAsRead = async (id: string) => {
+    // Use raw SQL via RPC to update the notification
     const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', id);
+      .rpc('mark_notification_as_read', { notification_id_param: id })
+      .then(result => {
+        if (result.error) {
+          throw result.error;
+        }
+        return { error: null };
+      })
+      .catch(err => {
+        console.error('Error in mark_notification_as_read RPC:', err);
+        
+        // Fallback to a raw query if the RPC doesn't exist yet
+        return supabase.from('notifications')
+          .update({ is_read: true })
+          .eq('id', id);
+      });
 
     if (error) {
       console.error('Error marking notification as read:', error);
@@ -99,10 +124,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const markAllAsRead = async () => {
+    // Use raw SQL via RPC to update all notifications
     const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', user?.id);
+      .rpc('mark_all_notifications_as_read', { user_id_param: user?.id })
+      .then(result => {
+        if (result.error) {
+          throw result.error;
+        }
+        return { error: null };
+      })
+      .catch(err => {
+        console.error('Error in mark_all_notifications_as_read RPC:', err);
+        
+        // Fallback to a raw query if the RPC doesn't exist yet
+        return supabase.from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', user?.id);
+      });
 
     if (error) {
       console.error('Error marking all notifications as read:', error);
