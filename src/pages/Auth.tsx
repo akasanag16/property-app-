@@ -5,7 +5,7 @@ import { Home as HomeIcon, User as TenantIcon, Wrench as ToolIcon } from "lucide
 
 export default function Auth() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 z-0">
         <motion.div 
@@ -30,7 +30,7 @@ export default function Auth() {
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute -bottom-1/4 -left-1/4 w-96 h-96 bg-blue-200/30 rounded-full mix-blend-multiply filter blur-3xl"
+          className="absolute -bottom-1/4 -left-1/4 w-96 h-96 bg-pink-200/30 rounded-full mix-blend-multiply filter blur-3xl"
         />
       </div>
 
@@ -41,10 +41,12 @@ export default function Auth() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">
+          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
             Property Maintenance
           </h1>
-          <p className="mt-3 text-xl text-gray-600">Manage your properties efficiently</p>
+          <p className="mt-3 text-xl text-gray-600 font-light">
+            Streamline your property management experience
+          </p>
         </motion.div>
         
         <motion.div 
@@ -55,18 +57,18 @@ export default function Auth() {
         >
           <RoleCard 
             icon={<HomeIcon size={24} />} 
-            title="Owners" 
-            description="Manage properties and tenants" 
+            title="Property Owners" 
+            description="Manage properties and automate workflows" 
           />
           <RoleCard 
             icon={<TenantIcon size={24} />} 
             title="Tenants" 
-            description="Access services" 
+            description="Submit requests and track progress" 
           />
           <RoleCard 
             icon={<ToolIcon size={24} />} 
-            title="Providers" 
-            description="Offer services" 
+            title="Service Providers" 
+            description="Manage jobs and communicate effectively" 
           />
         </motion.div>
         

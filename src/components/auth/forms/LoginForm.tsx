@@ -46,8 +46,10 @@ export function LoginForm({
   return (
     <>
       <div className="text-center">
-        <h2 className="text-2xl font-bold">Sign In</h2>
-        <p className="text-sm text-gray-600 mt-1">Welcome back</p>
+        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+          Welcome Back
+        </h2>
+        <p className="text-sm text-gray-600 mt-1">Sign in to your account</p>
       </div>
 
       {error && (
@@ -64,7 +66,7 @@ export function LoginForm({
         transition={{ duration: 0.3 }}
       >
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-gray-700">Email</Label>
           <Input
             id="email"
             type="email"
@@ -72,11 +74,12 @@ export function LoginForm({
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
+            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-gray-700">Password</Label>
           <Input
             id="password"
             type="password"
@@ -84,10 +87,15 @@ export function LoginForm({
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
+            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-200" 
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -104,7 +112,7 @@ export function LoginForm({
           Don't have an account?{" "}
           <button
             onClick={() => onModeChange("signup")}
-            className="text-primary hover:underline font-medium"
+            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             type="button"
           >
             Sign up
@@ -113,7 +121,7 @@ export function LoginForm({
         <p>
           <button
             onClick={() => onModeChange("reset")}
-            className="text-primary hover:underline font-medium"
+            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             type="button"
           >
             Forgot password?
