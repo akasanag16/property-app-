@@ -38,7 +38,7 @@ export function useProperties(userId?: string) {
         "create-property", 
         {
           method: "GET",
-          query: { action: "fetch", owner_id: userId }
+          body: { action: "fetch", owner_id: userId }
         }
       );
 

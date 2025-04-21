@@ -15,55 +15,62 @@ serve(async (req) => {
   }
 
   try {
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // Parse request body - either JSON or URL parameters
     let requestData;
-    const url = new URL(req.url);
-    const action = url.searchParams.get("action");
     
-    // If it's a GET request with action=fetch, we're fetching properties
-    if (req.method === "GET" && action === "fetch") {
-      const ownerId = url.searchParams.get("owner_id");
-      
-      if (!ownerId) {
-        return new Response(
-          JSON.stringify({ error: "Missing owner_id parameter" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    if (req.method === "GET") {
+      // For GET requests, try to parse the URL parameters (from edge function body)
+      try {
+        requestData = await req.json();
+      } catch (e) {
+        requestData = {};
       }
       
-      // Create Supabase client
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const action = requestData.action;
+      const ownerId = requestData.owner_id;
       
-      // Fetch properties
-      const { data, error } = await supabase
-        .from("properties")
-        .select(`
-          id, 
-          name, 
-          address, 
-          details,
-          property_images (
-            url,
-            is_primary
-          )
-        `)
-        .eq("owner_id", ownerId)
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching properties:", error);
+      if (action === "fetch") {
+        if (!ownerId) {
+          return new Response(
+            JSON.stringify({ error: "Missing owner_id parameter" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Fetch properties
+        const { data, error } = await supabase
+          .from("properties")
+          .select(`
+            id, 
+            name, 
+            address, 
+            details,
+            property_images (
+              url,
+              is_primary
+            )
+          `)
+          .eq("owner_id", ownerId)
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching properties:", error);
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
         return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify(data),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
-      return new Response(
-        JSON.stringify(data),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     } 
     // If it's a POST request, we're creating a property
     else if (req.method === "POST") {
@@ -78,11 +85,6 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // Create Supabase client with admin key (bypasses RLS)
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const supabase = createClient(supabaseUrl, supabaseKey);
 
       // Insert property directly with admin privileges
       const { data, error } = await supabase
@@ -115,6 +117,12 @@ serve(async (req) => {
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // If we got here, no valid action was specified
+    return new Response(
+      JSON.stringify({ error: "Invalid action" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(
