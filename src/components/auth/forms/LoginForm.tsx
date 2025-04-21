@@ -26,17 +26,15 @@ export function LoginForm({
     setLoading(true);
     setError(null);
 
-    // Show immediate feedback
     const toastId = toast.loading("Signing in...");
 
     try {
       const { session } = await signIn({ email, password });
       if (session) {
         toast.success("Signed in successfully", { id: toastId });
-        // Immediately redirect to dashboard without waiting for additional operations
         navigate("/dashboard");
       } else {
-        setError("Login successful but no session was created. Please try again.");
+        setError("Login failed. Please try again.");
         toast.error("Authentication failed", { id: toastId });
       }
     } catch (error) {
@@ -49,12 +47,17 @@ export function LoginForm({
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       <div className="text-center">
-        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+        <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
           Welcome Back
         </h2>
-        <p className="text-sm text-gray-600 mt-1">Sign in to your account</p>
+        <p className="text-sm text-gray-600 mt-2">Sign in to your account</p>
       </div>
 
       {error && (
@@ -63,13 +66,7 @@ export function LoginForm({
         </Alert>
       )}
 
-      <motion.form 
-        onSubmit={handleSubmit} 
-        className="space-y-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email" className="text-gray-700">Email</Label>
           <Input
@@ -79,7 +76,7 @@ export function LoginForm({
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
-            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+            className="w-full"
             disabled={loading}
           />
         </div>
@@ -93,14 +90,14 @@ export function LoginForm({
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+            className="w-full"
             disabled={loading}
           />
         </div>
 
         <Button 
           type="submit" 
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-200" 
+          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700" 
           disabled={loading}
         >
           {loading ? (
@@ -112,14 +109,14 @@ export function LoginForm({
             "Sign In"
           )}
         </Button>
-      </motion.form>
+      </form>
 
       <div className="text-center text-sm space-y-2">
         <p>
           Don't have an account?{" "}
           <button
             onClick={() => onModeChange("signup")}
-            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+            className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
             type="button"
             disabled={loading}
           >
@@ -129,7 +126,7 @@ export function LoginForm({
         <p>
           <button
             onClick={() => onModeChange("reset")}
-            className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+            className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
             type="button"
             disabled={loading}
           >
@@ -137,6 +134,6 @@ export function LoginForm({
           </button>
         </p>
       </div>
-    </>
+    </motion.div>
   );
 }

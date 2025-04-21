@@ -1,36 +1,36 @@
 
 import { AuthForm } from "@/components/auth/AuthForm";
 import { motion } from "framer-motion";
-import { Home as HomeIcon, User as TenantIcon, Wrench as ToolIcon } from "lucide-react";
+import { Home, User, Wrench } from "lucide-react";
 
 export default function Auth() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 z-0">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-lavender-50 to-white py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Subtle background animations */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <motion.div 
           animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute -top-1/4 -right-1/4 w-96 h-96 bg-purple-200/30 rounded-full mix-blend-multiply filter blur-3xl"
-        />
-        <motion.div 
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [90, 0, 90],
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, -5, 0]
           }}
           transition={{
             duration: 15,
             repeat: Infinity,
-            ease: "linear"
+            ease: "easeInOut"
           }}
-          className="absolute -bottom-1/4 -left-1/4 w-96 h-96 bg-pink-200/30 rounded-full mix-blend-multiply filter blur-3xl"
+          className="absolute -top-1/4 -right-1/4 w-[500px] h-[500px] bg-purple-100/30 rounded-full mix-blend-multiply blur-3xl"
+        />
+        <motion.div 
+          animate={{
+            scale: [1.05, 0.95, 1.05],
+            rotate: [-5, 5, -5]
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -bottom-1/4 -left-1/4 w-[400px] h-[400px] bg-lavender-100/30 rounded-full mix-blend-multiply blur-3xl"
         />
       </div>
 
@@ -41,10 +41,10 @@ export default function Auth() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
             Property Maintenance
           </h1>
-          <p className="mt-3 text-xl text-gray-600 font-light">
+          <p className="mt-3 text-xl text-gray-600 font-light tracking-wide">
             Streamline your property management experience
           </p>
         </motion.div>
@@ -55,21 +55,36 @@ export default function Auth() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex justify-center space-x-8 my-12"
         >
-          <RoleCard 
-            icon={<HomeIcon size={24} />} 
-            title="Property Owners" 
-            description="Manage properties and automate workflows" 
-          />
-          <RoleCard 
-            icon={<TenantIcon size={24} />} 
-            title="Tenants" 
-            description="Submit requests and track progress" 
-          />
-          <RoleCard 
-            icon={<ToolIcon size={24} />} 
-            title="Service Providers" 
-            description="Manage jobs and communicate effectively" 
-          />
+          {[
+            { 
+              icon: <Home size={32} className="text-purple-600" />, 
+              title: "Property Owners", 
+              description: "Manage properties and automate workflows" 
+            },
+            { 
+              icon: <User size={32} className="text-indigo-600" />, 
+              title: "Tenants", 
+              description: "Submit requests and track progress" 
+            },
+            { 
+              icon: <Wrench size={32} className="text-violet-600" />, 
+              title: "Service Providers", 
+              description: "Manage jobs and communicate effectively" 
+            }
+          ].map((role, index) => (
+            <motion.div
+              key={role.title}
+              className="flex flex-col items-center group"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="p-4 bg-white/70 backdrop-blur-md rounded-xl shadow-lg border border-white/20 transition-all duration-300">
+                {role.icon}
+              </div>
+              <h3 className="mt-3 font-medium text-gray-900">{role.title}</h3>
+              <p className="text-sm text-gray-600 text-center mt-1">{role.description}</p>
+            </motion.div>
+          ))}
         </motion.div>
         
         <motion.div
@@ -82,25 +97,5 @@ export default function Auth() {
         </motion.div>
       </div>
     </div>
-  );
-}
-
-function RoleCard({ icon, title, description }: { 
-  icon: React.ReactNode, 
-  title: string, 
-  description: string 
-}) {
-  return (
-    <motion.div 
-      className="flex flex-col items-center group cursor-pointer"
-      whileHover={{ scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 300 }}
-    >
-      <div className="p-4 bg-white/80 backdrop-blur rounded-xl shadow-lg border border-white/20 group-hover:bg-white/90 transition-all duration-300">
-        {icon}
-      </div>
-      <h3 className="mt-3 font-medium text-gray-900">{title}</h3>
-      <p className="text-sm text-gray-600 text-center mt-1">{description}</p>
-    </motion.div>
   );
 }
