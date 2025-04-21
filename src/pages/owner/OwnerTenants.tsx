@@ -11,8 +11,8 @@ import { TenantTable } from "@/components/tenant/TenantTable";
 import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/TenantStates";
 import { Tenant } from "@/types/tenant";
 
-// Sample data import for demonstration
-import { sampleTenants } from "@/data/sampleProperties";
+// Import from the correct file
+import { sampleTenants } from "@/data/sampleTenants";
 
 export default function OwnerTenants() {
   const { user } = useAuth();
