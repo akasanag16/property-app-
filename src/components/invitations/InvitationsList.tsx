@@ -26,13 +26,11 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       setLoading(true);
       setError(false);
 
-      const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
-      
-      const { data, error: fetchError } = await supabase
-        .from(tableName)
-        .select("*")
-        .eq("property_id", propertyId)
-        .order("created_at", { ascending: false });
+      // Using RPC function to avoid recursion issues in RLS policies
+      const { data, error: fetchError } = await supabase.rpc('get_property_invitations', {
+        p_property_id: propertyId,
+        p_type: type
+      });
 
       if (fetchError) throw fetchError;
 
@@ -82,6 +80,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
           variant="outline" 
           size="sm"
           onClick={fetchInvitations}
+          className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
         >
           Try Again
         </Button>
@@ -102,7 +101,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       {invitations.map((invitation) => (
         <div 
           key={invitation.id} 
-          className="p-3 border border-purple-100 rounded-md bg-white flex justify-between items-center"
+          className="p-3 border border-indigo-100 rounded-md bg-white flex justify-between items-center"
         >
           <div>
             <p className="font-medium text-gray-800">{invitation.email}</p>
@@ -111,7 +110,9 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
                 Sent {new Date(invitation.created_at).toLocaleDateString()}
               </p>
               {invitation.status && (
-                <Badge variant={invitation.status === "accepted" ? "success" : "info"}>
+                <Badge variant={invitation.status === "accepted" ? "success" : "default"} className={
+                  invitation.status === "accepted" ? "bg-emerald-100 text-emerald-800" : "bg-indigo-100 text-indigo-800"
+                }>
                   {invitation.status}
                 </Badge>
               )}
@@ -122,7 +123,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
               variant="outline" 
               size="sm" 
               onClick={() => handleResendInvitation(invitation.id)}
-              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
             >
               Resend
             </Button>

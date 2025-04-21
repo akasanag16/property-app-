@@ -30,14 +30,13 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       const tableName = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       const linkToken = crypto.randomUUID();
       
-      const { error: inviteError } = await supabase
-        .from(tableName)
-        .insert({
-          property_id: propertyId,
-          email,
-          link_token: linkToken,
-          status: "pending"
-        });
+      // Direct insertion without using a policy that could cause recursion
+      const { error: inviteError } = await supabase.rpc('create_invitation', {
+        p_property_id: propertyId,
+        p_email: email,
+        p_link_token: linkToken,
+        p_type: inviteType
+      });
 
       if (inviteError) throw inviteError;
 
@@ -60,7 +59,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           value={inviteType} 
           onValueChange={(value) => setInviteType(value as "tenant" | "service_provider")}
         >
-          <SelectTrigger id="inviteType">
+          <SelectTrigger id="inviteType" className="bg-white border-indigo-100">
             <SelectValue placeholder="Select role to invite" />
           </SelectTrigger>
           <SelectContent>
@@ -79,10 +78,11 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          className="bg-white border-indigo-100"
         />
       </div>
       
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700">
         {loading ? (
           <span className="flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

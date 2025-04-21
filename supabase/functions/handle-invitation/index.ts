@@ -36,13 +36,12 @@ serve(async (req) => {
 
       if (fetchError) throw fetchError
 
-      // Update the invitation with a new expiry date
-      const { error: updateError } = await supabaseClient
-        .from(tableName)
-        .update({
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        })
-        .eq('id', invitation_id)
+      // Update the invitation with a new expiry date using the RPC function instead
+      // of direct table access to avoid recursion issues
+      const { error: updateError } = await supabaseClient.rpc('update_invitation_expiry', {
+        p_invitation_id: invitation_id,
+        p_invitation_type: invitation_type
+      })
 
       if (updateError) throw updateError
 

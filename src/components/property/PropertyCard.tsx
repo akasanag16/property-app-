@@ -53,17 +53,17 @@ export function PropertyCard({ id, name, address }: PropertyCardProps) {
   };
 
   return (
-    <Card className="w-full shadow-lg border-purple-100 hover:border-purple-200 transition-all duration-300">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-t-lg">
+    <Card className="w-full shadow-lg border-indigo-100 hover:border-indigo-200 transition-all duration-300">
+      <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-t-lg">
         <CardTitle>{name}</CardTitle>
         <CardDescription>{address}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-purple-50">
-            <TabsTrigger value="invite" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">Invite</TabsTrigger>
-            <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">Tenants</TabsTrigger>
-            <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">Service Providers</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-indigo-50">
+            <TabsTrigger value="invite" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Invite</TabsTrigger>
+            <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Tenants</TabsTrigger>
+            <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Service Providers</TabsTrigger>
           </TabsList>
           
           <TabsContent value="invite" className="pt-4">

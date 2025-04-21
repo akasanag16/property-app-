@@ -45,7 +45,7 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-purple-800">{property.name}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-indigo-800">{property.name}</DialogTitle>
           <DialogDescription className="text-gray-600 flex items-center">
             <MapPin className="h-4 w-4 mr-1" />
             {property.address}
@@ -68,14 +68,14 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-purple-50">
-              <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
+            <TabsList className="grid w-full grid-cols-3 bg-indigo-50">
+              <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
                 Property Details
               </TabsTrigger>
-              <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
+              <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
                 Tenants
               </TabsTrigger>
-              <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
+              <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
                 Service Providers
               </TabsTrigger>
             </TabsList>
@@ -83,8 +83,8 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
             <TabsContent value="details" className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {property.details?.type && (
-                  <div className="flex items-center p-3 border rounded-md">
-                    <Home className="h-5 w-5 mr-3 text-purple-600" />
+                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
+                    <Home className="h-5 w-5 mr-3 text-indigo-600" />
                     <div>
                       <p className="text-sm text-gray-500">Property Type</p>
                       <p className="font-medium capitalize">{property.details.type}</p>
@@ -93,8 +93,8 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
                 )}
                 
                 {property.details?.rent !== undefined && (
-                  <div className="flex items-center p-3 border rounded-md">
-                    <DollarSign className="h-5 w-5 mr-3 text-purple-600" />
+                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
+                    <DollarSign className="h-5 w-5 mr-3 text-indigo-600" />
                     <div>
                       <p className="text-sm text-gray-500">Monthly Rent</p>
                       <p className="font-medium">${property.details.rent}/month</p>
@@ -103,8 +103,8 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
                 )}
                 
                 {property.details?.bedrooms !== undefined && (
-                  <div className="flex items-center p-3 border rounded-md">
-                    <Bed className="h-5 w-5 mr-3 text-purple-600" />
+                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
+                    <Bed className="h-5 w-5 mr-3 text-indigo-600" />
                     <div>
                       <p className="text-sm text-gray-500">Bedrooms</p>
                       <p className="font-medium">{property.details.bedrooms}</p>
@@ -113,8 +113,8 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
                 )}
                 
                 {property.details?.bathrooms !== undefined && (
-                  <div className="flex items-center p-3 border rounded-md">
-                    <Bath className="h-5 w-5 mr-3 text-purple-600" />
+                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
+                    <Bath className="h-5 w-5 mr-3 text-indigo-600" />
                     <div>
                       <p className="text-sm text-gray-500">Bathrooms</p>
                       <p className="font-medium">{property.details.bathrooms}</p>
@@ -123,8 +123,8 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
                 )}
                 
                 {property.details?.area !== undefined && (
-                  <div className="flex items-center p-3 border rounded-md">
-                    <SquareDot className="h-5 w-5 mr-3 text-purple-600" />
+                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
+                    <SquareDot className="h-5 w-5 mr-3 text-indigo-600" />
                     <div>
                       <p className="text-sm text-gray-500">Area</p>
                       <p className="font-medium">{property.details.area} sq ft</p>
@@ -167,7 +167,13 @@ export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModal
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+          >
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
