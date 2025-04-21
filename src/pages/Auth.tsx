@@ -33,7 +33,7 @@ export default function Auth() {
       }} transition={{
         duration: 0.5
       }}>
-          <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 text-4xl">
+          <h1 className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 text-5xl">
             Property Maintenance
           </h1>
           <p className="mt-3 text-gray-600 font-light tracking-wide text-base">
