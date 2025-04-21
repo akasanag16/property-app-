@@ -27,18 +27,14 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
     setLoading(true);
     try {
-      const tableName = inviteType === "tenant" ? "tenant_invitations" : "service_provider_invitations";
       const linkToken = crypto.randomUUID();
       
-      // Direct insertion to the invitation table
-      const { error: inviteError } = await supabase
-        .from(tableName)
-        .insert({
-          property_id: propertyId,
-          email: email,
-          link_token: linkToken,
-          status: 'pending'
-        });
+      const { error: inviteError } = await supabase.rpc('create_invitation', {
+        p_property_id: propertyId,
+        p_email: email,
+        p_link_token: linkToken,
+        p_type: inviteType
+      });
 
       if (inviteError) throw inviteError;
 

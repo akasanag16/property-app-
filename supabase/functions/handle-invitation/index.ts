@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
@@ -18,7 +17,6 @@ serve(async (req) => {
   try {
     const { action, invitation_id, invitation_type } = await req.json()
     
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -27,7 +25,6 @@ serve(async (req) => {
     const tableName = invitation_type === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations'
 
     if (action === 'resend') {
-      // Get the invitation details
       const { data: invitation, error: fetchError } = await supabaseClient
         .from(tableName)
         .select('*')
@@ -36,18 +33,13 @@ serve(async (req) => {
 
       if (fetchError) throw fetchError
 
-      // Update the expiration date directly
-      const { error: updateError } = await supabaseClient
-        .from(tableName)
-        .update({ 
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
-        })
-        .eq('id', invitation_id)
+      const { error: updateError } = await supabaseClient.rpc('update_invitation_expiry', {
+        p_invitation_id: invitation_id,
+        p_invitation_type: invitation_type
+      })
 
       if (updateError) throw updateError
 
-      // Here you would typically send the email with the invitation link
-      // For now, we'll just return success
       return new Response(
         JSON.stringify({ message: 'Invitation resent successfully' }),
         {

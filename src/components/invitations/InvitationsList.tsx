@@ -26,14 +26,10 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       setLoading(true);
       setError(false);
 
-      const tableName = type === "tenant" ? "tenant_invitations" : "service_provider_invitations";
-      
-      // Direct query to the invitation table instead of using RPC function
-      const { data, error: fetchError } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false });
+      const { data, error: fetchError } = await supabase.rpc('get_property_invitations', {
+        p_property_id: propertyId,
+        p_type: type
+      });
 
       if (fetchError) throw fetchError;
 
@@ -60,7 +56,6 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       if (error) throw error;
       
       toast.success("Invitation resent successfully!");
-      // Refresh the list to show updated status
       fetchInvitations();
     } catch (err) {
       console.error("Error resending invitation:", err);
@@ -104,7 +99,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       {invitations.map((invitation) => (
         <div 
           key={invitation.id} 
-          className="p-3 border border-indigo-100 rounded-md bg-white flex justify-between items-center"
+          className="p-3 border border-indigo-100 rounded-md bg-gradient-to-r from-indigo-50/50 to-white flex justify-between items-center"
         >
           <div>
             <p className="font-medium text-gray-800">{invitation.email}</p>

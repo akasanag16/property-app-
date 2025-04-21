@@ -484,6 +484,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_invitation: {
+        Args: {
+          p_property_id: string
+          p_email: string
+          p_link_token: string
+          p_type: string
+        }
+        Returns: string
+      }
       create_notification: {
         Args: {
           user_id_param: string
@@ -503,6 +512,10 @@ export type Database = {
           details_param?: Json
         }
         Returns: string
+      }
+      get_property_invitations: {
+        Args: { p_property_id: string; p_type: string }
+        Returns: Json[]
       }
       get_user_notifications: {
         Args: { user_id_param: string }
@@ -528,6 +541,10 @@ export type Database = {
       }
       rollback_transaction: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_invitation_expiry: {
+        Args: { p_invitation_id: string; p_invitation_type: string }
         Returns: undefined
       }
     }
