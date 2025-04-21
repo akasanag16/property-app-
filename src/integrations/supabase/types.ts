@@ -470,6 +470,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      begin_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      commit_transaction: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_notification: {
         Args: {
           user_id_param: string
@@ -478,6 +486,15 @@ export type Database = {
           type_param: string
           related_entity_id_param?: string
           related_entity_type_param?: string
+        }
+        Returns: string
+      }
+      create_property: {
+        Args: {
+          name_param: string
+          address_param: string
+          owner_id_param: string
+          details_param?: Json
         }
         Returns: string
       }
@@ -501,6 +518,10 @@ export type Database = {
       }
       mark_notification_as_read: {
         Args: { notification_id_param: string }
+        Returns: undefined
+      }
+      rollback_transaction: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
     }
