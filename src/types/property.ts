@@ -16,3 +16,4 @@ export type Property = {
 };
 
 export type PropertyRole = 'tenant' | 'owner' | 'service_provider';
+

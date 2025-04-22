@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { ErrorAlert } from "@/components/ui/alert-error";
-import type { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/property";
 import { TenantPropertiesSkeleton } from "./TenantDashboardSkeleton";
 
 type TenantPropertiesSectionProps = {

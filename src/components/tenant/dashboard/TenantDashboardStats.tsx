@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Building, MessageCircle, Clock } from "lucide-react";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
-import type { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/property";
 import { TenantStatsSkeleton } from "./TenantDashboardSkeleton";
 
 type TenantDashboardStatsProps = {
