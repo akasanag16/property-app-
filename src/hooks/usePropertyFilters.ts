@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Property } from "@/hooks/useProperties";
+import { Property } from "@/types/property";
 import { PropertyFilterValues } from "@/components/property/PropertyFilter";
 
 export function usePropertyFilters(properties: Property[]) {

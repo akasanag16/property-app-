@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Home, DollarSign, Bed, Bath, SquareDot, MapPin } from "lucide-react";
-import type { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/property";
 import { InvitationsList } from "@/components/invitations/InvitationsList";
 import { InviteForm } from "@/components/invitations/InviteForm";
 import { useState } from "react";

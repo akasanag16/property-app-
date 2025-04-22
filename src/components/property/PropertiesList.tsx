@@ -1,6 +1,6 @@
 
 import { EnhancedPropertyCard } from "./EnhancedPropertyCard";
-import type { Property } from "@/hooks/useProperties";
+import type { Property } from "@/types/property";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
