@@ -1,16 +1,25 @@
 
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenantRequests } from "./maintenanceRequests/useTenantRequests";
 import { useServiceProviderRequests } from "./maintenanceRequests/useServiceProviderRequests";
 import { useOwnerRequests } from "./maintenanceRequests/useOwnerRequests";
-import { toast } from "sonner";
 
 export function useMaintenanceRequests(
   userRole: "owner" | "tenant" | "service_provider",
   refreshKey = 0
 ) {
-  const { data: userData } = supabase.auth.getUser();
-  const userId = userData.user?.id;
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+  
+  // Fetch the current user ID on mount
+  useEffect(() => {
+    async function fetchUserId() {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id);
+    }
+    
+    fetchUserId();
+  }, []);
 
   const tenantHook = useTenantRequests(userRole === "tenant" ? userId : undefined, refreshKey);
   const serviceProviderHook = useServiceProviderRequests(
@@ -31,4 +40,3 @@ export function useMaintenanceRequests(
     refetch: activeHook.refetch
   };
 }
-
