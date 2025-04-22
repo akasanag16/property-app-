@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,41 +51,32 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (inviteError) throw inviteError;
 
-      console.log("Invitation created successfully with ID:", inviteData);
-
-      // 2. Send the invitation email
+      // 2. Generate and send invitation link
       const baseUrl = window.location.origin;
-      const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
+      const { data, error: sendError } = await supabase.functions.invoke('send-invitation', {
         body: { 
-          invitation_id: inviteData, // The RPC returns the new invitation ID
+          invitation_id: inviteData,
           invitation_type: inviteType,
           action: 'create',
           base_url: baseUrl
         },
       });
 
-      console.log("Invitation function response:", data);
-
-      if (emailError) {
-        console.error("Email sending failed:", emailError);
-        setEmailSendingFailed(true);
-        toast.warning("Invitation created but email sending failed. You can share the invitation link manually.");
-      } else if (!data?.email_sent) {
-        console.warn("Email sending returned an error:", data?.email_error);
-        setEmailSendingFailed(true);
-        toast.warning("Invitation created but there was an issue sending the email. You can share the invitation link manually.");
-        if (data?.invitation_url) {
-          setInvitationUrl(data.invitation_url);
-        }
-      } else {
-        toast.success(`Invitation sent to ${email}`);
-        if (data?.invitation_url) {
-          setInvitationUrl(data.invitation_url);
-        }
+      if (sendError) {
+        throw sendError;
       }
 
+      // Store both URLs - magic link is primary, custom URL is backup
+      if (data?.magic_link) {
+        setInvitationUrl(data.magic_link);
+      } else if (data?.invitation_url) {
+        setInvitationUrl(data.invitation_url);
+      }
+
+      toast.success(`Invitation sent to ${email}`);
       setEmail("");
       if (onInviteSuccess) onInviteSuccess();
+
     } catch (error: any) {
       console.error("Error sending invitation:", error);
       toast.error(error.message || "Failed to send invitation");
