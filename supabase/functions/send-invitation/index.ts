@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -48,7 +49,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const { action, invitation_id, invitation_type, base_url } = await req.json();
@@ -59,7 +60,8 @@ serve(async (req) => {
 
     const tableName = invitation_type === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
     
-    // Get invitation details - using a simple query to avoid recursion issues
+    // Get invitation details using the service role key to bypass RLS
+    console.log(`Fetching invitation with ID: ${invitation_id} from table: ${tableName}`);
     const { data: invitation, error: fetchError } = await supabaseClient
       .from(tableName)
       .select('id, email, link_token, property_id')
@@ -71,7 +73,9 @@ serve(async (req) => {
       throw fetchError || new Error("Invitation not found");
     }
 
-    // Get property name using a separate query to avoid the recursion
+    console.log(`Found invitation for email: ${invitation.email}`);
+    
+    // Get property name using a separate query with service role to bypass RLS
     const { data: property, error: propertyError } = await supabaseClient
       .from('properties')
       .select('name')
@@ -83,9 +87,14 @@ serve(async (req) => {
       // Continue with a generic property name
     }
     
-    // Create invitation URL
     const propertyName = property?.name || "the property";
-    const inviteUrl = `${base_url || 'https://prop-link-manage.lovable.app'}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
+    console.log(`Property name: ${propertyName}`);
+    
+    // Create invitation URL
+    const appBaseUrl = base_url || 'https://prop-link-manage.lovable.app';
+    const inviteUrl = `${appBaseUrl}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
+    
+    console.log(`Generated invitation URL: ${inviteUrl}`);
     
     // Prepare email content based on invitation type
     const roleText = invitation_type === 'tenant' ? 'tenant' : 'service provider';
@@ -108,12 +117,27 @@ serve(async (req) => {
     `;
     
     // Send the email
+    console.log(`Sending email to ${invitation.email}`);
     const emailResult = await sendEmail(invitation.email, subject, emailBody);
     
     if (!emailResult.success) {
-      throw new Error(`Failed to send email: ${emailResult.error}`);
+      console.error(`Failed to send email:`, emailResult.error);
+      // Even if email fails, return the invitation URL
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `Failed to send email: ${emailResult.error}`,
+          invitation_url: inviteUrl 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
+    console.log(`Email sent successfully to ${invitation.email}`);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 

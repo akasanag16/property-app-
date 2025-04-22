@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail } from "lucide-react";
+import { Mail, Copy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type InviteFormProps = {
   propertyId: string;
@@ -17,6 +18,14 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
   const [email, setEmail] = useState("");
   const [inviteType, setInviteType] = useState<"tenant" | "service_provider">("tenant");
   const [loading, setLoading] = useState(false);
+  const [invitationUrl, setInvitationUrl] = useState<string | null>(null);
+
+  const copyToClipboard = () => {
+    if (invitationUrl) {
+      navigator.clipboard.writeText(invitationUrl);
+      toast.success("Invitation link copied to clipboard");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +35,8 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
     }
 
     setLoading(true);
+    setInvitationUrl(null);
+    
     try {
       const linkToken = crypto.randomUUID();
       
@@ -52,9 +63,18 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (emailError) {
         console.error("Email sending failed:", emailError);
-        toast.warning("Invitation created but email sending failed. The recipient won't receive an email.");
+        toast.warning("Invitation created but email sending failed. You can share the invitation link manually.");
+      } else if (data?.success === false) {
+        console.warn("Email sending returned an error:", data);
+        toast.warning("Invitation created but there was an issue sending the email. You can share the invitation link manually.");
+        if (data?.invitation_url) {
+          setInvitationUrl(data.invitation_url);
+        }
       } else {
         toast.success(`Invitation sent to ${email}`);
+        if (data?.invitation_url) {
+          setInvitationUrl(data.invitation_url);
+        }
       }
 
       setEmail("");
@@ -111,6 +131,27 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
           </span>
         )}
       </Button>
+
+      {invitationUrl && (
+        <Alert className="mt-4 bg-blue-50 border-blue-200">
+          <AlertDescription className="text-blue-800">
+            <div className="flex flex-col space-y-2">
+              <span>Invitation link (you can share this manually):</span>
+              <div className="flex items-center gap-2 bg-white p-2 rounded border border-blue-200 text-sm overflow-hidden">
+                <div className="truncate flex-1">{invitationUrl}</div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyToClipboard}
+                  className="flex-shrink-0 border-blue-200"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
     </form>
   );
 }
