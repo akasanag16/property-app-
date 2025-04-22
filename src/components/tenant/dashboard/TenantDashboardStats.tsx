@@ -47,7 +47,7 @@ export function TenantDashboardStats({ properties, loading }: TenantDashboardSta
             </div>
           </div>
           <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={properties.length} />
+            <AnimatedCounter value={properties.length} from={0} />
           </h3>
           <p className="text-sm text-gray-600">Rented Properties</p>
         </GradientCard>
@@ -61,7 +61,7 @@ export function TenantDashboardStats({ properties, loading }: TenantDashboardSta
             </div>
           </div>
           <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={3} />
+            <AnimatedCounter value={3} from={0} />
           </h3>
           <p className="text-sm text-gray-600">Active Requests</p>
         </GradientCard>
@@ -75,7 +75,7 @@ export function TenantDashboardStats({ properties, loading }: TenantDashboardSta
             </div>
           </div>
           <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={8} />
+            <AnimatedCounter value={8} from={0} />
           </h3>
           <p className="text-sm text-gray-600">Days Until Next Payment</p>
         </GradientCard>
