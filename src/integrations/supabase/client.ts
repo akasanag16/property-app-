@@ -39,11 +39,23 @@ export interface RpcFunctionsDefinitions {
     Args: { provider_id: string };
     Returns: string[];
   };
+  get_tenant_properties_by_id: {
+    Args: { tenant_id_param: string };
+    Returns: string[];
+  };
+  get_service_provider_properties_by_id: {
+    Args: { provider_id_param: string };
+    Returns: string[];
+  };
   is_owner_of_property: {
     Args: { property_id: string };
     Returns: boolean;
   };
   is_service_provider_for_property: {
+    Args: { property_id: string };
+    Returns: boolean;
+  };
+  is_tenant_for_property: {
     Args: { property_id: string };
     Returns: boolean;
   };
