@@ -25,8 +25,12 @@ export function ResetPasswordForm({
     setError(null);
 
     try {
-      // Format the redirect URL properly - this is critical for Supabase to recognize it
-      const resetRedirectUrl = new URL('/auth/reset-password', window.location.origin).toString();
+      // Get the origin from window.location
+      const origin = window.location.origin;
+      
+      // Construct the absolute redirect URL
+      const resetRedirectUrl = `${origin}/auth/reset-password`;
+      
       console.log("Using reset redirect URL:", resetRedirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -9,6 +9,7 @@ import { Loader2, EyeIcon, EyeOffIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { CheckCircle } from "lucide-react";
 
 export function UpdatePasswordForm() {
   const [password, setPassword] = useState("");
@@ -52,7 +53,7 @@ export function UpdatePasswordForm() {
       // Redirect after a short delay so the user sees the success message
       setTimeout(() => {
         navigate("/auth");
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Update password error:", error);
       setError(error instanceof Error ? error.message : "Failed to update password");
@@ -69,11 +70,19 @@ export function UpdatePasswordForm() {
   if (success) {
     return (
       <div className="text-center space-y-4">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
+        >
+          <CheckCircle className="h-10 w-10 text-green-600" />
+        </motion.div>
         <h2 className="text-2xl font-bold text-green-600">Password Updated!</h2>
         <p className="text-sm text-gray-600 mt-2">
           Your password has been successfully updated.
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mt-1">
           You will be redirected to the login page in a moment...
         </p>
       </div>

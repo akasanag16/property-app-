@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { UpdatePasswordForm } from "@/components/auth/forms/UpdatePasswordForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(true);
@@ -18,34 +19,32 @@ export default function ResetPassword() {
         // Log the current URL for debugging
         console.log("Reset password page loaded with URL:", window.location.href);
         
-        const { data } = await supabase.auth.getSession();
-        console.log("Current session status:", data.session ? "Active" : "None");
+        // First check if we have a hash or query params with the recovery token
+        const url = new URL(window.location.href);
+        const hash = url.hash;
+        const queryParams = new URLSearchParams(url.search);
         
-        if (!data.session) {
-          // No session, check URL for recovery tokens
-          const hash = window.location.hash;
-          const queryParams = new URLSearchParams(window.location.search);
+        // Check for recovery tokens in hash or query params
+        const hasRecoveryToken = (
+          hash.includes('type=recovery') || 
+          queryParams.get('type') === 'recovery'
+        );
+        
+        console.log("Has recovery token:", hasRecoveryToken);
+        
+        if (hasRecoveryToken) {
+          // Try to exchange the token for a session
+          console.log("Attempting to process recovery token");
           
-          if (hash.includes('access_token') || queryParams.get('access_token')) {
-            console.log("Found access token in URL, attempting to recover session");
-            
-            // URL has tokens, try to recover the session
-            try {
-              let accessToken, refreshToken;
-              
-              // Extract from hash
-              if (hash.includes('access_token')) {
-                const urlParams = new URLSearchParams(hash.substring(1));
-                accessToken = urlParams.get('access_token');
-                refreshToken = urlParams.get('refresh_token');
-              } 
-              // Extract from query params
-              else if (queryParams.get('access_token')) {
-                accessToken = queryParams.get('access_token');
-                refreshToken = queryParams.get('refresh_token');
-              }
+          try {
+            // Process tokens from hash fragment
+            if (hash && hash.includes('access_token')) {
+              const hashParams = new URLSearchParams(hash.substring(1));
+              const accessToken = hashParams.get('access_token');
+              const refreshToken = hashParams.get('refresh_token');
               
               if (accessToken && refreshToken) {
+                console.log("Found tokens in hash, setting session");
                 const { data, error } = await supabase.auth.setSession({
                   access_token: accessToken,
                   refresh_token: refreshToken
@@ -53,31 +52,62 @@ export default function ResetPassword() {
                 
                 if (error) throw error;
                 
-                if (data.session) {
+                if (data?.session) {
+                  console.log("Session set successfully from hash");
                   setValidSession(true);
                   setLoading(false);
                   return;
                 }
               }
-            } catch (error) {
-              console.error("Failed to recover session:", error);
-              toast.error("Invalid or expired password reset link");
             }
+            
+            // Process tokens from query parameters
+            const accessToken = queryParams.get('access_token');
+            const refreshToken = queryParams.get('refresh_token');
+            
+            if (accessToken && refreshToken) {
+              console.log("Found tokens in query params, setting session");
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              
+              if (error) throw error;
+              
+              if (data?.session) {
+                console.log("Session set successfully from query params");
+                setValidSession(true);
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("Error processing recovery token:", error);
+            toast.error("Invalid or expired recovery token");
           }
-          
-          // No valid recovery information found, redirect to login
-          console.log("No valid recovery session found, redirecting to login");
-          navigate("/auth");
-          return;
         }
         
-        // Valid session exists
-        setValidSession(true);
+        // If we don't have a recovery token, check for an existing session
+        const { data } = await supabase.auth.getSession();
+        console.log("Current session status:", data.session ? "Active" : "None");
+        
+        if (data.session) {
+          console.log("Using existing session");
+          setValidSession(true);
+        } else {
+          console.log("No valid session found, redirecting to login");
+          toast.error("Your password reset link has expired or is invalid");
+          // Short delay to allow the toast to be seen
+          setTimeout(() => navigate("/auth"), 2000);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("Error checking session:", error);
         toast.error("An error occurred while verifying your session");
-        navigate("/auth");
+        setLoading(false);
+        // Short delay to allow the toast to be seen
+        setTimeout(() => navigate("/auth"), 2000);
       }
     };
     
@@ -86,8 +116,9 @@ export default function ResetPassword() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#F5F3FF] via-[#EDE9FE] to-white">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-gray-600">Verifying your reset link...</p>
       </div>
     );
   }
@@ -109,12 +140,12 @@ export default function ResetPassword() {
               <p className="text-sm text-gray-600 mt-2">
                 This password reset link is invalid or has expired.
               </p>
-              <button
+              <Button
                 onClick={() => navigate("/auth")}
                 className="mt-4 text-primary hover:underline"
               >
                 Return to login
-              </button>
+              </Button>
             </div>
           )}
         </div>
