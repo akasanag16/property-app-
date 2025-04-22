@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -103,7 +104,7 @@ export default function TenantDashboard() {
         <h1 className="text-2xl font-bold mb-6">Tenant Dashboard</h1>
         <p className="text-gray-600 mb-8">Welcome, {user?.email}</p>
 
-        <TenantDashboardStats properties={properties} />
+        <TenantDashboardStats properties={properties} loading={loading} />
 
         <Tabs defaultValue="my-properties" className="w-full" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
@@ -126,6 +127,7 @@ export default function TenantDashboard() {
               properties={properties}
               onRequestCreated={handleRequestCreated}
               requestRefreshKey={requestRefreshKey}
+              loading={loading}
             />
           </TabsContent>
         </Tabs>

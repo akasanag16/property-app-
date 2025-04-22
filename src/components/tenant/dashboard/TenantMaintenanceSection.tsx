@@ -1,21 +1,27 @@
-
 import { motion } from "framer-motion";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { MaintenanceRequestForm } from "@/components/maintenance/MaintenanceRequestForm";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import type { Property } from "@/hooks/useProperties";
+import { TenantMaintenanceSkeleton } from "./TenantDashboardSkeleton";
 
 type TenantMaintenanceSectionProps = {
   properties: Property[];
   onRequestCreated: () => void;
   requestRefreshKey: number;
+  loading?: boolean;
 };
 
 export function TenantMaintenanceSection({ 
   properties, 
   onRequestCreated,
-  requestRefreshKey 
+  requestRefreshKey,
+  loading
 }: TenantMaintenanceSectionProps) {
+  if (loading) {
+    return <TenantMaintenanceSkeleton />;
+  }
+
   const container = {
     hidden: { opacity: 0 },
     show: {

@@ -1,15 +1,20 @@
-
 import { motion } from "framer-motion";
 import { Building, MessageCircle, Clock } from "lucide-react";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import type { Property } from "@/hooks/useProperties";
+import { TenantStatsSkeleton } from "./TenantDashboardSkeleton";
 
 type TenantDashboardStatsProps = {
   properties: Property[];
+  loading?: boolean;
 };
 
-export function TenantDashboardStats({ properties }: TenantDashboardStatsProps) {
+export function TenantDashboardStats({ properties, loading }: TenantDashboardStatsProps) {
+  if (loading) {
+    return <TenantStatsSkeleton />;
+  }
+
   const container = {
     hidden: { opacity: 0 },
     show: {

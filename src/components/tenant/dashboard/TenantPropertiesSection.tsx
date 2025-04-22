@@ -1,9 +1,8 @@
-
 import { motion } from "framer-motion";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import type { Property } from "@/hooks/useProperties";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { TenantPropertiesSkeleton } from "./TenantDashboardSkeleton";
 
 type TenantPropertiesSectionProps = {
   properties: Property[];
@@ -20,23 +19,8 @@ export function TenantPropertiesSection({
   onRetry,
   onMaintenanceClick 
 }: TenantPropertiesSectionProps) {
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
   if (loading) {
-    return <LoadingSpinner />;
+    return <TenantPropertiesSkeleton />;
   }
 
   if (error) {
