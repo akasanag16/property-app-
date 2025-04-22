@@ -15,11 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { action, invitation_id, invitation_type, token, email } = await req.json()
+    const { action, token, email, firstName, lastName, password } = await req.json()
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     // Handle token validation
@@ -78,24 +78,68 @@ serve(async (req) => {
       )
     }
     
-    // Handle invitation creation
+    // Handle creating an invited user
     if (action === 'createInvitedUser') {
-      // Implementation for creating a new user from invitation
-      // Would need additional parameters like firstName, lastName, password
-      // This would involve:
-      // 1. Creating the auth user
-      // 2. Creating the profile
-      // 3. Linking the user to the property
-      // 4. Marking the invitation as used
+      const { token, email, propertyId, role, firstName, lastName, password } = await req.json()
       
-      // Simplified response for now
-      return new Response(
-        JSON.stringify({ message: "User creation from invitation would be implemented here" }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      )
+      if (!token || !email || !propertyId || !role || !firstName || !lastName || !password) {
+        throw new Error("Missing required parameters")
+      }
+
+      // Begin transaction
+      const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations'
+      const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link'
+      
+      try {
+        // 1. Create the user account
+        const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            role
+          }
+        })
+
+        if (userError) throw userError
+
+        // 2. Mark invitation as used
+        const { error: inviteError } = await supabaseClient
+          .from(tableName)
+          .update({ 
+            is_used: true,
+            status: 'accepted',
+            accepted_at: new Date().toISOString(),
+            accepted_by_user_id: authUser.user.id
+          })
+          .eq('link_token', token)
+          .eq('email', email)
+
+        if (inviteError) throw inviteError
+
+        // 3. Create property link
+        const { error: linkError } = await supabaseClient
+          .from(linkTableName)
+          .insert({
+            property_id: propertyId,
+            [role === 'tenant' ? 'tenant_id' : 'service_provider_id']: authUser.user.id
+          })
+
+        if (linkError) throw linkError
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      } catch (error) {
+        console.error('Transaction error:', error)
+        throw error
+      }
     }
 
     throw new Error('Invalid action')

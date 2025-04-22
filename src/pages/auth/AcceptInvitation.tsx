@@ -29,7 +29,6 @@ export default function AcceptInvitation() {
     role: UserRole;
   } | null>(null);
 
-  // Validate token on load
   useEffect(() => {
     const validateToken = async () => {
       try {
@@ -42,7 +41,6 @@ export default function AcceptInvitation() {
           return;
         }
 
-        // Use the edge function to validate the token
         const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
           body: { 
             action: "validateToken",
@@ -58,10 +56,8 @@ export default function AcceptInvitation() {
           return;
         }
 
-        // Set email from URL
         setEmail(email);
         
-        // Store invitation data
         setInvitationData({
           token,
           email,
@@ -103,7 +99,6 @@ export default function AcceptInvitation() {
     setError("");
     
     try {
-      // Use the edge function to create the user and accept the invitation
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
           action: "createInvitedUser",

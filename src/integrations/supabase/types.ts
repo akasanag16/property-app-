@@ -244,6 +244,8 @@ export type Database = {
       }
       service_provider_invitations: {
         Row: {
+          accepted_at: string | null
+          accepted_by_user_id: string | null
           created_at: string | null
           email: string
           expires_at: string | null
@@ -254,6 +256,8 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
           created_at?: string | null
           email: string
           expires_at?: string | null
@@ -264,6 +268,8 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
           created_at?: string | null
           email?: string
           expires_at?: string | null
@@ -348,6 +354,8 @@ export type Database = {
       }
       tenant_invitations: {
         Row: {
+          accepted_at: string | null
+          accepted_by_user_id: string | null
           created_at: string | null
           email: string
           expires_at: string | null
@@ -358,6 +366,8 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
           created_at?: string | null
           email: string
           expires_at?: string | null
@@ -368,6 +378,8 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
           created_at?: string | null
           email?: string
           expires_at?: string | null
