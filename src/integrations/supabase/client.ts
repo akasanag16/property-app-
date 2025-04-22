@@ -128,4 +128,4 @@ export interface RpcFunctionsDefinitions {
     Args: Record<string, never>;
     Returns: void;
   };
-};
+}
