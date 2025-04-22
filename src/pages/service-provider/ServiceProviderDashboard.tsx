@@ -30,9 +30,9 @@ export default function ServiceProviderDashboard() {
 
       console.log("Fetching properties for service provider:", user.id);
 
-      // Get property IDs first
+      // Get property IDs first using our new secure function
       const { data: propertyIds, error: idsError } = await supabase
-        .rpc('get_service_provider_properties', { provider_id: user.id });
+        .rpc('get_service_provider_properties_by_id', { provider_id_param: user.id });
         
       if (idsError) {
         console.error("Error fetching property IDs:", idsError);
