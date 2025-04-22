@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
@@ -10,20 +9,25 @@ import { TenantDashboardStats } from "@/components/tenant/dashboard/TenantDashbo
 import { TenantPropertiesSection } from "@/components/tenant/dashboard/TenantPropertiesSection";
 import { TenantMaintenanceSection } from "@/components/tenant/dashboard/TenantMaintenanceSection";
 import { useProperties } from "@/hooks/useProperties";
-
-export type Property = {
-  id: string;
-  name: string;
-  address: string;
-};
+import { useLocation } from "react-router-dom";
 
 export default function TenantDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("my-properties");
+  const location = useLocation();
   const [requestRefreshKey, setRequestRefreshKey] = useState(0);
   
-  // Use the fixed useProperties hook to fetch properties
-  const { properties, loading, handleRefresh } = useProperties(user?.id);
+  // Set default tab based on the current path
+  const getInitialTab = () => {
+    if (location.pathname.includes("/tenant/maintenance")) {
+      return "maintenance-requests";
+    }
+    return "my-properties";
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  
+  // Use the properties hook to fetch properties
+  const { properties, loading, handleRefresh, error } = useProperties(user?.id);
 
   const handleRequestCreated = () => {
     setActiveTab("maintenance-requests");
@@ -33,6 +37,11 @@ export default function TenantDashboard() {
   const handleMaintenanceClick = () => {
     setActiveTab("maintenance-requests");
   };
+
+  // Update active tab when the route changes
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [location.pathname]);
 
   return (
     <DashboardLayout>
@@ -46,7 +55,7 @@ export default function TenantDashboard() {
 
         <TenantDashboardStats properties={properties} loading={loading} />
 
-        <Tabs defaultValue="my-properties" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue={activeTab} className="w-full" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="my-properties">My Properties</TabsTrigger>
             <TabsTrigger value="maintenance-requests">Maintenance Requests</TabsTrigger>
@@ -56,7 +65,7 @@ export default function TenantDashboard() {
             <TenantPropertiesSection
               properties={properties}
               loading={loading}
-              error={null}
+              error={error}
               onRetry={handleRefresh}
               onMaintenanceClick={handleMaintenanceClick}
             />

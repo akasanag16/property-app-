@@ -1,5 +1,5 @@
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +62,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navLinks = getNavLinks();
 
+  // Manually handle navigation
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
   return (
     <NotificationProvider>
       <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -116,13 +121,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <ul className="space-y-1">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      to={link.href}
+                    <Button
+                      variant="ghost" 
                       className={cn(
-                        "flex items-center rounded-md px-3 py-2 text-gray-700 hover:bg-indigo-50",
+                        "flex items-center w-full rounded-md px-3 py-2 text-gray-700 hover:bg-indigo-50",
                         location.pathname === link.href && "bg-indigo-100 text-indigo-700 font-medium",
                         !sidebarOpen && "justify-center px-2"
                       )}
+                      onClick={() => handleNavigation(link.href)}
                     >
                       <span className={cn(
                         location.pathname === link.href ? "text-indigo-600" : "text-gray-500"
@@ -130,7 +136,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         {link.icon}
                       </span>
                       {sidebarOpen && <span className="ml-3">{link.label}</span>}
-                    </Link>
+                    </Button>
                   </li>
                 ))}
               </ul>
