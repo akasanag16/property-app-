@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,6 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserRole = async (userId: string) => {
     try {
       console.log("Fetching user role for:", userId);
+      
+      // Get the role directly from user metadata if available
+      // This can help in case of database connectivity issues
+      if (user?.user_metadata?.role) {
+        console.log("Using role from user metadata:", user.user_metadata.role);
+        setUserRole(user.user_metadata.role as UserRole);
+        return;
+      }
       
       const { data, error } = await supabase
         .from("profiles")
