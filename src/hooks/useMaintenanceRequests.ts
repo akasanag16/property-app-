@@ -1,152 +1,162 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { MaintenanceRequest } from "@/types/maintenance";
-import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
-export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_provider", refreshKey: number = 0) {
-  const { user } = useAuth();
+export function useMaintenanceRequests(
+  userRole: "owner" | "tenant" | "service_provider",
+  refreshKey = 0
+) {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const refetch = () => {
+    fetchRequests();
+  };
+
   const fetchRequests = async () => {
-    if (!user?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
     try {
-      let requestsData: any[] = [];
-      
+      setLoading(true);
+      setError(null);
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      if (!userId) {
+        setRequests([]);
+        return;
+      }
+
+      let query;
+
+      // Use different query strategies based on user role
       if (userRole === "tenant") {
-        // For tenants, fetch only their requests directly
-        const { data, error } = await supabase
+        // For tenants, fetch requests they created
+        query = supabase
           .from("maintenance_requests")
           .select(`
-            id, title, description, status, created_at,
-            property_id
+            id,
+            title,
+            description,
+            status,
+            created_at,
+            property_id,
+            property:property_id (
+              id, 
+              name
+            ),
+            assigned_service_provider:assigned_service_provider_id (
+              id,
+              first_name,
+              last_name
+            )
           `)
-          .eq("tenant_id", user.id)
+          .eq("tenant_id", userId)
           .order("created_at", { ascending: false });
-          
-        if (error) throw error;
-        requestsData = data || [];
-
-        // Now enhance with property names using RPC function
-        const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          // Use the get_property_name function to avoid RLS recursion
-          const { data: propertyName, error: rpcError } = await supabase
-            .rpc('get_property_name', { property_id_param: request.property_id });
-          
-          return {
-            ...request,
-            property: {
-              name: rpcError ? "Unknown Property" : (propertyName || "Unknown Property")
-            },
-            tenant: {
-              first_name: user?.user_metadata?.first_name || "Unknown", 
-              last_name: user?.user_metadata?.last_name || "User"
-            }
-          } as MaintenanceRequest;
-        }));
-        
-        setRequests(enhancedRequests);
-        
       } else if (userRole === "service_provider") {
-        // For service providers, use the secure function to get their maintenance request IDs
-        const { data: ids, error: idsError } = await supabase
-          .rpc('get_service_provider_maintenance_requests', { provider_id: user.id });
+        // For service providers, fetch assigned requests
+        query = supabase
+          .from("maintenance_requests")
+          .select(`
+            id,
+            title,
+            description,
+            status,
+            created_at,
+            property_id,
+            property:property_id (
+              id, 
+              name
+            ),
+            tenant:tenant_id (
+              id,
+              first_name,
+              last_name
+            )
+          `)
+          .eq("assigned_service_provider_id", userId)
+          .order("created_at", { ascending: false });
+      } else if (userRole === "owner") {
+        // For owners, fetch requests for properties they own
+        // Use a function to get properties to avoid recursion
+        const { data: propertyIds, error: propertyError } = await supabase
+          .from("properties")
+          .select("id")
+          .eq("owner_id", userId);
           
-        if (idsError) throw idsError;
+        if (propertyError) throw propertyError;
         
-        // If no requests are assigned, return empty array
-        if (!ids || ids.length === 0) {
+        if (!propertyIds || propertyIds.length === 0) {
           setRequests([]);
           setLoading(false);
           return;
         }
         
-        // Now fetch the actual maintenance requests using the IDs
-        const { data, error } = await supabase
+        // Get ids only
+        const ids = propertyIds.map(p => p.id);
+        
+        query = supabase
           .from("maintenance_requests")
           .select(`
-            id, title, description, status, created_at,
-            property_id, tenant_id
+            id,
+            title,
+            description,
+            status,
+            created_at,
+            property_id,
+            property:property_id (
+              id, 
+              name
+            ),
+            tenant:tenant_id (
+              id,
+              first_name,
+              last_name
+            ),
+            assigned_service_provider:assigned_service_provider_id (
+              id,
+              first_name,
+              last_name
+            )
           `)
-          .in("id", ids)
+          .in("property_id", ids)
           .order("created_at", { ascending: false });
-          
-        if (error) throw error;
-        requestsData = data || [];
-
-        // Use get_property_name function for each request
-        const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          const { data: propertyName, error: rpcError } = await supabase
-            .rpc('get_property_name', { property_id_param: request.property_id });
-          
-          const { data: tenantData } = await supabase
-            .from("profiles")
-            .select("first_name, last_name")
-            .eq("id", request.tenant_id)
-            .maybeSingle();
-          
-          return {
-            ...request,
-            property: {
-              name: rpcError ? "Unknown Property" : (propertyName || "Unknown Property")
-            },
-            tenant: {
-              first_name: tenantData?.first_name || "Unknown",
-              last_name: tenantData?.last_name || "User"
-            },
-            assigned_service_provider: {
-              first_name: user?.user_metadata?.first_name || "Unknown",
-              last_name: user?.user_metadata?.last_name || "Provider"
-            }
-          } as MaintenanceRequest;
-        }));
-        
-        setRequests(enhancedRequests);
-      } else {
-        // For owners, similar approach with their properties
-        setRequests([]);
       }
-    } catch (error) {
-      console.error("Error fetching maintenance requests:", error);
-      setError(error as Error);
+
+      const { data, error: requestError } = await query;
+
+      if (requestError) throw requestError;
+
+      // Format the returned data
+      const formattedRequests = data.map((request: any) => ({
+        id: request.id,
+        title: request.title,
+        description: request.description,
+        status: request.status,
+        created_at: request.created_at,
+        property: {
+          id: request.property.id,
+          name: request.property.name
+        },
+        tenant: request.tenant || null,
+        assigned_service_provider: request.assigned_service_provider || null
+      }));
+
+      setRequests(formattedRequests);
+    } catch (err: any) {
+      console.error("Error fetching maintenance requests:", err);
+      setError(err);
       toast.error("Failed to load maintenance requests");
     } finally {
       setLoading(false);
     }
   };
 
-  // Set up real-time subscription
   useEffect(() => {
-    if (user?.id) {
-      fetchRequests();
+    fetchRequests();
+  }, [userRole, refreshKey]);
 
-      const channel = supabase
-        .channel('table-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'maintenance_requests',
-          },
-          () => {
-            fetchRequests();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userRole, user?.id, refreshKey]);
-
-  return { requests, loading, error, refetch: fetchRequests };
+  return { requests, loading, error, refetch };
 }
