@@ -537,6 +537,10 @@ export type Database = {
         Args: { provider_id: string }
         Returns: string[]
       }
+      get_tenant_properties: {
+        Args: { tenant_id: string }
+        Returns: string[]
+      }
       get_user_notifications: {
         Args: { user_id_param: string }
         Returns: {

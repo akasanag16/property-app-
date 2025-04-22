@@ -13,7 +13,6 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      let requestIds: string[] = [];
       let requestsData: any[] = [];
       
       if (userRole === "tenant") {
@@ -43,8 +42,6 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           return;
         }
         
-        requestIds = ids;
-        
         // Now fetch the actual maintenance requests using the IDs
         const { data, error } = await supabase
           .from("maintenance_requests")
@@ -52,7 +49,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
             id, title, description, status, created_at,
             property_id, tenant_id
           `)
-          .in("id", requestIds)
+          .in("id", ids)
           .order("created_at", { ascending: false });
           
         if (error) throw error;
@@ -75,19 +72,19 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
       
       // After getting the initial data, make separate queries to get the related information
       const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-        // Get property info
+        // Get property info - Use RLS-safe approach
         const { data: propertyData } = await supabase
           .from("properties")
           .select("name")
           .eq("id", request.property_id)
-          .single();
+          .maybeSingle();
         
         // Get tenant info
         const { data: tenantData } = await supabase
           .from("profiles")
           .select("first_name, last_name")
           .eq("id", request.tenant_id)
-          .single();
+          .maybeSingle();
         
         // Get service provider info if assigned
         let serviceProviderData = null;
@@ -96,7 +93,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
             .from("profiles")
             .select("first_name, last_name")
             .eq("id", request.assigned_service_provider_id)
-            .single();
+            .maybeSingle();
           serviceProviderData = spData;
         }
         
