@@ -44,16 +44,17 @@ export function MaintenanceRequestForm({ properties, onRequestCreated }: Mainten
 
     setSubmitting(true);
     try {
-      // Using type assertion to ensure TypeScript doesn't complain
+      const requestData = {
+        title: form.title,
+        description: form.description,
+        property_id: form.propertyId,
+        tenant_id: user?.id || '',
+        status: 'pending'
+      };
+
       const { error } = await supabase
         .from('maintenance_requests')
-        .insert({
-          title: form.title,
-          description: form.description,
-          property_id: form.propertyId,
-          tenant_id: user?.id as string,
-          status: 'pending'
-        } as any);
+        .insert(requestData);
 
       if (error) throw error;
       

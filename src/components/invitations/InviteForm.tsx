@@ -53,12 +53,13 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       if (inviteError) throw inviteError;
 
       // 2. Generate and send OTP link
+      const baseUrl = window.location.origin;
       const { data, error: sendError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: inviteData,
           invitation_type: inviteType,
           action: 'create',
-          base_url: window.location.origin
+          base_url: baseUrl
         },
       });
 

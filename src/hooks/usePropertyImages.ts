@@ -74,14 +74,16 @@ export function usePropertyImages() {
           
         const publicUrl = publicUrlData.publicUrl;
         
-        // Using type assertion to work around TypeScript errors
+        // Insert the new property image record
+        const propertyImageData = {
+          property_id: propertyId,
+          url: publicUrl,
+          is_primary: i === 0
+        };
+
         const { error: dbError } = await supabase
           .from('property_images')
-          .insert({
-            property_id: propertyId,
-            url: publicUrl,
-            is_primary: i === 0
-          } as any);
+          .insert(propertyImageData);
           
         if (dbError) {
           console.error("Error recording image in database:", dbError);

@@ -30,7 +30,24 @@ export default function ServiceProviderDashboard() {
 
       console.log("Fetching properties for service provider:", user.id);
 
-      // Using direct from query with in clause based on secure function
+      // Get property IDs first
+      const { data: propertyIds, error: idsError } = await supabase
+        .rpc('get_service_provider_properties', { provider_id: user.id });
+        
+      if (idsError) {
+        console.error("Error fetching property IDs:", idsError);
+        setError(idsError.message);
+        throw idsError;
+      }
+      
+      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
+        setProperties([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Then get the actual property data
+      const propertyIdsArray = propertyIds as string[];
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select(`
@@ -39,12 +56,7 @@ export default function ServiceProviderDashboard() {
           address,
           details
         `)
-        .in('id', async () => {
-          const { data: propertyIds, error } = await supabase
-            .rpc('get_service_provider_properties', { provider_id: user.id });
-          if (error) throw error;
-          return propertyIds as string[];
-        });
+        .in('id', propertyIdsArray);
       
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);

@@ -21,11 +21,12 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       
       console.log('Tenant property IDs:', propertyIds);
       
-      if (!propertyIds || propertyIds.length === 0) {
+      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
         return [];
       }
       
       // Use the in clause with the returned property IDs
+      const propertyIdsArray = propertyIds as string[];
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select(`
@@ -34,7 +35,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
           address,
           details
         `)
-        .in('id', propertyIds as string[]);
+        .in('id', propertyIdsArray);
         
       if (propertiesError) {
         console.error('Error fetching tenant properties:', propertiesError);
@@ -44,9 +45,29 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'service_provider') {
-      // Use our new secure function to get properties for service providers
+      // Fetch service provider properties using a two-step approach
+      const { data: propertyIds, error: idsError } = await supabase
+        .rpc('get_service_provider_properties', { provider_id: userId });
+        
+      if (idsError) {
+        console.error('Error fetching service provider property IDs:', idsError);
+        throw idsError;
+      }
+      
+      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
+        return [];
+      }
+      
+      const propertyIdsArray = propertyIds as string[];
       const { data: properties, error: propertiesError } = await supabase
-        .rpc('get_properties_for_service_provider', { provider_id: userId });
+        .from('properties')
+        .select(`
+          id,
+          name,
+          address,
+          details
+        `)
+        .in('id', propertyIdsArray);
         
       if (propertiesError) {
         console.error('Error fetching service provider properties:', propertiesError);
