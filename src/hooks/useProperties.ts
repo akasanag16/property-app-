@@ -3,20 +3,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sampleProperties } from "@/data/sampleProperties";
-
-export type Property = {
-  id: string;
-  name: string;
-  address: string;
-  details?: {
-    type?: string;
-    bedrooms?: number;
-    bathrooms?: number;
-    area?: number;
-    rent?: number;
-  };
-  image_url?: string | null;
-};
+import type { Property, PropertyRole } from "@/types/property";
+import { fetchPropertyImages } from "./usePropertyImages";
+import { fetchPropertiesByRole } from "./useRoleBasedProperties";
 
 export function useProperties(userId?: string) {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -29,163 +18,7 @@ export function useProperties(userId?: string) {
     setRefreshKey(prev => prev + 1);
   };
 
-  const fetchProperties = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log("Fetching properties for user:", userId);
-      
-      if (!userId) {
-        console.log("No user ID provided, using sample data");
-        useSampleProperties();
-        return;
-      }
-      
-      // First get the role of the user to determine the query approach
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-        
-      if (profileError) {
-        console.error("Error fetching user role:", profileError);
-        useSampleProperties();
-        return;
-      }
-      
-      const userRole = profileData?.role;
-      console.log("User role:", userRole);
-      
-      let propertiesData: any[] = [];
-      
-      if (userRole === 'tenant') {
-        // For tenants, first get the property IDs they have access to
-        const { data: propertyIds, error: linkError } = await supabase
-          .rpc('get_tenant_properties', { tenant_id: userId });
-          
-        if (linkError) {
-          console.error("Error getting tenant properties:", linkError);
-          throw linkError;
-        }
-        
-        if (!propertyIds || propertyIds.length === 0) {
-          console.log("No properties found for tenant");
-          setProperties([]);
-          setFilteredProperties([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Then fetch those properties directly
-        const { data: properties, error: propertiesError } = await supabase
-          .from('properties')
-          .select(`
-            id,
-            name,
-            address,
-            details
-          `)
-          .in('id', propertyIds);
-          
-        if (propertiesError) {
-          console.error("Error fetching properties by IDs:", propertiesError);
-          throw propertiesError;
-        }
-        
-        propertiesData = properties || [];
-      } else if (userRole === 'owner') {
-        // For owners, just fetch their properties directly
-        const { data: properties, error: propertiesError } = await supabase
-          .from('properties')
-          .select(`
-            id,
-            name,
-            address,
-            details
-          `)
-          .eq('owner_id', userId);
-          
-        if (propertiesError) {
-          console.error("Error fetching owner properties:", propertiesError);
-          throw propertiesError;
-        }
-        
-        propertiesData = properties || [];
-      } else if (userRole === 'service_provider') {
-        // For service providers, use a similar approach as tenants
-        const { data: propertyIds, error: linkError } = await supabase
-          .rpc('get_service_provider_properties', { provider_id: userId });
-          
-        if (linkError) {
-          console.error("Error getting service provider properties:", linkError);
-          throw linkError;
-        }
-        
-        if (!propertyIds || propertyIds.length === 0) {
-          console.log("No properties found for service provider");
-          setProperties([]);
-          setFilteredProperties([]);
-          setLoading(false);
-          return;
-        }
-        
-        const { data: properties, error: propertiesError } = await supabase
-          .from('properties')
-          .select(`
-            id,
-            name,
-            address,
-            details
-          `)
-          .in('id', propertyIds);
-          
-        if (propertiesError) {
-          console.error("Error fetching properties by IDs:", propertiesError);
-          throw propertiesError;
-        }
-        
-        propertiesData = properties || [];
-      }
-      
-      // Convert the data to match our Property type
-      const typedProperties: Property[] = propertiesData.map(prop => ({
-        id: prop.id,
-        name: prop.name,
-        address: prop.address,
-        details: typeof prop.details === 'object' ? prop.details : {}
-      }));
-      
-      // Now fetch images for each property
-      for (const property of typedProperties) {
-        const { data: imageData, error: imageError } = await supabase
-          .from('property_images')
-          .select('url')
-          .eq('property_id', property.id)
-          .eq('is_primary', true)
-          .maybeSingle();
-          
-        if (!imageError && imageData) {
-          property.image_url = imageData.url;
-        }
-      }
-      
-      console.log("Fetched properties:", typedProperties);
-      setProperties(typedProperties);
-      setFilteredProperties(typedProperties);
-      setError(null);
-    } catch (error: any) {
-      console.error("Error fetching properties:", error);
-      setError(error.message || "Failed to load properties");
-      toast.error("Failed to load properties");
-      useSampleProperties();
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const useSampleProperties = () => {
-    // Use sample properties as fallback
     const samplePropertiesWithImgUrl = sampleProperties.map(prop => ({
       id: prop.id,
       name: prop.name,
@@ -203,6 +36,46 @@ export function useProperties(userId?: string) {
     setProperties(samplePropertiesWithImgUrl);
     setFilteredProperties(samplePropertiesWithImgUrl);
     setError(null);
+  };
+
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!userId) {
+        useSampleProperties();
+        return;
+      }
+      
+      // First get the role of the user to determine the query approach
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+        
+      if (profileError) {
+        console.error("Error fetching user role:", profileError);
+        useSampleProperties();
+        return;
+      }
+      
+      const userRole = profileData?.role as PropertyRole;
+      const propertiesData = await fetchPropertiesByRole(userId, userRole);
+      const propertiesWithImages = await fetchPropertyImages(propertiesData);
+      
+      setProperties(propertiesWithImages);
+      setFilteredProperties(propertiesWithImages);
+      setError(null);
+    } catch (error: any) {
+      console.error("Error fetching properties:", error);
+      setError(error.message || "Failed to load properties");
+      toast.error("Failed to load properties");
+      useSampleProperties();
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
