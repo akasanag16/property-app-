@@ -1,12 +1,16 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MaintenanceRequest, MaintenanceRequestsListProps } from "@/types/maintenance";
+import { MaintenanceRequestsListProps } from "@/types/maintenance";
 import { MaintenanceRequestItem } from "./MaintenanceRequestItem";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { useState, useEffect } from "react";
 
-export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: MaintenanceRequestsListProps) {
+export function MaintenanceRequestsList({ 
+  userRole, 
+  refreshKey = 0,
+  onRefreshNeeded 
+}: MaintenanceRequestsListProps & { onRefreshNeeded?: () => void }) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
   const { requests, loading } = useMaintenanceRequests(userRole, localRefreshKey);
 
@@ -26,6 +30,7 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
       
       toast.success(`Request marked as ${newStatus}`);
       setLocalRefreshKey(prev => prev + 1); // Trigger a refresh
+      if (onRefreshNeeded) onRefreshNeeded(); // Notify parent if needed
     } catch (error) {
       console.error("Error updating request status:", error);
       toast.error("Failed to update request status");

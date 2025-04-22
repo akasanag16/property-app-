@@ -20,37 +20,17 @@ export default function ServiceProviderDashboard() {
   const [activeTab, setActiveTab] = useState("assigned-properties");
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch service provider's properties using direct query instead of join
+  // Fetch service provider's properties using the secure function pattern
   const fetchProperties = async () => {
     try {
       setLoading(true);
 
       if (!user) return;
 
-      // First get the property links
-      const { data: linkData, error: linkError } = await supabase
-        .from("service_provider_property_link")
-        .select("property_id")
-        .eq("service_provider_id", user.id);
-
-      if (linkError) {
-        console.error("Error fetching property links:", linkError);
-        throw linkError;
-      }
-
-      if (!linkData || linkData.length === 0) {
-        setProperties([]);
-        return;
-      }
-
-      // Get the property IDs
-      const propertyIds = linkData.map(link => link.property_id);
-
-      // Then fetch the properties data
+      // Get property IDs via the secure function pattern in RLS
       const { data: propertiesData, error: propertiesError } = await supabase
         .from("properties")
-        .select("id, name, address")
-        .in("id", propertyIds);
+        .select("id, name, address");
 
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);
@@ -67,7 +47,7 @@ export default function ServiceProviderDashboard() {
     }
   };
 
-  // Set up real-time subscription
+  // Set up real-time subscription and initial fetch
   useEffect(() => {
     fetchProperties();
 
@@ -93,6 +73,11 @@ export default function ServiceProviderDashboard() {
       supabase.removeChannel(channel);
     };
   }, [user?.id, refreshKey]);
+
+  // Function to handle refresh trigger
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <DashboardLayout>
@@ -135,7 +120,7 @@ export default function ServiceProviderDashboard() {
         <TabsContent value="maintenance-requests" className="pt-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Assigned Maintenance Requests</h2>
-            <MaintenanceRequestsList userRole="service_provider" refreshKey={refreshKey} />
+            <MaintenanceRequestsList userRole="service_provider" refreshKey={refreshKey} onRefreshNeeded={handleRefresh} />
           </div>
         </TabsContent>
       </Tabs>
