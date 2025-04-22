@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail, Copy, AlertTriangle } from "lucide-react";
+import { Mail, Copy, AlertTriangle, Link as LinkIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type InviteFormProps = {
@@ -71,8 +71,8 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         console.error("Email sending failed:", emailError);
         setEmailSendingFailed(true);
         toast.warning("Invitation created but email sending failed. You can share the invitation link manually.");
-      } else if (data?.success === false) {
-        console.warn("Email sending returned an error:", data);
+      } else if (!data?.email_sent) {
+        console.warn("Email sending returned an error:", data?.email_error);
         setEmailSendingFailed(true);
         toast.warning("Invitation created but there was an issue sending the email. You can share the invitation link manually.");
         if (data?.invitation_url) {
@@ -130,12 +130,12 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         {loading ? (
           <span className="flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Sending...
+            Creating Invitation...
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Send Invitation
+            <LinkIcon className="h-4 w-4" />
+            Create Invitation
           </span>
         )}
       </Button>
