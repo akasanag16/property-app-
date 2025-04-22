@@ -13,8 +13,7 @@ export function MaintenanceRequestsList({
   onRefreshNeeded 
 }: MaintenanceRequestsListProps & { onRefreshNeeded?: () => void }) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
-  const [error, setError] = useState<string | null>(null);
-  const { requests, loading } = useMaintenanceRequests(userRole, localRefreshKey);
+  const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey);
 
   // Update local refresh key when parent refresh key changes
   useEffect(() => {
@@ -22,8 +21,7 @@ export function MaintenanceRequestsList({
   }, [refreshKey]);
 
   const handleRetry = () => {
-    setError(null);
-    setLocalRefreshKey(prev => prev + 1);
+    refetch();
     if (onRefreshNeeded) onRefreshNeeded();
   };
 
@@ -42,7 +40,6 @@ export function MaintenanceRequestsList({
     } catch (error) {
       console.error("Error updating request status:", error);
       toast.error("Failed to update request status");
-      setError("Failed to update request status. Please try again.");
     }
   };
 
@@ -55,7 +52,7 @@ export function MaintenanceRequestsList({
   }
 
   if (error) {
-    return <ErrorAlert message={error} onRetry={handleRetry} />;
+    return <ErrorAlert message={error.message} onRetry={handleRetry} />;
   }
 
   if (requests.length === 0) {

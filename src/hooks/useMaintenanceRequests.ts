@@ -9,9 +9,14 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
   const { user } = useAuth();
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchRequests = async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
+    setError(null);
+    
     try {
       let requestsData: any[] = [];
       
@@ -23,7 +28,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
             id, title, description, status, created_at,
             property_id
           `)
-          .eq("tenant_id", user?.id)
+          .eq("tenant_id", user.id)
           .order("created_at", { ascending: false });
           
         if (error) throw error;
@@ -31,7 +36,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
       } else if (userRole === "service_provider") {
         // For service providers, use the secure function to get their maintenance request IDs
         const { data: ids, error: idsError } = await supabase
-          .rpc('get_service_provider_maintenance_requests', { provider_id: user?.id });
+          .rpc('get_service_provider_maintenance_requests', { provider_id: user.id });
           
         if (idsError) throw idsError;
         
@@ -116,6 +121,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
       setRequests(enhancedRequests);
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
+      setError(error as Error);
       toast.error("Failed to load maintenance requests");
     } finally {
       setLoading(false);
@@ -124,27 +130,29 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
 
   // Set up real-time subscription
   useEffect(() => {
-    fetchRequests();
+    if (user?.id) {
+      fetchRequests();
 
-    const channel = supabase
-      .channel('table-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'maintenance_requests',
-        },
-        () => {
-          fetchRequests();
-        }
-      )
-      .subscribe();
+      const channel = supabase
+        .channel('table-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'maintenance_requests',
+          },
+          () => {
+            fetchRequests();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [userRole, user?.id, refreshKey]);
 
-  return { requests, loading };
+  return { requests, loading, error, refetch: fetchRequests };
 }

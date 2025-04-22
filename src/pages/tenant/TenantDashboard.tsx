@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -10,6 +11,7 @@ import { motion } from "framer-motion";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { Building, MessageCircle, Clock } from "lucide-react";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { ErrorAlert } from "@/components/ui/alert-error";
 
 type Property = {
   id: string;
@@ -21,37 +23,56 @@ export default function TenantDashboard() {
   const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("my-properties");
   const [requestRefreshKey, setRequestRefreshKey] = useState(0);
 
   const fetchProperties = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
+      // Use the safe RPC function we created to get property IDs
+      const { data: propertyIds, error: idsError } = await supabase
+        .rpc('get_tenant_properties', { tenant_id: user.id });
+        
+      if (idsError) throw idsError;
+      
+      // If no properties are linked, return empty array
+      if (!propertyIds || propertyIds.length === 0) {
+        setProperties([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Now fetch the properties using the IDs
       const { data, error } = await supabase
-        .from("tenant_property_link")
-        .select(`
-          property:properties(id, name, address)
-        `)
-        .eq("tenant_id", user?.id);
-
+        .from("properties")
+        .select("id, name, address")
+        .in("id", propertyIds);
+        
       if (error) throw error;
       
-      const formattedProperties = data?.map(item => ({
-        id: item.property.id,
-        name: item.property.name,
-        address: item.property.address,
-      })) || [];
-      
-      setProperties(formattedProperties);
+      setProperties(data || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
+      setError("Failed to load properties. Please try again.");
       toast.error("Failed to load properties");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
+  const handleRetry = () => {
     fetchProperties();
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchProperties();
+    }
 
     const channel = supabase
       .channel('table-db-changes')
@@ -63,7 +84,7 @@ export default function TenantDashboard() {
           table: 'tenant_property_link',
           filter: `tenant_id=eq.${user?.id}`
         },
-        (payload) => {
+        () => {
           fetchProperties();
         }
       )
@@ -153,7 +174,7 @@ export default function TenantDashboard() {
           </motion.div>
         </motion.div>
 
-        <Tabs defaultValue="my-properties" className="w-full">
+        <Tabs defaultValue="my-properties" className="w-full" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="my-properties">My Properties</TabsTrigger>
             <TabsTrigger value="maintenance-requests">Maintenance Requests</TabsTrigger>
@@ -164,6 +185,8 @@ export default function TenantDashboard() {
               <div className="flex justify-center py-8">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
               </div>
+            ) : error ? (
+              <ErrorAlert message={error} onRetry={handleRetry} />
             ) : properties.length === 0 ? (
               <GradientCard gradient="purple" className="text-center py-8">
                 <p className="text-gray-600">You haven't been linked to any properties yet.</p>
