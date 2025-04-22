@@ -6,6 +6,7 @@ import { UpdatePasswordForm } from "@/components/auth/forms/UpdatePasswordForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Added Button import
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(true);
