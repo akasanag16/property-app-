@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -7,14 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// For email sending, we'll use a simple fetch to a mock service
-// In production, replace this with a real email service like Resend, SendGrid, etc.
 async function sendEmail(to: string, subject: string, body: string) {
   try {
     console.log(`Sending email to ${to} with subject: ${subject}`);
     
-    // Simulated email sending with logging
-    // In a real implementation, you'd use an email service API
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -22,7 +17,7 @@ async function sendEmail(to: string, subject: string, body: string) {
         'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`
       },
       body: JSON.stringify({
-        from: 'Property Management <onboarding@yourdomain.com>',
+        from: 'Property Management <onboarding@prop-link-manage.lovable.app>',
         to: [to],
         subject: subject,
         html: body
@@ -141,4 +136,3 @@ serve(async (req) => {
     );
   }
 });
-
