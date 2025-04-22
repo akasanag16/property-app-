@@ -34,16 +34,19 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
         if (error) throw error;
         requestsData = data || [];
 
-        // Now enhance with property names and other details without recursion
+        // Now enhance with property names and other details
         const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          // Use RPC for property name to avoid recursion
+          // Instead of using RPC, query the property table directly for the name
           const { data: propertyData, error: propertyError } = await supabase
-            .rpc('get_property_name', { property_id_param: request.property_id });
+            .from('properties')
+            .select('name')
+            .eq('id', request.property_id)
+            .maybeSingle();
           
           return {
             ...request,
             property: {
-              name: propertyError ? "Unknown Property" : (propertyData || "Unknown Property")
+              name: propertyError ? "Unknown Property" : (propertyData?.name || "Unknown Property")
             },
             tenant: {
               first_name: user?.user_metadata?.first_name || "Unknown", 
@@ -81,10 +84,13 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
         if (error) throw error;
         requestsData = data || [];
 
-        // Process the same way as before
+        // Process the same way as before, but use direct query instead of RPC
         const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          const { data: propertyData } = await supabase
-            .rpc('get_property_name', { property_id_param: request.property_id });
+          const { data: propertyData, error: propertyError } = await supabase
+            .from('properties')
+            .select('name')
+            .eq('id', request.property_id)
+            .maybeSingle();
           
           const { data: tenantData } = await supabase
             .from("profiles")
@@ -95,7 +101,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           return {
             ...request,
             property: {
-              name: propertyData || "Unknown Property"
+              name: propertyError ? "Unknown Property" : (propertyData?.name || "Unknown Property")
             },
             tenant: {
               first_name: tenantData?.first_name || "Unknown",
