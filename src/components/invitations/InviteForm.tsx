@@ -29,6 +29,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
     try {
       const linkToken = crypto.randomUUID();
       
+      // 1. Create the invitation in the database
       const { error: inviteError } = await supabase.rpc('create_invitation', {
         p_property_id: propertyId,
         p_email: email,
@@ -38,7 +39,24 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (inviteError) throw inviteError;
 
-      toast.success(`Invitation sent to ${email}`);
+      // 2. Send the invitation email
+      const baseUrl = window.location.origin;
+      const { error: emailError } = await supabase.functions.invoke('send-invitation', {
+        body: { 
+          invitation_id: linkToken, // We don't have the actual ID yet, but we have the token
+          invitation_type: inviteType,
+          action: 'create',
+          base_url: baseUrl
+        },
+      });
+
+      if (emailError) {
+        console.warn("Email sending failed but invitation was created:", emailError);
+        toast.warning("Invitation created but email sending failed");
+      } else {
+        toast.success(`Invitation sent to ${email}`);
+      }
+
       setEmail("");
       if (onInviteSuccess) onInviteSuccess();
     } catch (error: any) {

@@ -16,6 +16,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvitations();
@@ -45,7 +46,10 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
 
   const handleResendInvitation = async (id: string) => {
     try {
-      const { error } = await supabase.functions.invoke("handle-invitation", {
+      setResendingId(id);
+      
+      // 1. Update the invitation expiry in the database
+      const { error: resendError } = await supabase.functions.invoke("handle-invitation", {
         body: { 
           action: "resend", 
           invitation_id: id,
@@ -53,13 +57,32 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
         },
       });
 
-      if (error) throw error;
+      if (resendError) throw resendError;
       
-      toast.success("Invitation resent successfully!");
+      // 2. Send the invitation email
+      const baseUrl = window.location.origin;
+      const { error: emailError } = await supabase.functions.invoke('send-invitation', {
+        body: { 
+          invitation_id: id,
+          invitation_type: type,
+          action: 'resend',
+          base_url: baseUrl
+        },
+      });
+
+      if (emailError) {
+        console.warn("Email sending failed but invitation was updated:", emailError);
+        toast.warning("Invitation updated but email sending failed");
+      } else {
+        toast.success("Invitation resent successfully!");
+      }
+      
       fetchInvitations();
     } catch (err) {
       console.error("Error resending invitation:", err);
       toast.error("Failed to resend invitation");
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -121,9 +144,15 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
               variant="outline" 
               size="sm" 
               onClick={() => handleResendInvitation(invitation.id)}
+              disabled={resendingId === invitation.id}
               className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
             >
-              Resend
+              {resendingId === invitation.id ? (
+                <span className="flex items-center gap-1">
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Sending...
+                </span>
+              ) : "Resend"}
             </Button>
           )}
         </div>
