@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signIn } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 export function LoginForm({
   onModeChange,
@@ -29,16 +30,37 @@ export function LoginForm({
     const toastId = toast.loading("Signing in...");
 
     try {
-      const { session } = await signIn({ email, password });
-      if (session) {
+      // Use supabase directly to get more detailed error reporting
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError) {
+        console.error("Auth error:", authError);
+        
+        // Give helpful error messages based on error codes
+        if (authError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please check your credentials and try again.");
+        } else {
+          setError(authError.message);
+        }
+        
+        toast.error("Authentication failed", { id: toastId });
+        return;
+      }
+
+      if (data.session) {
+        console.log("Login successful, redirecting to dashboard");
         toast.success("Signed in successfully", { id: toastId });
         navigate("/dashboard");
       } else {
-        setError("Login failed. Please try again.");
-        toast.error("Authentication failed", { id: toastId });
+        console.error("No session returned despite successful login");
+        setError("Authentication succeeded but no session was created. Please try again.");
+        toast.error("Authentication issue", { id: toastId });
       }
     } catch (error) {
-      console.error("Auth error:", error);
+      console.error("Unexpected auth error:", error);
       setError(error instanceof Error ? error.message : "Authentication failed");
       toast.error(error instanceof Error ? error.message : "Authentication failed", { id: toastId });
     } finally {
@@ -137,4 +159,3 @@ export function LoginForm({
     </motion.div>
   );
 }
-

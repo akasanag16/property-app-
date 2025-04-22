@@ -33,7 +33,7 @@ export async function signUp({
   console.log("Email redirect set to:", redirectTo);
 
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: email.trim(),
     password,
     options: {
       data: {
@@ -61,14 +61,25 @@ export async function signIn({
   email: string;
   password: string;
 }) {
-  // Don't clear existing sessions - this adds unnecessary delay
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  console.log("Attempting to sign in with:", { email });
   
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    
+    if (error) {
+      console.error("Sign in error:", error);
+      throw error;
+    }
+    
+    console.log("Sign in successful:", data);
+    return data;
+  } catch (error) {
+    console.error("Unexpected error during sign in:", error);
+    throw error;
+  }
 }
 
 export async function signOut() {
