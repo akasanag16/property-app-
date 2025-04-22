@@ -1,3 +1,4 @@
+
 import { Coins, Building, ArrowUp, ArrowDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -5,12 +6,19 @@ import type { Property } from "@/types/property";
 
 type DashboardStatsProps = {
   properties: Property[];
-  loading: boolean;
+  loading?: boolean;
   totalIncome?: number;
   tenantCount?: number;
+  occupiedCount?: number;
 };
 
-export function DashboardStats({ properties, loading, totalIncome = 0, tenantCount = 0 }: DashboardStatsProps) {
+export function DashboardStats({ 
+  properties, 
+  loading = false, 
+  totalIncome = 0, 
+  tenantCount = 0,
+  occupiedCount = 0 
+}: DashboardStatsProps) {
   const propertyCount = properties?.length || 0;
   const hasProperties = propertyCount > 0;
   const hasTenants = tenantCount > 0;

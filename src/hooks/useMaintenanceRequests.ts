@@ -34,19 +34,16 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
         if (error) throw error;
         requestsData = data || [];
 
-        // Now enhance with property names and other details
+        // Now enhance with property names using RPC function
         const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          // Instead of using RPC, query the property table directly for the name
-          const { data: propertyData, error: propertyError } = await supabase
-            .from('properties')
-            .select('name')
-            .eq('id', request.property_id)
-            .maybeSingle();
+          // Use the get_property_name function to avoid RLS recursion
+          const { data: propertyName, error: rpcError } = await supabase
+            .rpc('get_property_name', { property_id_param: request.property_id });
           
           return {
             ...request,
             property: {
-              name: propertyError ? "Unknown Property" : (propertyData?.name || "Unknown Property")
+              name: rpcError ? "Unknown Property" : (propertyName || "Unknown Property")
             },
             tenant: {
               first_name: user?.user_metadata?.first_name || "Unknown", 
@@ -84,13 +81,10 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
         if (error) throw error;
         requestsData = data || [];
 
-        // Process the same way as before, but use direct query instead of RPC
+        // Use get_property_name function for each request
         const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
-          const { data: propertyData, error: propertyError } = await supabase
-            .from('properties')
-            .select('name')
-            .eq('id', request.property_id)
-            .maybeSingle();
+          const { data: propertyName, error: rpcError } = await supabase
+            .rpc('get_property_name', { property_id_param: request.property_id });
           
           const { data: tenantData } = await supabase
             .from("profiles")
@@ -101,7 +95,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           return {
             ...request,
             property: {
-              name: propertyError ? "Unknown Property" : (propertyData?.name || "Unknown Property")
+              name: rpcError ? "Unknown Property" : (propertyName || "Unknown Property")
             },
             tenant: {
               first_name: tenantData?.first_name || "Unknown",
@@ -116,8 +110,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
         
         setRequests(enhancedRequests);
       } else {
-        // For owners, same approach but with their properties
-        // Implementation for owner would be similar
+        // For owners, similar approach with their properties
         setRequests([]);
       }
     } catch (error) {

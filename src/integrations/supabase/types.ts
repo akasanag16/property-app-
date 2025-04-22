@@ -529,6 +529,10 @@ export type Database = {
         Args: { p_property_id: string; p_type: string }
         Returns: Json[]
       }
+      get_property_name: {
+        Args: { property_id_param: string }
+        Returns: string
+      }
       get_service_provider_maintenance_requests: {
         Args: { provider_id: string }
         Returns: string[]
