@@ -5,6 +5,7 @@ import { MaintenanceRequestsListProps } from "@/types/maintenance";
 import { MaintenanceRequestItem } from "./MaintenanceRequestItem";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { useState, useEffect } from "react";
+import { ErrorAlert } from "@/components/ui/alert-error";
 
 export function MaintenanceRequestsList({ 
   userRole, 
@@ -12,12 +13,19 @@ export function MaintenanceRequestsList({
   onRefreshNeeded 
 }: MaintenanceRequestsListProps & { onRefreshNeeded?: () => void }) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
+  const [error, setError] = useState<string | null>(null);
   const { requests, loading } = useMaintenanceRequests(userRole, localRefreshKey);
 
   // Update local refresh key when parent refresh key changes
   useEffect(() => {
     setLocalRefreshKey(refreshKey);
   }, [refreshKey]);
+
+  const handleRetry = () => {
+    setError(null);
+    setLocalRefreshKey(prev => prev + 1);
+    if (onRefreshNeeded) onRefreshNeeded();
+  };
 
   const updateStatus = async (requestId: string, newStatus: "accepted" | "completed") => {
     try {
@@ -34,6 +42,7 @@ export function MaintenanceRequestsList({
     } catch (error) {
       console.error("Error updating request status:", error);
       toast.error("Failed to update request status");
+      setError("Failed to update request status. Please try again.");
     }
   };
 
@@ -43,6 +52,10 @@ export function MaintenanceRequestsList({
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorAlert message={error} onRetry={handleRetry} />;
   }
 
   if (requests.length === 0) {

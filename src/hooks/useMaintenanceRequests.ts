@@ -13,11 +13,12 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      let query;
+      let requestIds: string[] = [];
+      let requestsData: any[] = [];
       
       if (userRole === "tenant") {
-        // For tenants, fetch only their requests
-        query = supabase
+        // For tenants, fetch only their requests directly
+        const { data, error } = await supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
@@ -25,37 +26,55 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           `)
           .eq("tenant_id", user?.id)
           .order("created_at", { ascending: false });
+          
+        if (error) throw error;
+        requestsData = data || [];
       } else if (userRole === "service_provider") {
-        // For service providers, fetch only requests assigned to them
-        // Using direct query instead of joins to avoid RLS recursion
-        query = supabase
+        // For service providers, use the secure function to get their maintenance request IDs
+        const { data: ids, error: idsError } = await supabase
+          .rpc('get_service_provider_maintenance_requests', { provider_id: user?.id });
+          
+        if (idsError) throw idsError;
+        
+        // If no requests are assigned, return empty array
+        if (!ids || ids.length === 0) {
+          setRequests([]);
+          setLoading(false);
+          return;
+        }
+        
+        requestIds = ids;
+        
+        // Now fetch the actual maintenance requests using the IDs
+        const { data, error } = await supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
             property_id, tenant_id
           `)
-          .eq("assigned_service_provider_id", user?.id)
+          .in("id", requestIds)
           .order("created_at", { ascending: false });
+          
+        if (error) throw error;
+        requestsData = data || [];
       } else {
         // For owners, fetch all requests
-        query = supabase
+        const { data, error } = await supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
             property_id, tenant_id, assigned_service_provider_id
           `)
           .order("created_at", { ascending: false });
+          
+        if (error) throw error;
+        requestsData = data || [];
       }
 
-      console.log("Executing maintenance requests query for role:", userRole);
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      console.log("Maintenance requests data:", data);
+      console.log("Maintenance requests data:", requestsData);
       
       // After getting the initial data, make separate queries to get the related information
-      const enhancedRequests = await Promise.all((data || []).map(async (request) => {
+      const enhancedRequests = await Promise.all(requestsData.map(async (request) => {
         // Get property info
         const { data: propertyData } = await supabase
           .from("properties")
