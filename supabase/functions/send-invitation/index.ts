@@ -12,12 +12,30 @@ const corsHeaders = {
 async function sendEmail(to: string, subject: string, body: string) {
   try {
     console.log(`Sending email to ${to} with subject: ${subject}`);
-    console.log(`Email body: ${body}`);
     
-    // For demo purposes, we're just logging the email
+    // Simulated email sending with logging
     // In a real implementation, you'd use an email service API
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`
+      },
+      body: JSON.stringify({
+        from: 'Property Management <onboarding@yourdomain.com>',
+        to: [to],
+        subject: subject,
+        html: body
+      })
+    });
+
+    const result = await response.json();
     
-    return { success: true };
+    if (!response.ok) {
+      throw new Error(`Email sending failed: ${JSON.stringify(result)}`);
+    }
+    
+    return { success: true, result };
   } catch (error) {
     console.error("Error sending email:", error);
     return { success: false, error: error.message };
@@ -72,7 +90,7 @@ serve(async (req) => {
     
     // Create invitation URL
     const propertyName = property?.name || "the property";
-    const inviteUrl = `${base_url || 'https://themanageproperty.app'}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
+    const inviteUrl = `${base_url || 'https://prop-link-manage.lovable.app'}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
     
     // Prepare email content based on invitation type
     const roleText = invitation_type === 'tenant' ? 'tenant' : 'service provider';
@@ -105,7 +123,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Invitation email sent successfully',
-        invitation_url: inviteUrl // Return URL for testing purposes
+        invitation_url: inviteUrl 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -123,3 +141,4 @@ serve(async (req) => {
     );
   }
 });
+
