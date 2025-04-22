@@ -25,6 +25,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         return [];
       }
       
+      // Use the in clause with the returned property IDs
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select(`
@@ -33,7 +34,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
           address,
           details
         `)
-        .in('id', propertyIds);
+        .in('id', propertyIds as string[]);
         
       if (propertiesError) {
         console.error('Error fetching tenant properties:', propertiesError);
@@ -43,21 +44,9 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'service_provider') {
-      // Use the Direct FROM query for service providers since our function returns full rows
+      // Use our new secure function to get properties for service providers
       const { data: properties, error: propertiesError } = await supabase
-        .from('properties')
-        .select(`
-          id,
-          name,
-          address,
-          details
-        `)
-        .in('id', async () => {
-          const { data: propertyIds, error } = await supabase
-            .rpc('get_service_provider_properties', { provider_id: userId });
-          if (error) throw error;
-          return propertyIds as string[];
-        });
+        .rpc('get_properties_for_service_provider', { provider_id: userId });
         
       if (propertiesError) {
         console.error('Error fetching service provider properties:', propertiesError);

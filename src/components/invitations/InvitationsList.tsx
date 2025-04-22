@@ -34,7 +34,8 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
 
       if (fetchError) throw fetchError;
 
-      setInvitations(data || []);
+      // Type assertion to ensure we handle the data correctly
+      setInvitations(data as any[] || []);
     } catch (err) {
       console.error(`Error fetching ${type} invitations:`, err);
       setError(true);

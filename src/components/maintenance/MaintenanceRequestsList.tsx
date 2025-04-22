@@ -31,9 +31,9 @@ export function MaintenanceRequestsList({
       console.log(`Updating request ${requestId} status to ${newStatus}`);
       
       const { error } = await supabase
-        .from("maintenance_requests")
+        .from('maintenance_requests')
         .update({ status: newStatus })
-        .eq("id", requestId);
+        .eq('id', requestId);
 
       if (error) {
         console.error("Error updating request status:", error);

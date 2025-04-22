@@ -8,15 +8,20 @@ export async function fetchPropertyImages(properties: Property[]): Promise<Prope
   const propertiesWithImages = [...properties];
 
   for (const property of propertiesWithImages) {
-    const { data: imageData, error: imageError } = await supabase
-      .from('property_images')
-      .select('url')
-      .eq('property_id', property.id)
-      .eq('is_primary', true)
-      .maybeSingle();
-      
-    if (!imageError && imageData) {
-      property.image_url = imageData.url;
+    try {
+      const { data: imageData, error: imageError } = await supabase
+        .from('property_images')
+        .select('url')
+        .eq('property_id', property.id)
+        .eq('is_primary', true)
+        .maybeSingle();
+        
+      if (!imageError && imageData && imageData.url) {
+        property.image_url = imageData.url;
+      }
+    } catch (error) {
+      console.error("Error fetching property image:", error);
+      // Continue with next property even if one fails
     }
   }
 
@@ -69,13 +74,14 @@ export function usePropertyImages() {
           
         const publicUrl = publicUrlData.publicUrl;
         
+        // Using type assertion to work around TypeScript errors
         const { error: dbError } = await supabase
           .from('property_images')
           .insert({
             property_id: propertyId,
             url: publicUrl,
             is_primary: i === 0
-          });
+          } as any);
           
         if (dbError) {
           console.error("Error recording image in database:", dbError);
