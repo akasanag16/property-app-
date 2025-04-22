@@ -18,29 +18,50 @@ export default function ServiceProviderDashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("assigned-properties");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch service provider's properties
+  // Fetch service provider's properties using direct query instead of join
   const fetchProperties = async () => {
     try {
-      const { data, error } = await supabase
-        .from("service_provider_property_link")
-        .select(`
-          property:properties(id, name, address)
-        `)
-        .eq("service_provider_id", user?.id);
+      setLoading(true);
 
-      if (error) throw error;
+      if (!user) return;
+
+      // First get the property links
+      const { data: linkData, error: linkError } = await supabase
+        .from("service_provider_property_link")
+        .select("property_id")
+        .eq("service_provider_id", user.id);
+
+      if (linkError) {
+        console.error("Error fetching property links:", linkError);
+        throw linkError;
+      }
+
+      if (!linkData || linkData.length === 0) {
+        setProperties([]);
+        return;
+      }
+
+      // Get the property IDs
+      const propertyIds = linkData.map(link => link.property_id);
+
+      // Then fetch the properties data
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from("properties")
+        .select("id, name, address")
+        .in("id", propertyIds);
+
+      if (propertiesError) {
+        console.error("Error fetching properties:", propertiesError);
+        throw propertiesError;
+      }
       
-      const formattedProperties = data?.map(item => ({
-        id: item.property.id,
-        name: item.property.name,
-        address: item.property.address,
-      })) || [];
-      
-      setProperties(formattedProperties);
+      setProperties(propertiesData || []);
     } catch (error) {
-      console.error("Error fetching properties:", error);
+      console.error("Error in fetch properties flow:", error);
       toast.error("Failed to load properties");
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -61,7 +82,7 @@ export default function ServiceProviderDashboard() {
           table: 'service_provider_property_link',
           filter: `service_provider_id=eq.${user?.id}`
         },
-        (payload) => {
+        () => {
           // Refresh properties when links change
           fetchProperties();
         }
@@ -71,7 +92,7 @@ export default function ServiceProviderDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, refreshKey]);
 
   return (
     <DashboardLayout>
@@ -114,7 +135,7 @@ export default function ServiceProviderDashboard() {
         <TabsContent value="maintenance-requests" className="pt-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Assigned Maintenance Requests</h2>
-            <MaintenanceRequestsList userRole="service_provider" />
+            <MaintenanceRequestsList userRole="service_provider" refreshKey={refreshKey} />
           </div>
         </TabsContent>
       </Tabs>
