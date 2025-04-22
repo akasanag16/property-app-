@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { TenantDashboardStats } from "@/components/tenant/dashboard/TenantDashbo
 import { TenantPropertiesSection } from "@/components/tenant/dashboard/TenantPropertiesSection";
 import { TenantMaintenanceSection } from "@/components/tenant/dashboard/TenantMaintenanceSection";
 
-type Property = {
+export type Property = {
   id: string;
   name: string;
   address: string;
@@ -68,7 +67,6 @@ export default function TenantDashboard() {
     setActiveTab("maintenance-requests");
   };
 
-  // Effect for fetching properties and setting up realtime subscription
   useEffect(() => {
     if (user?.id) {
       fetchProperties();
