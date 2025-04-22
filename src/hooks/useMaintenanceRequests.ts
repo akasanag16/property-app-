@@ -26,120 +26,176 @@ export function useMaintenanceRequests(
 
       if (!userId) {
         setRequests([]);
+        setLoading(false);
         return;
       }
 
-      let query;
-
-      // Use different query strategies based on user role
+      let requestsData: any[] = [];
+      
+      // Different fetching strategies based on user role
       if (userRole === "tenant") {
-        // For tenants, fetch requests they created
-        query = supabase
+        // Direct query for tenant's requests - avoiding joins that might cause recursion
+        const { data, error: requestError } = await supabase
           .from("maintenance_requests")
-          .select(`
-            id,
-            title,
-            description,
-            status,
-            created_at,
-            property_id,
-            property:property_id (
-              id, 
-              name
-            ),
-            assigned_service_provider:assigned_service_provider_id (
-              id,
-              first_name,
-              last_name
-            )
-          `)
+          .select("id, title, description, status, created_at, property_id")
           .eq("tenant_id", userId)
           .order("created_at", { ascending: false });
+          
+        if (requestError) throw requestError;
+        requestsData = data || [];
+        
+        // Now fetch property names separately to avoid recursion
+        if (requestsData.length > 0) {
+          for (let i = 0; i < requestsData.length; i++) {
+            const request = requestsData[i];
+            // Use the dedicated function to get property name
+            const { data: propertyData, error: propertyError } = await supabase
+              .rpc('get_property_name', { property_id_param: request.property_id });
+              
+            if (propertyError) {
+              console.error("Error fetching property name:", propertyError);
+              request.property = { name: "Unknown property", id: request.property_id };
+            } else {
+              request.property = { name: propertyData || "Unnamed property", id: request.property_id };
+            }
+          }
+        }
       } else if (userRole === "service_provider") {
-        // For service providers, fetch assigned requests
-        query = supabase
+        // Direct query for service provider's assigned requests
+        const { data, error: requestError } = await supabase
           .from("maintenance_requests")
-          .select(`
-            id,
-            title,
-            description,
-            status,
-            created_at,
-            property_id,
-            property:property_id (
-              id, 
-              name
-            ),
-            tenant:tenant_id (
-              id,
-              first_name,
-              last_name
-            )
-          `)
+          .select("id, title, description, status, created_at, property_id, tenant_id")
           .eq("assigned_service_provider_id", userId)
           .order("created_at", { ascending: false });
+          
+        if (requestError) throw requestError;
+        requestsData = data || [];
+        
+        // Fetch property names and tenant details separately
+        if (requestsData.length > 0) {
+          for (let i = 0; i < requestsData.length; i++) {
+            const request = requestsData[i];
+            
+            // Get property name
+            const { data: propertyData, error: propertyError } = await supabase
+              .rpc('get_property_name', { property_id_param: request.property_id });
+              
+            if (propertyError) {
+              console.error("Error fetching property name:", propertyError);
+              request.property = { name: "Unknown property", id: request.property_id };
+            } else {
+              request.property = { name: propertyData || "Unnamed property", id: request.property_id };
+            }
+            
+            // Get tenant details
+            if (request.tenant_id) {
+              const { data: tenantData, error: tenantError } = await supabase
+                .from("profiles")
+                .select("first_name, last_name")
+                .eq("id", request.tenant_id)
+                .single();
+                
+              if (tenantError) {
+                console.error("Error fetching tenant details:", tenantError);
+                request.tenant = { first_name: "Unknown", last_name: "Tenant" };
+              } else {
+                request.tenant = tenantData;
+              }
+            } else {
+              request.tenant = { first_name: "Unknown", last_name: "Tenant" };
+            }
+          }
+        }
       } else if (userRole === "owner") {
-        // For owners, fetch requests for properties they own
-        // Use a function to get properties to avoid recursion
-        const { data: propertyIds, error: propertyError } = await supabase
+        // First get the properties owned by this user
+        const { data: properties, error: propertiesError } = await supabase
           .from("properties")
-          .select("id")
+          .select("id, name")
           .eq("owner_id", userId);
           
-        if (propertyError) throw propertyError;
+        if (propertiesError) throw propertiesError;
         
-        if (!propertyIds || propertyIds.length === 0) {
+        if (!properties || properties.length === 0) {
           setRequests([]);
           setLoading(false);
           return;
         }
         
-        // Get ids only
-        const ids = propertyIds.map(p => p.id);
+        // Get property IDs
+        const propertyIds = properties.map(p => p.id);
         
-        query = supabase
+        // Create a map for quick property name lookup
+        const propertyMap = properties.reduce((map, prop) => {
+          map[prop.id] = prop.name;
+          return map;
+        }, {} as Record<string, string>);
+        
+        // Get maintenance requests for these properties
+        const { data, error: requestError } = await supabase
           .from("maintenance_requests")
-          .select(`
-            id,
-            title,
-            description,
-            status,
-            created_at,
-            property_id,
-            property:property_id (
-              id, 
-              name
-            ),
-            tenant:tenant_id (
-              id,
-              first_name,
-              last_name
-            ),
-            assigned_service_provider:assigned_service_provider_id (
-              id,
-              first_name,
-              last_name
-            )
-          `)
-          .in("property_id", ids)
+          .select("id, title, description, status, created_at, property_id, tenant_id, assigned_service_provider_id")
+          .in("property_id", propertyIds)
           .order("created_at", { ascending: false });
+          
+        if (requestError) throw requestError;
+        requestsData = data || [];
+        
+        // Add property names from our map and fetch tenant/service provider details
+        if (requestsData.length > 0) {
+          for (let i = 0; i < requestsData.length; i++) {
+            const request = requestsData[i];
+            request.property = {
+              id: request.property_id,
+              name: propertyMap[request.property_id] || "Unnamed property"
+            };
+            
+            // Get tenant details
+            if (request.tenant_id) {
+              const { data: tenantData, error: tenantError } = await supabase
+                .from("profiles")
+                .select("first_name, last_name")
+                .eq("id", request.tenant_id)
+                .single();
+                
+              if (tenantError) {
+                console.error("Error fetching tenant details:", tenantError);
+                request.tenant = { first_name: "Unknown", last_name: "Tenant" };
+              } else {
+                request.tenant = tenantData;
+              }
+            } else {
+              request.tenant = { first_name: "Unknown", last_name: "Tenant" };
+            }
+            
+            // Get service provider details if assigned
+            if (request.assigned_service_provider_id) {
+              const { data: providerData, error: providerError } = await supabase
+                .from("profiles")
+                .select("first_name, last_name")
+                .eq("id", request.assigned_service_provider_id)
+                .single();
+                
+              if (providerError) {
+                console.error("Error fetching service provider details:", providerError);
+                request.assigned_service_provider = null;
+              } else {
+                request.assigned_service_provider = providerData;
+              }
+            } else {
+              request.assigned_service_provider = null;
+            }
+          }
+        }
       }
 
-      const { data, error: requestError } = await query;
-
-      if (requestError) throw requestError;
-
-      // Format the returned data
-      const formattedRequests = data.map((request: any) => ({
+      // Format requests to match expected structure
+      const formattedRequests: MaintenanceRequest[] = requestsData.map(request => ({
         id: request.id,
         title: request.title,
         description: request.description,
         status: request.status,
         created_at: request.created_at,
-        property: {
-          id: request.property.id,
-          name: request.property.name
-        },
+        property: request.property,
         tenant: request.tenant || null,
         assigned_service_provider: request.assigned_service_provider || null
       }));

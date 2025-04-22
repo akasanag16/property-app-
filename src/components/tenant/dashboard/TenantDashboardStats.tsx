@@ -5,6 +5,7 @@ import { GradientCard } from "@/components/ui/gradient-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import type { Property } from "@/types/property";
 import { TenantStatsSkeleton } from "./TenantDashboardSkeleton";
+import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 
 type TenantDashboardStatsProps = {
   properties: Property[];
@@ -28,6 +29,12 @@ const item = {
 };
 
 export function TenantDashboardStats({ properties, loading }: TenantDashboardStatsProps) {
+  // Use the maintenance requests hook to get active request count
+  const { requests } = useMaintenanceRequests("tenant");
+  
+  // Count active (non-completed) requests
+  const activeRequestsCount = requests.filter(r => r.status !== "completed").length;
+  
   if (loading) {
     return <TenantStatsSkeleton />;
   }
@@ -61,7 +68,7 @@ export function TenantDashboardStats({ properties, loading }: TenantDashboardSta
             </div>
           </div>
           <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter value={3} from={0} />
+            <AnimatedCounter value={activeRequestsCount} from={0} />
           </h3>
           <p className="text-sm text-gray-600">Active Requests</p>
         </GradientCard>
