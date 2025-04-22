@@ -28,6 +28,10 @@ export async function signUp({
     throw new Error("An account with this email already exists. Please sign in instead.");
   }
 
+  // Set the current origin for the email redirect
+  const redirectTo = `${window.location.origin}/auth/confirm`;
+  console.log("Email redirect set to:", redirectTo);
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -37,11 +41,16 @@ export async function signUp({
         first_name: firstName,
         last_name: lastName,
       },
-      emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      emailRedirectTo: redirectTo,
     },
   });
   
-  if (error) throw error;
+  if (error) {
+    console.error("Signup error:", error);
+    throw error;
+  }
+  
+  console.log("Signup response:", data);
   return data;
 }
 

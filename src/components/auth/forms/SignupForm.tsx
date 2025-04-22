@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,16 +41,14 @@ export function SignupForm({
         throw new Error("Please provide both first and last name");
       }
       
+      console.log("Starting signup for email:", email);
       const response = await signUp({ email, password, role, firstName, lastName });
+      console.log("Signup completed, response:", response);
       
-      if (response?.user) {
-        setConfirmationSent(true);
-        toast.success("Account created! Please check your email to verify your account.");
-      } else {
-        // If no user object is returned but no error, it's likely confirmation is needed
-        setConfirmationSent(true);
-        toast.success("Account created! Please check your email to verify your account.");
-      }
+      // Always set confirmation sent to true if there's no error
+      setConfirmationSent(true);
+      toast.success("Account created! Please check your email to verify your account.");
+      
     } catch (error) {
       console.error("Auth error:", error);
       setError(error instanceof Error ? error.message : "Registration failed");

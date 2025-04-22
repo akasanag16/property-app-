@@ -33,7 +33,8 @@ site_url = "https://prop-link-manage.lovable.app"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
     "https://prop-link-manage.lovable.app",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "https://id-preview--b153477c-831d-415d-a1cd-a496a67a8685.lovable.app"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (1 week).
 jwt_expiry = 3600
@@ -47,7 +48,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 
 [functions]
 serve_port = 54321
