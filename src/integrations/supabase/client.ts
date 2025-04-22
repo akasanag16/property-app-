@@ -15,12 +15,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   },
   global: {
-    // Don't retry requests that may cause recursion errors
+    // Add proper abort controller and prevent recursion
     fetch: (url, options) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       return fetch(url, {
         ...options,
-        signal: options?.signal || new AbortController().signal,
-      });
+        signal: options?.signal || controller.signal,
+        headers: {
+          ...options?.headers,
+          'X-Client-Info': 'lovable-app', // Custom header to help identify client
+        }
+      }).finally(() => clearTimeout(timeoutId));
     },
   },
 });

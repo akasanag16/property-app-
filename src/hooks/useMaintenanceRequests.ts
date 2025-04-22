@@ -10,16 +10,35 @@ export function useMaintenanceRequests(
   refreshKey = 0
 ) {
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<Error | null>(null);
   
   // Fetch the current user ID on mount
   useEffect(() => {
     async function fetchUserId() {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id);
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error getting user:", error);
+          setError(new Error("Failed to get current user"));
+          return;
+        }
+        
+        if (!data.user) {
+          console.warn("No user found");
+          setError(new Error("No authenticated user"));
+          return;
+        }
+        
+        console.log("Current user ID:", data.user.id);
+        setUserId(data.user.id);
+      } catch (err) {
+        console.error("Unexpected error in fetchUserId:", err);
+        setError(err instanceof Error ? err : new Error("Unknown error fetching user"));
+      }
     }
     
     fetchUserId();
-  }, []);
+  }, [refreshKey]);
 
   const tenantHook = useTenantRequests(userRole === "tenant" ? userId : undefined, refreshKey);
   const serviceProviderHook = useServiceProviderRequests(
@@ -33,10 +52,13 @@ export function useMaintenanceRequests(
     userRole === "service_provider" ? serviceProviderHook :
     ownerHook;
 
+  // Combine errors
+  const combinedError = error || activeHook.error;
+
   return {
     requests: activeHook.requests,
-    loading: activeHook.loading,
-    error: activeHook.error,
+    loading: activeHook.loading || !userId,
+    error: combinedError,
     refetch: activeHook.refetch
   };
 }

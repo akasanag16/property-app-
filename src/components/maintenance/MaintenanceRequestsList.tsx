@@ -21,25 +21,31 @@ export function MaintenanceRequestsList({
   }, [refreshKey]);
 
   const handleRetry = () => {
+    console.log("Retrying maintenance requests fetch...");
     refetch();
     if (onRefreshNeeded) onRefreshNeeded();
   };
 
   const updateStatus = async (requestId: string, newStatus: "accepted" | "completed") => {
     try {
+      console.log(`Updating request ${requestId} status to ${newStatus}`);
+      
       const { error } = await supabase
         .from("maintenance_requests")
         .update({ status: newStatus })
         .eq("id", requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating request status:", error);
+        throw error;
+      }
       
       toast.success(`Request marked as ${newStatus}`);
       setLocalRefreshKey(prev => prev + 1); // Trigger a refresh
       if (onRefreshNeeded) onRefreshNeeded(); // Notify parent if needed
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating request status:", error);
-      toast.error("Failed to update request status");
+      toast.error(`Failed to update request status: ${error.message || "Unknown error"}`);
     }
   };
 
@@ -52,7 +58,12 @@ export function MaintenanceRequestsList({
   }
 
   if (error) {
-    return <ErrorAlert message={error.message} onRetry={handleRetry} />;
+    return (
+      <ErrorAlert 
+        message={`Error loading maintenance requests: ${error.message}`} 
+        onRetry={handleRetry} 
+      />
+    );
   }
 
   if (requests.length === 0) {

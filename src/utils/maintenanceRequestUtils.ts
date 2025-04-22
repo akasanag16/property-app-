@@ -14,6 +14,7 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
   const formattedRequests: MaintenanceRequest[] = [];
   
   for (const request of data || []) {
+    // Use the safe function to get property name
     const { data: propertyName } = await supabase
       .rpc('get_property_name', { property_id_param: request.property_id });
       
@@ -47,6 +48,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
   const formattedRequests: MaintenanceRequest[] = [];
   
   for (const request of data || []) {
+    // Use the safe function to get property name
     const { data: propertyName } = await supabase
       .rpc('get_property_name', { property_id_param: request.property_id });
       
@@ -56,7 +58,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
         .from("profiles")
         .select("first_name, last_name")
         .eq("id", request.tenant_id)
-        .single();
+        .maybeSingle();
         
       if (tenantData) {
         tenant = tenantData;
@@ -82,6 +84,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
 }
 
 export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequest[]> {
+  // Get properties owned by this owner using a secure query approach
   const { data: properties, error: propertiesError } = await supabase
     .from("properties")
     .select("id, name")
@@ -117,7 +120,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
         .from("profiles")
         .select("first_name, last_name")
         .eq("id", request.tenant_id)
-        .single();
+        .maybeSingle();
         
       if (tenantData) {
         tenant = tenantData;
@@ -130,7 +133,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
         .from("profiles")
         .select("first_name, last_name")
         .eq("id", request.assigned_service_provider_id)
-        .single();
+        .maybeSingle();
         
       if (providerData) {
         assigned_service_provider = providerData;
@@ -154,4 +157,3 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
   
   return formattedRequests;
 }
-

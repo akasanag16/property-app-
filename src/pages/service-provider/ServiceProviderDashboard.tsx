@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
+import { ErrorAlert } from "@/components/ui/alert-error";
 
 type Property = {
   id: string;
@@ -17,6 +18,7 @@ export default function ServiceProviderDashboard() {
   const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("assigned-properties");
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -24,39 +26,31 @@ export default function ServiceProviderDashboard() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      if (!user) return;
-
-      // Get property IDs via the secure function pattern in RLS
-      const { data: propertyIds, error: propertyIdsError } = await supabase
-        .rpc('get_service_provider_properties', { provider_id: user.id });
-
-      if (propertyIdsError) {
-        console.error("Error fetching property IDs:", propertyIdsError);
-        throw propertyIdsError;
-      }
-      
-      if (!propertyIds || propertyIds.length === 0) {
-        setProperties([]);
-        setLoading(false);
+      if (!user) {
+        setError("User not authenticated");
         return;
       }
 
-      // Fetch the property details for these IDs
-      const { data: propertiesData, error: propertiesError } = await supabase
-        .from("properties")
-        .select("id, name, address")
-        .in("id", propertyIds);
+      console.log("Fetching properties for service provider:", user.id);
+
+      // Use our new secure function to get properties
+      const { data, error: propertiesError } = await supabase
+        .rpc('get_properties_for_service_provider', { provider_id: user.id });
 
       if (propertiesError) {
-        console.error("Error fetching properties data:", propertiesError);
+        console.error("Error fetching properties:", propertiesError);
+        setError(propertiesError.message);
         throw propertiesError;
       }
       
-      setProperties(propertiesData || []);
-    } catch (error) {
+      console.log("Properties fetched:", data);
+      setProperties(data || []);
+    } catch (error: any) {
       console.error("Error in fetch properties flow:", error);
       toast.error("Failed to load properties");
+      setError(error.message || "Failed to load properties");
       setProperties([]);
     } finally {
       setLoading(false);
@@ -66,6 +60,7 @@ export default function ServiceProviderDashboard() {
   // Function to handle refresh trigger
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
+    fetchProperties();
   };
 
   // Set up real-time subscription and initial fetch
@@ -94,6 +89,18 @@ export default function ServiceProviderDashboard() {
       supabase.removeChannel(channel);
     };
   }, [user?.id, refreshKey]);
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <h1 className="text-2xl font-bold mb-6">Service Provider Dashboard</h1>
+        <ErrorAlert 
+          message={`Error loading dashboard: ${error}`} 
+          onRetry={handleRefresh} 
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
