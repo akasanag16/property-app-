@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { ErrorAlert } from "@/components/ui/alert-error";
-import type { Property } from "@/types/property";
+import type { Property, PropertyDetails } from "@/types/property";
 
 export default function ServiceProviderDashboard() {
   const { user } = useAuth();
@@ -48,7 +48,7 @@ export default function ServiceProviderDashboard() {
       
       // Then get the actual property data
       const propertyIdsArray = propertyIds as string[];
-      const { data: properties, error: propertiesError } = await supabase
+      const { data: propertiesData, error: propertiesError } = await supabase
         .from('properties')
         .select(`
           id,
@@ -64,8 +64,17 @@ export default function ServiceProviderDashboard() {
         throw propertiesError;
       }
       
-      console.log("Properties fetched:", properties);
-      setProperties(properties || []);
+      console.log("Properties fetched:", propertiesData);
+      
+      // Convert the raw data to the expected Property type
+      const typedProperties: Property[] = (propertiesData || []).map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        details: prop.details as PropertyDetails || {}
+      }));
+      
+      setProperties(typedProperties);
     } catch (error: any) {
       console.error("Error in fetch properties flow:", error);
       toast.error("Failed to load properties");

@@ -49,7 +49,7 @@ export function MaintenanceRequestForm({ properties, onRequestCreated }: Mainten
         description: form.description,
         property_id: form.propertyId,
         tenant_id: user?.id || '',
-        status: 'pending'
+        status: "pending" as const // Explicitly type this as a literal "pending"
       };
 
       const { error } = await supabase
