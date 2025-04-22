@@ -1,8 +1,12 @@
 
 import { User } from "@supabase/supabase-js";
-import { UserRole } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Parses the recovery token from URL parameters for password reset flows
+ * 
+ * @returns {Promise<boolean>} True if a recovery token was found and processed
+ */
 export const parseRecoveryTokenFromURL = async () => {
   const hash = window.location.hash;
   const queryParams = new URLSearchParams(window.location.search);
