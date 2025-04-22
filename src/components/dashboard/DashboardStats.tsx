@@ -1,93 +1,75 @@
-
-import { Building, Home, Users, Wrench } from "lucide-react";
-import { Property } from "@/hooks/useProperties";
-import { GradientCard } from "@/components/ui/gradient-card";
+import { Coins, Building, ArrowUp, ArrowDown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { motion } from "framer-motion";
+import type { Property } from "@/types/property";
 
-interface DashboardStatsProps {
+type DashboardStatsProps = {
   properties: Property[];
-  occupiedCount: number;
-}
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
+  loading: boolean;
+  totalIncome?: number;
+  tenantCount?: number;
 };
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
+export function DashboardStats({ properties, loading, totalIncome = 0, tenantCount = 0 }: DashboardStatsProps) {
+  const propertyCount = properties?.length || 0;
+  const hasProperties = propertyCount > 0;
+  const hasTenants = tenantCount > 0;
 
-export function DashboardStats({ properties, occupiedCount }: DashboardStatsProps) {
   return (
-    <motion.div 
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-    >
-      <motion.div variants={item}>
-        <GradientCard gradient="purple">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Building className="h-6 w-6 text-purple-600" />
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Total Properties</span>
+            <Building className="h-5 w-5 text-gray-500" />
           </div>
-          <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={properties.length} />
-          </h3>
-          <p className="text-sm text-gray-600">Total Properties</p>
-        </GradientCard>
-      </motion.div>
+          <div className="text-3xl font-bold">
+            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={propertyCount} />}
+          </div>
+          {hasProperties && (
+            <div className="text-sm text-gray-500 flex items-center">
+              <ArrowUp className="h-4 w-4 mr-1 text-green-500" />
+              All properties are currently active
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <motion.div variants={item}>
-        <GradientCard gradient="blue">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Home className="h-6 w-6 text-blue-600" />
-            </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Total Tenants</span>
+            <Coins className="h-5 w-5 text-gray-500" />
           </div>
-          <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={occupiedCount} />
-          </h3>
-          <p className="text-sm text-gray-600">Occupied Properties</p>
-        </GradientCard>
-      </motion.div>
+          <div className="text-3xl font-bold">
+            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={tenantCount} />}
+          </div>
+          {hasTenants && (
+            <div className="text-sm text-gray-500 flex items-center">
+              <ArrowUp className="h-4 w-4 mr-1 text-green-500" />
+              All tenants are up to date with payments
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <motion.div variants={item}>
-        <GradientCard gradient="green">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Users className="h-6 w-6 text-green-600" />
-            </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Total Income</span>
+            <Coins className="h-5 w-5 text-gray-500" />
           </div>
-          <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={12} />
-          </h3>
-          <p className="text-sm text-gray-600">Active Tenants</p>
-        </GradientCard>
-      </motion.div>
-
-      <motion.div variants={item}>
-        <GradientCard gradient="orange">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <Wrench className="h-6 w-6 text-orange-600" />
-            </div>
+          <div className="text-3xl font-bold">
+            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={totalIncome} />}
           </div>
-          <h3 className="text-2xl font-bold mb-1">
-            <AnimatedCounter from={0} to={5} />
-          </h3>
-          <p className="text-sm text-gray-600">Pending Maintenance</p>
-        </GradientCard>
-      </motion.div>
-    </motion.div>
+          {totalIncome > 0 && (
+            <div className="text-sm text-gray-500 flex items-center">
+              <ArrowUp className="h-4 w-4 mr-1 text-green-500" />
+              Income is trending up this month
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
