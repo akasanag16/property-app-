@@ -28,12 +28,28 @@ export default function ServiceProviderDashboard() {
       if (!user) return;
 
       // Get property IDs via the secure function pattern in RLS
+      const { data: propertyIds, error: propertyIdsError } = await supabase
+        .rpc('get_service_provider_properties', { provider_id: user.id });
+
+      if (propertyIdsError) {
+        console.error("Error fetching property IDs:", propertyIdsError);
+        throw propertyIdsError;
+      }
+      
+      if (!propertyIds || propertyIds.length === 0) {
+        setProperties([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch the property details for these IDs
       const { data: propertiesData, error: propertiesError } = await supabase
         .from("properties")
-        .select("id, name, address");
+        .select("id, name, address")
+        .in("id", propertyIds);
 
       if (propertiesError) {
-        console.error("Error fetching properties:", propertiesError);
+        console.error("Error fetching properties data:", propertiesError);
         throw propertiesError;
       }
       
@@ -45,6 +61,11 @@ export default function ServiceProviderDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to handle refresh trigger
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   // Set up real-time subscription and initial fetch
@@ -73,11 +94,6 @@ export default function ServiceProviderDashboard() {
       supabase.removeChannel(channel);
     };
   }, [user?.id, refreshKey]);
-
-  // Function to handle refresh trigger
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
 
   return (
     <DashboardLayout>
@@ -120,7 +136,11 @@ export default function ServiceProviderDashboard() {
         <TabsContent value="maintenance-requests" className="pt-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Assigned Maintenance Requests</h2>
-            <MaintenanceRequestsList userRole="service_provider" refreshKey={refreshKey} onRefreshNeeded={handleRefresh} />
+            <MaintenanceRequestsList 
+              userRole="service_provider" 
+              refreshKey={refreshKey} 
+              onRefreshNeeded={handleRefresh} 
+            />
           </div>
         </TabsContent>
       </Tabs>

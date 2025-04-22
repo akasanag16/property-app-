@@ -529,6 +529,14 @@ export type Database = {
         Args: { p_property_id: string; p_type: string }
         Returns: Json[]
       }
+      get_service_provider_maintenance_requests: {
+        Args: { provider_id: string }
+        Returns: string[]
+      }
+      get_service_provider_properties: {
+        Args: { provider_id: string }
+        Returns: string[]
+      }
       get_user_notifications: {
         Args: { user_id_param: string }
         Returns: {
@@ -542,6 +550,10 @@ export type Database = {
           type: string
           user_id: string
         }[]
+      }
+      is_service_provider_for_property: {
+        Args: { property_id: string }
+        Returns: boolean
       }
       mark_all_notifications_as_read: {
         Args: { user_id_param: string }

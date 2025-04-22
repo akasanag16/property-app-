@@ -27,6 +27,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           .order("created_at", { ascending: false });
       } else if (userRole === "service_provider") {
         // For service providers, fetch only requests assigned to them
+        // Using direct query instead of joins to avoid RLS recursion
         query = supabase
           .from("maintenance_requests")
           .select(`
