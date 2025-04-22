@@ -16,23 +16,22 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
       // For owner role, we'll fetch all maintenance requests directly
       // For tenant/service_provider, we'll filter by their ID
       
-      // Build the query differently based on user role to avoid the recursion issue
       let query;
       
       if (userRole === "tenant") {
-        // Tenants only see their own requests
+        // Tenants only see their own requests - simplified query to avoid recursion
         query = supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
-            property:properties(name),
-            tenant:profiles!maintenance_requests_tenant_id_fkey(first_name, last_name),
-            assigned_service_provider:profiles!maintenance_requests_assigned_service_provider_id_fkey(first_name, last_name)
+            property_id:property_id(properties(name)),
+            tenant_id:tenant_id(profiles(first_name, last_name)),
+            assigned_service_provider_id:assigned_service_provider_id(profiles(first_name, last_name))
           `)
           .eq("tenant_id", user?.id)
           .order("created_at", { ascending: false });
       } else if (userRole === "service_provider") {
-        // Service providers only see requests assigned to them
+        // Service providers only see requests assigned to them - simplified query
         query = supabase
           .from("maintenance_requests")
           .select(`
@@ -44,8 +43,7 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           .eq("assigned_service_provider_id", user?.id)
           .order("created_at", { ascending: false });
       } else {
-        // Owners see all maintenance requests, but we need to be careful with the join
-        // to avoid the infinite recursion in policies
+        // Owner view - simplified to avoid recursion
         query = supabase
           .from("maintenance_requests")
           .select(`
@@ -57,9 +55,12 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
           .order("created_at", { ascending: false });
       }
 
+      console.log("Executing maintenance requests query for role:", userRole);
       const { data, error } = await query;
 
       if (error) throw error;
+
+      console.log("Maintenance requests data:", data);
 
       const typedData: MaintenanceRequest[] = (data || []).map(item => ({
         ...item,
