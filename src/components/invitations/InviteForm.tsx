@@ -41,7 +41,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
     try {
       const linkToken = crypto.randomUUID();
       
-      // 1. Create the invitation in the database
+      // 1. Create the invitation in the database using RPC
       const { data: inviteData, error: inviteError } = await supabase.rpc('create_invitation', {
         p_property_id: propertyId,
         p_email: email,
@@ -51,14 +51,13 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (inviteError) throw inviteError;
 
-      // 2. Generate and send invitation link
-      const baseUrl = window.location.origin;
+      // 2. Generate and send OTP link
       const { data, error: sendError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: inviteData,
           invitation_type: inviteType,
           action: 'create',
-          base_url: baseUrl
+          base_url: window.location.origin
         },
       });
 
@@ -66,11 +65,9 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         throw sendError;
       }
 
-      // Store both URLs - magic link is primary, custom URL is backup
+      // Store magic link URL if provided
       if (data?.magic_link) {
         setInvitationUrl(data.magic_link);
-      } else if (data?.invitation_url) {
-        setInvitationUrl(data.invitation_url);
       }
 
       toast.success(`Invitation sent to ${email}`);

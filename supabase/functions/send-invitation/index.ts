@@ -14,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the service role key to bypass RLS
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -32,7 +31,7 @@ serve(async (req) => {
     console.log(`Fetching invitation with ID: ${invitation_id} from table: ${tableName}`);
     const { data: invitation, error: fetchError } = await supabaseClient
       .from(tableName)
-      .select('id, email, link_token, property_id')
+      .select('id, email, property_id')
       .eq('id', invitation_id)
       .single();
 
@@ -51,13 +50,13 @@ serve(async (req) => {
       .single();
       
     const propertyName = property?.name || "the property";
-    
-    // Create magic link invitation URL using Supabase Auth
-    const { data: magicLink, error: magicLinkError } = await supabaseClient.auth.admin.generateLink({
+
+    // Create magic link using Supabase Auth OTP
+    const { data, error: otpError } = await supabaseClient.auth.admin.generateLink({
       type: 'magiclink',
       email: invitation.email,
       options: {
-        redirectTo: `${base_url}/invitation/accept?token=${invitation.link_token}&type=${invitation_type}`,
+        redirectTo: `${base_url}/invitation/accept?token=${invitation.id}&type=${invitation_type}`,
         data: {
           invitation_id: invitation.id,
           property_id: invitation.property_id,
@@ -66,22 +65,18 @@ serve(async (req) => {
       }
     });
 
-    if (magicLinkError) {
-      console.error("Error generating magic link:", magicLinkError);
-      throw magicLinkError;
+    if (otpError) {
+      console.error("Error generating OTP link:", otpError);
+      throw otpError;
     }
 
     console.log("Magic link generated successfully");
     
-    // Always return both URLs - the magic link and our custom invitation URL as fallback
-    const customInviteUrl = `${base_url}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
-    
     return new Response(
       JSON.stringify({ 
         success: true,
-        email_sent: true, // Supabase handles the email sending
-        invitation_url: customInviteUrl,
-        magic_link: magicLink.properties.action_link
+        email_sent: true,
+        magic_link: data.properties.action_link
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
