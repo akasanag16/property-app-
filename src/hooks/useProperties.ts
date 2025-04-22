@@ -57,7 +57,7 @@ export function useProperties(userId?: string) {
       const userRole = profileData?.role;
       console.log("User role:", userRole);
       
-      let propertiesData: Property[] = [];
+      let propertiesData: any[] = [];
       
       if (userRole === 'tenant') {
         // For tenants, first get the property IDs they have access to
@@ -148,8 +148,16 @@ export function useProperties(userId?: string) {
         propertiesData = properties || [];
       }
       
+      // Convert the data to match our Property type
+      const typedProperties: Property[] = propertiesData.map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        details: typeof prop.details === 'object' ? prop.details : {}
+      }));
+      
       // Now fetch images for each property
-      for (const property of propertiesData) {
+      for (const property of typedProperties) {
         const { data: imageData, error: imageError } = await supabase
           .from('property_images')
           .select('url')
@@ -162,9 +170,9 @@ export function useProperties(userId?: string) {
         }
       }
       
-      console.log("Fetched properties:", propertiesData);
-      setProperties(propertiesData);
-      setFilteredProperties(propertiesData);
+      console.log("Fetched properties:", typedProperties);
+      setProperties(typedProperties);
+      setFilteredProperties(typedProperties);
       setError(null);
     } catch (error: any) {
       console.error("Error fetching properties:", error);
