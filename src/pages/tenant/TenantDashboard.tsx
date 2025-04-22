@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { TenantDashboardStats } from "@/components/tenant/dashboard/TenantDashboardStats";
 import { TenantPropertiesSection } from "@/components/tenant/dashboard/TenantPropertiesSection";
 import { TenantMaintenanceSection } from "@/components/tenant/dashboard/TenantMaintenanceSection";
+import { useProperties } from "@/hooks/useProperties";
 
 export type Property = {
   id: string;
@@ -18,46 +19,11 @@ export type Property = {
 
 export default function TenantDashboard() {
   const { user } = useAuth();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("my-properties");
   const [requestRefreshKey, setRequestRefreshKey] = useState(0);
-
-  const fetchProperties = async () => {
-    if (!user?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data: propertyIds, error: idsError } = await supabase
-        .rpc('get_tenant_properties', { tenant_id: user.id });
-        
-      if (idsError) throw idsError;
-      
-      if (!propertyIds || propertyIds.length === 0) {
-        setProperties([]);
-        setLoading(false);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from("properties")
-        .select("id, name, address")
-        .in("id", propertyIds);
-        
-      if (error) throw error;
-      
-      setProperties(data || []);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      setError("Failed to load properties. Please try again.");
-      toast.error("Failed to load properties");
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // Use the fixed useProperties hook to fetch properties
+  const { properties, loading, handleRefresh } = useProperties(user?.id);
 
   const handleRequestCreated = () => {
     setActiveTab("maintenance-requests");
@@ -67,32 +33,6 @@ export default function TenantDashboard() {
   const handleMaintenanceClick = () => {
     setActiveTab("maintenance-requests");
   };
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchProperties();
-
-      const channel = supabase
-        .channel('table-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'tenant_property_link',
-            filter: `tenant_id=eq.${user?.id}`
-          },
-          () => {
-            fetchProperties();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user?.id]);
 
   return (
     <DashboardLayout>
@@ -116,8 +56,8 @@ export default function TenantDashboard() {
             <TenantPropertiesSection
               properties={properties}
               loading={loading}
-              error={error}
-              onRetry={fetchProperties}
+              error={null}
+              onRetry={handleRefresh}
               onMaintenanceClick={handleMaintenanceClick}
             />
           </TabsContent>

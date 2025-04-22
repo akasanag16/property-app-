@@ -23,6 +23,7 @@ export function useProperties(userId?: string) {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -31,6 +32,7 @@ export function useProperties(userId?: string) {
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log("Fetching properties for user:", userId);
       
       if (!userId) {
@@ -39,31 +41,134 @@ export function useProperties(userId?: string) {
         return;
       }
       
-      // Use POST method with action parameter
-      const { data, error } = await supabase.functions.invoke(
-        "create-property", 
-        {
-          method: "POST",
-          body: { action: "fetch", owner_id: userId }
-        }
-      );
-
-      if (error) {
-        console.error("Error from edge function:", error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
-        console.log("No properties found from API, using sample data");
+      // First get the role of the user to determine the query approach
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+        
+      if (profileError) {
+        console.error("Error fetching user role:", profileError);
         useSampleProperties();
         return;
       }
       
-      console.log("Fetched properties:", data);
-      setProperties(data);
-      setFilteredProperties(data);
-    } catch (error) {
+      const userRole = profileData?.role;
+      console.log("User role:", userRole);
+      
+      let propertiesData: Property[] = [];
+      
+      if (userRole === 'tenant') {
+        // For tenants, first get the property IDs they have access to
+        const { data: propertyIds, error: linkError } = await supabase
+          .rpc('get_tenant_properties', { tenant_id: userId });
+          
+        if (linkError) {
+          console.error("Error getting tenant properties:", linkError);
+          throw linkError;
+        }
+        
+        if (!propertyIds || propertyIds.length === 0) {
+          console.log("No properties found for tenant");
+          setProperties([]);
+          setFilteredProperties([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Then fetch those properties directly
+        const { data: properties, error: propertiesError } = await supabase
+          .from('properties')
+          .select(`
+            id,
+            name,
+            address,
+            details
+          `)
+          .in('id', propertyIds);
+          
+        if (propertiesError) {
+          console.error("Error fetching properties by IDs:", propertiesError);
+          throw propertiesError;
+        }
+        
+        propertiesData = properties || [];
+      } else if (userRole === 'owner') {
+        // For owners, just fetch their properties directly
+        const { data: properties, error: propertiesError } = await supabase
+          .from('properties')
+          .select(`
+            id,
+            name,
+            address,
+            details
+          `)
+          .eq('owner_id', userId);
+          
+        if (propertiesError) {
+          console.error("Error fetching owner properties:", propertiesError);
+          throw propertiesError;
+        }
+        
+        propertiesData = properties || [];
+      } else if (userRole === 'service_provider') {
+        // For service providers, use a similar approach as tenants
+        const { data: propertyIds, error: linkError } = await supabase
+          .rpc('get_service_provider_properties', { provider_id: userId });
+          
+        if (linkError) {
+          console.error("Error getting service provider properties:", linkError);
+          throw linkError;
+        }
+        
+        if (!propertyIds || propertyIds.length === 0) {
+          console.log("No properties found for service provider");
+          setProperties([]);
+          setFilteredProperties([]);
+          setLoading(false);
+          return;
+        }
+        
+        const { data: properties, error: propertiesError } = await supabase
+          .from('properties')
+          .select(`
+            id,
+            name,
+            address,
+            details
+          `)
+          .in('id', propertyIds);
+          
+        if (propertiesError) {
+          console.error("Error fetching properties by IDs:", propertiesError);
+          throw propertiesError;
+        }
+        
+        propertiesData = properties || [];
+      }
+      
+      // Now fetch images for each property
+      for (const property of propertiesData) {
+        const { data: imageData, error: imageError } = await supabase
+          .from('property_images')
+          .select('url')
+          .eq('property_id', property.id)
+          .eq('is_primary', true)
+          .maybeSingle();
+          
+        if (!imageError && imageData) {
+          property.image_url = imageData.url;
+        }
+      }
+      
+      console.log("Fetched properties:", propertiesData);
+      setProperties(propertiesData);
+      setFilteredProperties(propertiesData);
+      setError(null);
+    } catch (error: any) {
       console.error("Error fetching properties:", error);
+      setError(error.message || "Failed to load properties");
       toast.error("Failed to load properties");
       useSampleProperties();
     } finally {
@@ -89,6 +194,7 @@ export function useProperties(userId?: string) {
     
     setProperties(samplePropertiesWithImgUrl);
     setFilteredProperties(samplePropertiesWithImgUrl);
+    setError(null);
   };
 
   useEffect(() => {
@@ -105,7 +211,6 @@ export function useProperties(userId?: string) {
           event: '*',
           schema: 'public',
           table: 'properties',
-          filter: `owner_id=eq.${userId}`,
         },
         () => {
           console.log("Properties change detected");
@@ -142,6 +247,7 @@ export function useProperties(userId?: string) {
     filteredProperties,
     setFilteredProperties,
     loading,
-    handleRefresh
+    handleRefresh,
+    error
   };
 }
