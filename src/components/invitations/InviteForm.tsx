@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail, Copy } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mail, Copy, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type InviteFormProps = {
   propertyId: string;
@@ -19,6 +19,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
   const [inviteType, setInviteType] = useState<"tenant" | "service_provider">("tenant");
   const [loading, setLoading] = useState(false);
   const [invitationUrl, setInvitationUrl] = useState<string | null>(null);
+  const [emailSendingFailed, setEmailSendingFailed] = useState(false);
 
   const copyToClipboard = () => {
     if (invitationUrl) {
@@ -36,6 +37,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
     setLoading(true);
     setInvitationUrl(null);
+    setEmailSendingFailed(false);
     
     try {
       const linkToken = crypto.randomUUID();
@@ -50,6 +52,8 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       if (inviteError) throw inviteError;
 
+      console.log("Invitation created successfully with ID:", inviteData);
+
       // 2. Send the invitation email
       const baseUrl = window.location.origin;
       const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
@@ -61,11 +65,15 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         },
       });
 
+      console.log("Invitation function response:", data);
+
       if (emailError) {
         console.error("Email sending failed:", emailError);
+        setEmailSendingFailed(true);
         toast.warning("Invitation created but email sending failed. You can share the invitation link manually.");
       } else if (data?.success === false) {
         console.warn("Email sending returned an error:", data);
+        setEmailSendingFailed(true);
         toast.warning("Invitation created but there was an issue sending the email. You can share the invitation link manually.");
         if (data?.invitation_url) {
           setInvitationUrl(data.invitation_url);
@@ -132,9 +140,20 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         )}
       </Button>
 
+      {emailSendingFailed && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Email Sending Failed</AlertTitle>
+          <AlertDescription>
+            The invitation was created but we couldn't send the email. 
+            Please use the invitation link below to manually share with the recipient.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {invitationUrl && (
-        <Alert className="mt-4 bg-blue-50 border-blue-200">
-          <AlertDescription className="text-blue-800">
+        <Alert className={`mt-4 ${emailSendingFailed ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+          <AlertDescription className={emailSendingFailed ? 'text-red-800' : 'text-blue-800'}>
             <div className="flex flex-col space-y-2">
               <span>Invitation link (you can share this manually):</span>
               <div className="flex items-center gap-2 bg-white p-2 rounded border border-blue-200 text-sm overflow-hidden">

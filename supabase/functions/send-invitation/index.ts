@@ -9,16 +9,26 @@ const corsHeaders = {
 
 async function sendEmail(to: string, subject: string, body: string) {
   try {
-    console.log(`Sending email to ${to} with subject: ${subject}`);
+    console.log(`Attempting to send email to ${to} with subject: ${subject}`);
+    
+    // Check if API key is available
+    const apiKey = Deno.env.get('RESEND_API_KEY');
+    if (!apiKey) {
+      console.warn("RESEND_API_KEY is not set or empty");
+      return { success: false, error: "Missing API key" };
+    }
+    
+    // For debugging
+    console.log(`API key available: ${apiKey ? 'Yes (length: ' + apiKey.length + ')' : 'No'}`);
     
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        from: 'Property Management <onboarding@prop-link-manage.lovable.app>',
+        from: 'Property Management <noreply@lovable.app>',
         to: [to],
         subject: subject,
         html: body
@@ -28,12 +38,14 @@ async function sendEmail(to: string, subject: string, body: string) {
     const result = await response.json();
     
     if (!response.ok) {
-      throw new Error(`Email sending failed: ${JSON.stringify(result)}`);
+      console.error(`Email API error (${response.status}):`, result);
+      return { success: false, error: `Email sending failed: ${JSON.stringify(result)}` };
     }
     
+    console.log("Email sent successfully:", result);
     return { success: true, result };
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error in sendEmail function:", error);
     return { success: false, error: error.message };
   }
 }
@@ -47,6 +59,7 @@ serve(async (req) => {
   }
 
   try {
+    // Create a Supabase client with the service role key to bypass RLS
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
