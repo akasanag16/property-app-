@@ -36,6 +36,7 @@ export function useProperties(userId?: string) {
     setProperties(samplePropertiesWithImgUrl);
     setFilteredProperties(samplePropertiesWithImgUrl);
     setError(null);
+    setLoading(false);
   };
 
   const fetchProperties = async () => {
@@ -53,7 +54,7 @@ export function useProperties(userId?: string) {
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.error("Error fetching user role:", profileError);
@@ -61,15 +62,32 @@ export function useProperties(userId?: string) {
         return;
       }
       
-      const userRole = profileData?.role as PropertyRole;
-      const propertiesData = await fetchPropertiesByRole(userId, userRole);
-      const propertiesWithImages = await fetchPropertyImages(propertiesData);
+      if (!profileData) {
+        console.warn("No profile found for user:", userId);
+        useSampleProperties();
+        return;
+      }
       
-      setProperties(propertiesWithImages);
-      setFilteredProperties(propertiesWithImages);
-      setError(null);
+      const userRole = profileData?.role as PropertyRole;
+      console.log("Fetching properties for role:", userRole);
+      
+      try {
+        const propertiesData = await fetchPropertiesByRole(userId, userRole);
+        const propertiesWithImages = await fetchPropertyImages(propertiesData);
+        
+        console.log("Fetched properties:", propertiesWithImages);
+        
+        setProperties(propertiesWithImages);
+        setFilteredProperties(propertiesWithImages);
+        setError(null);
+      } catch (fetchError: any) {
+        console.error("Error in property fetching:", fetchError);
+        setError(fetchError.message || "Failed to load properties");
+        toast.error("Failed to load properties");
+        useSampleProperties();
+      }
     } catch (error: any) {
-      console.error("Error fetching properties:", error);
+      console.error("Error in useProperties hook:", error);
       setError(error.message || "Failed to load properties");
       toast.error("Failed to load properties");
       useSampleProperties();
@@ -79,7 +97,10 @@ export function useProperties(userId?: string) {
   };
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      useSampleProperties();
+      return;
+    }
     
     fetchProperties();
 

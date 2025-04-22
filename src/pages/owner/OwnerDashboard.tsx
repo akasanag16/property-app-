@@ -11,10 +11,13 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { useProperties } from "@/hooks/useProperties";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function OwnerDashboard() {
   const { user } = useAuth();
-  const { properties, loading, handleRefresh } = useProperties(user?.id);
+  const { properties, loading, handleRefresh, error } = useProperties(user?.id);
   const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
 
   // Count properties that likely have tenants (using details.type as a proxy)
@@ -62,6 +65,27 @@ export default function OwnerDashboard() {
           properties={properties} 
           occupiedCount={occupiedPropertiesCount} 
         />
+
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error loading properties</AlertTitle>
+            <AlertDescription>
+              {error}
+              <div className="mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  className="mt-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {loading ? (
           <LoadingSpinner />

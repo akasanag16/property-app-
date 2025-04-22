@@ -559,6 +559,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_owner_of_property: {
+        Args: { property_id: string }
+        Returns: boolean
+      }
       is_service_provider_for_property: {
         Args: { property_id: string }
         Returns: boolean

@@ -1,96 +1,44 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { InviteForm } from "@/components/invitations/InviteForm";
-import { InvitationsList } from "@/components/invitations/InvitationsList";
-import { AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Building, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PropertyCardProps = {
   id: string;
   name: string;
   address: string;
+  className?: string;
+  type?: string;
 };
 
-export function PropertyCard({ id, name, address }: PropertyCardProps) {
-  const [inviteRefreshKey, setInviteRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState("invite");
-  const [error, setError] = useState(false);
-
-  const handleInviteSuccess = () => {
-    // Force refresh invitations list when new invite is created
-    setInviteRefreshKey(prev => prev + 1);
-    toast.success("Invitation sent successfully!");
-    
-    // Switch to the appropriate tab based on the last invite type
-    const inviteForm = document.querySelector('form') as HTMLFormElement;
-    const inviteTypeSelect = inviteForm?.querySelector('[id^="radix-"][role="combobox"]') as HTMLElement;
-    const selectedValue = inviteTypeSelect?.getAttribute('data-value') || 'tenant';
-    
-    if (selectedValue === 'tenant') {
-      setActiveTab('tenants');
-    } else {
-      setActiveTab('service-providers');
-    }
-  };
-
-  const handleError = () => {
-    setError(true);
-    toast.error("Error loading invitations. Please try again later.");
-  };
-
+export function PropertyCard({
+  id,
+  name,
+  address,
+  className,
+  type = 'property'
+}: PropertyCardProps) {
   return (
-    <Card className="w-full shadow-lg border-indigo-100 hover:border-indigo-200 transition-all duration-300">
-      <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-t-lg">
-        <CardTitle>{name}</CardTitle>
-        <CardDescription>{address}</CardDescription>
+    <Card className={cn("overflow-hidden hover:shadow-md transition-shadow", className)}>
+      <div className="h-24 bg-gradient-to-r from-blue-500 to-purple-500 grid place-items-center text-white">
+        <Building className="h-10 w-10" />
+      </div>
+      
+      <CardHeader className="p-4">
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-lg line-clamp-1">{name || 'Unnamed Property'}</CardTitle>
+          <Badge variant="outline" className="ml-2 text-xs">
+            {type}
+          </Badge>
+        </div>
       </CardHeader>
-      <CardContent className="pt-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-indigo-50">
-            <TabsTrigger value="invite" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Invite</TabsTrigger>
-            <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Tenants</TabsTrigger>
-            <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">Service Providers</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="invite" className="pt-4">
-            <InviteForm 
-              propertyId={id} 
-              onInviteSuccess={handleInviteSuccess}
-            />
-          </TabsContent>
-          
-          <TabsContent value="tenants" className="pt-4">
-            <InvitationsList 
-              key={`tenant-${inviteRefreshKey}`}
-              propertyId={id} 
-              type="tenant"
-              onError={handleError}
-            />
-          </TabsContent>
-          
-          <TabsContent value="service-providers" className="pt-4">
-            <InvitationsList 
-              key={`sp-${inviteRefreshKey}`}
-              propertyId={id} 
-              type="service_provider"
-              onError={handleError}
-            />
-          </TabsContent>
-        </Tabs>
+      
+      <CardContent className="p-4 pt-0">
+        <div className="flex items-start text-gray-500">
+          <MapPin className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" />
+          <p className="text-sm line-clamp-2">{address}</p>
+        </div>
       </CardContent>
     </Card>
   );
