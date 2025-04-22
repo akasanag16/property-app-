@@ -7,12 +7,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { ErrorAlert } from "@/components/ui/alert-error";
-
-type Property = {
-  id: string;
-  name: string;
-  address: string;
-};
+import type { Property } from "@/types/property";
 
 export default function ServiceProviderDashboard() {
   const { user } = useAuth();
@@ -35,18 +30,30 @@ export default function ServiceProviderDashboard() {
 
       console.log("Fetching properties for service provider:", user.id);
 
-      // Use our new secure function to get properties
-      const { data, error: propertiesError } = await supabase
-        .rpc('get_properties_for_service_provider', { provider_id: user.id });
-
+      // Using direct from query with in clause based on secure function
+      const { data: properties, error: propertiesError } = await supabase
+        .from('properties')
+        .select(`
+          id,
+          name,
+          address,
+          details
+        `)
+        .in('id', async () => {
+          const { data: propertyIds, error } = await supabase
+            .rpc('get_service_provider_properties', { provider_id: user.id });
+          if (error) throw error;
+          return propertyIds as string[];
+        });
+      
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);
         setError(propertiesError.message);
         throw propertiesError;
       }
       
-      console.log("Properties fetched:", data);
-      setProperties(data || []);
+      console.log("Properties fetched:", properties);
+      setProperties(properties || []);
     } catch (error: any) {
       console.error("Error in fetch properties flow:", error);
       toast.error("Failed to load properties");

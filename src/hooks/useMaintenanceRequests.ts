@@ -40,6 +40,7 @@ export function useMaintenanceRequests(
     fetchUserId();
   }, [refreshKey]);
 
+  // Use the appropriate hook based on user role
   const tenantHook = useTenantRequests(userRole === "tenant" ? userId : undefined, refreshKey);
   const serviceProviderHook = useServiceProviderRequests(
     userRole === "service_provider" ? userId : undefined,
@@ -47,12 +48,13 @@ export function useMaintenanceRequests(
   );
   const ownerHook = useOwnerRequests(userRole === "owner" ? userId : undefined, refreshKey);
 
+  // Select the appropriate hook based on user role
   const activeHook = 
     userRole === "tenant" ? tenantHook :
     userRole === "service_provider" ? serviceProviderHook :
     ownerHook;
 
-  // Combine errors
+  // Combine errors - first check the userId fetch error, then the specific role hook error
   const combinedError = error || activeHook.error;
 
   return {

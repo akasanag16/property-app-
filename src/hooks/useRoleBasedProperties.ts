@@ -43,9 +43,21 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'service_provider') {
-      // Use the secure function to get service provider properties
+      // Use the Direct FROM query for service providers since our function returns full rows
       const { data: properties, error: propertiesError } = await supabase
-        .rpc('get_properties_for_service_provider', { provider_id: userId });
+        .from('properties')
+        .select(`
+          id,
+          name,
+          address,
+          details
+        `)
+        .in('id', async () => {
+          const { data: propertyIds, error } = await supabase
+            .rpc('get_service_provider_properties', { provider_id: userId });
+          if (error) throw error;
+          return propertyIds as string[];
+        });
         
       if (propertiesError) {
         console.error('Error fetching service provider properties:', propertiesError);
@@ -55,7 +67,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'owner') {
-      // Direct query for owners, should work with our RLS policies
+      // Direct query for owners, should work with our new RLS policies
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select(`

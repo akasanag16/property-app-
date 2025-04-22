@@ -9,7 +9,15 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Type extensions for the new database functions
+type CustomFunctions = {
+  get_properties_for_service_provider: (args: { provider_id: string }) => Promise<{
+    data: Database['public']['Tables']['properties']['Row'][];
+    error: any;
+  }>;
+}
+
+export const supabase = createClient<Database, 'public', CustomFunctions>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
