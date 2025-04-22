@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -91,34 +90,6 @@ serve(async (req) => {
       // Simplified response for now
       return new Response(
         JSON.stringify({ message: "User creation from invitation would be implemented here" }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      )
-    }
-
-    // Handle resend
-    if (action === 'resend') {
-      const tableName = invitation_type === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations'
-
-      const { data: invitation, error: fetchError } = await supabaseClient
-        .from(tableName)
-        .select('*')
-        .eq('id', invitation_id)
-        .single()
-
-      if (fetchError) throw fetchError
-
-      const { error: updateError } = await supabaseClient.rpc('update_invitation_expiry', {
-        p_invitation_id: invitation_id,
-        p_invitation_type: invitation_type
-      })
-
-      if (updateError) throw updateError
-
-      return new Response(
-        JSON.stringify({ message: 'Invitation expiry updated successfully' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,

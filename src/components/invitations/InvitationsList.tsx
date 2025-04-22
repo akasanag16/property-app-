@@ -48,18 +48,15 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
     try {
       setResendingId(id);
       
-      // 1. Update the invitation expiry in the database
-      const { error: resendError } = await supabase.functions.invoke("handle-invitation", {
-        body: { 
-          action: "resend", 
-          invitation_id: id,
-          invitation_type: type
-        },
+      // First, update the invitation expiry in the database directly without using the edge function
+      const { error: updateError } = await supabase.rpc('update_invitation_expiry', {
+        p_invitation_id: id,
+        p_invitation_type: type
       });
 
-      if (resendError) throw resendError;
+      if (updateError) throw updateError;
       
-      // 2. Send the invitation email
+      // Then, send the invitation email
       const baseUrl = window.location.origin;
       const { error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 

@@ -63,6 +63,7 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !invitation) {
+      console.error("Error fetching invitation:", fetchError);
       throw fetchError || new Error("Invitation not found");
     }
 
@@ -97,16 +98,6 @@ serve(async (req) => {
     
     if (!emailResult.success) {
       throw new Error(`Failed to send email: ${emailResult.error}`);
-    }
-
-    // If this is a resend action, update the expiry date
-    if (action === 'resend') {
-      const { error: updateError } = await supabaseClient.rpc('update_invitation_expiry', {
-        p_invitation_id: invitation_id,
-        p_invitation_type: invitation_type
-      });
-
-      if (updateError) throw updateError;
     }
 
     return new Response(

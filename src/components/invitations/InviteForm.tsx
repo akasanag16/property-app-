@@ -30,7 +30,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       const linkToken = crypto.randomUUID();
       
       // 1. Create the invitation in the database
-      const { error: inviteError } = await supabase.rpc('create_invitation', {
+      const { data: inviteData, error: inviteError } = await supabase.rpc('create_invitation', {
         p_property_id: propertyId,
         p_email: email,
         p_link_token: linkToken,
@@ -43,7 +43,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       const baseUrl = window.location.origin;
       const { error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 
-          invitation_id: linkToken, // We don't have the actual ID yet, but we have the token
+          invitation_id: inviteData, // The RPC returns the new invitation ID
           invitation_type: inviteType,
           action: 'create',
           base_url: baseUrl
