@@ -94,3 +94,6 @@ enforce_browser_restriction = true
 
 [functions.send-invitation]
 verify_jwt = false
+
+[functions.handle-invitation]
+verify_jwt = false

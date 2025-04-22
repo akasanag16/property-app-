@@ -46,15 +46,10 @@ serve(async (req) => {
 
     const tableName = invitation_type === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
     
-    // Get invitation details - using a simpler query to avoid recursion issues
+    // Get invitation details - using a simple query to avoid recursion issues
     const { data: invitation, error: fetchError } = await supabaseClient
       .from(tableName)
-      .select(`
-        id, 
-        email, 
-        link_token, 
-        property_id
-      `)
+      .select('id, email, link_token, property_id')
       .eq('id', invitation_id)
       .single();
 
@@ -72,7 +67,7 @@ serve(async (req) => {
       
     if (propertyError) {
       console.error("Error fetching property:", propertyError);
-      // Don't throw error here, continue with a generic property name
+      // Continue with a generic property name
     }
     
     // Create invitation URL

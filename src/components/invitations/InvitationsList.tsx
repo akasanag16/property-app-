@@ -48,7 +48,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
     try {
       setResendingId(id);
       
-      // First, update the invitation expiry in the database directly without using the edge function
+      // First, update the invitation expiry in the database
       const { error: updateError } = await supabase.rpc('update_invitation_expiry', {
         p_invitation_id: id,
         p_invitation_type: type
@@ -58,7 +58,7 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       
       // Then, send the invitation email
       const baseUrl = window.location.origin;
-      const { error: emailError } = await supabase.functions.invoke('send-invitation', {
+      const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: id,
           invitation_type: type,
@@ -68,8 +68,8 @@ export function InvitationsList({ propertyId, type, onError }: InvitationsListPr
       });
 
       if (emailError) {
-        console.warn("Email sending failed but invitation was updated:", emailError);
-        toast.warning("Invitation updated but email sending failed");
+        console.error("Email sending failed:", emailError);
+        toast.warning("Invitation updated but email sending failed. Please try again later.");
       } else {
         toast.success("Invitation resent successfully!");
       }

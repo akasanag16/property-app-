@@ -41,7 +41,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
 
       // 2. Send the invitation email
       const baseUrl = window.location.origin;
-      const { error: emailError } = await supabase.functions.invoke('send-invitation', {
+      const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: inviteData, // The RPC returns the new invitation ID
           invitation_type: inviteType,
@@ -51,8 +51,8 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       });
 
       if (emailError) {
-        console.warn("Email sending failed but invitation was created:", emailError);
-        toast.warning("Invitation created but email sending failed");
+        console.error("Email sending failed:", emailError);
+        toast.warning("Invitation created but email sending failed. The recipient won't receive an email.");
       } else {
         toast.success(`Invitation sent to ${email}`);
       }
