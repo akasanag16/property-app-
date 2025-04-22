@@ -37,7 +37,6 @@ export async function signUp({
         first_name: firstName,
         last_name: lastName,
       },
-      // Disable email confirmation for faster login during testing
       emailRedirectTo: `${window.location.origin}/auth/confirm`,
     },
   });

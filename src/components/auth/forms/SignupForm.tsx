@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function SignupForm({
   const [role, setRole] = useState<UserRole>("owner");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,10 +42,16 @@ export function SignupForm({
         throw new Error("Please provide both first and last name");
       }
       
-      await signUp({ email, password, role, firstName, lastName });
+      const response = await signUp({ email, password, role, firstName, lastName });
       
-      toast.success("Account created! Please check your email to verify your account.");
-      onModeChange("login");
+      if (response?.user) {
+        setConfirmationSent(true);
+        toast.success("Account created! Please check your email to verify your account.");
+      } else {
+        // If no user object is returned but no error, it's likely confirmation is needed
+        setConfirmationSent(true);
+        toast.success("Account created! Please check your email to verify your account.");
+      }
     } catch (error) {
       console.error("Auth error:", error);
       setError(error instanceof Error ? error.message : "Registration failed");
@@ -51,6 +59,32 @@ export function SignupForm({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (confirmationSent) {
+    return (
+      <motion.div 
+        className="text-center space-y-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h3 className="text-xl font-medium text-gray-900">Check your email</h3>
+        <p className="text-gray-600">
+          We've sent a confirmation link to <strong>{email}</strong>
+        </p>
+        <p className="text-gray-600 text-sm">
+          Please check your inbox (and spam folder) and click the link to verify your account.
+        </p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={() => onModeChange("login")}
+        >
+          Back to Login
+        </Button>
+      </motion.div>
+    );
   }
 
   return (
