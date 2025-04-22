@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,15 +25,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check URL for password reset recovery token
     const parseRecoveryFromURL = async () => {
+      // Look for recovery tokens in both hash and query parameters
       const hash = window.location.hash;
-      if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      // Check if we're on the reset-password page with a token
+      const isResetPasswordPage = window.location.pathname.includes('reset-password');
+      const hasRecoveryType = hash.includes('type=recovery') || queryParams.get('type') === 'recovery';
+      
+      // Log what we're finding for debugging
+      console.log("Checking for recovery token:", { 
+        path: window.location.pathname,
+        hash,
+        hasRecoveryType,
+        isResetPasswordPage
+      });
+      
+      if (hasRecoveryType) {
         try {
-          const urlParams = new URLSearchParams(hash.substring(1));
-          const accessToken = urlParams.get('access_token');
-          const refreshToken = urlParams.get('refresh_token');
-          const tokenType = urlParams.get('token_type');
+          // Extract tokens from hash
+          if (hash && hash.includes('access_token')) {
+            const urlParams = new URLSearchParams(hash.substring(1));
+            const accessToken = urlParams.get('access_token');
+            const refreshToken = urlParams.get('refresh_token');
+            
+            if (accessToken && refreshToken) {
+              console.log("Found recovery tokens in hash, setting session");
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              
+              if (error) throw error;
+              
+              // Redirect to password reset page if not already there
+              if (!isResetPasswordPage) {
+                navigate('/auth/reset-password');
+              }
+              return true;
+            }
+          }
+          
+          // Also check query parameters for tokens (some auth providers use this format)
+          const accessToken = queryParams.get('access_token');
+          const refreshToken = queryParams.get('refresh_token');
           
           if (accessToken && refreshToken) {
+            console.log("Found recovery tokens in query params, setting session");
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
@@ -42,8 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (error) throw error;
             
-            // Redirect to password reset page
-            navigate('/auth/reset-password');
+            // Redirect to password reset page if not already there
+            if (!isResetPasswordPage) {
+              navigate('/auth/reset-password');
+            }
             return true;
           }
         } catch (error) {
@@ -80,7 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Check if we have a recovery token in the URL
         const isRecovery = await parseRecoveryFromURL();
-        if (isRecovery) return;
+        if (isRecovery) {
+          setLoading(false);
+          return;
+        }
         
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         

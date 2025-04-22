@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { UpdatePasswordForm } from "@/components/auth/forms/UpdatePasswordForm";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(true);
@@ -13,16 +14,71 @@ export default function ResetPassword() {
   useEffect(() => {
     // Check if the user has an active recovery session
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      
-      if (!data.session) {
-        // No session, redirect to login
+      try {
+        // Log the current URL for debugging
+        console.log("Reset password page loaded with URL:", window.location.href);
+        
+        const { data } = await supabase.auth.getSession();
+        console.log("Current session status:", data.session ? "Active" : "None");
+        
+        if (!data.session) {
+          // No session, check URL for recovery tokens
+          const hash = window.location.hash;
+          const queryParams = new URLSearchParams(window.location.search);
+          
+          if (hash.includes('access_token') || queryParams.get('access_token')) {
+            console.log("Found access token in URL, attempting to recover session");
+            
+            // URL has tokens, try to recover the session
+            try {
+              let accessToken, refreshToken;
+              
+              // Extract from hash
+              if (hash.includes('access_token')) {
+                const urlParams = new URLSearchParams(hash.substring(1));
+                accessToken = urlParams.get('access_token');
+                refreshToken = urlParams.get('refresh_token');
+              } 
+              // Extract from query params
+              else if (queryParams.get('access_token')) {
+                accessToken = queryParams.get('access_token');
+                refreshToken = queryParams.get('refresh_token');
+              }
+              
+              if (accessToken && refreshToken) {
+                const { data, error } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken
+                });
+                
+                if (error) throw error;
+                
+                if (data.session) {
+                  setValidSession(true);
+                  setLoading(false);
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error("Failed to recover session:", error);
+              toast.error("Invalid or expired password reset link");
+            }
+          }
+          
+          // No valid recovery information found, redirect to login
+          console.log("No valid recovery session found, redirecting to login");
+          navigate("/auth");
+          return;
+        }
+        
+        // Valid session exists
+        setValidSession(true);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error checking session:", error);
+        toast.error("An error occurred while verifying your session");
         navigate("/auth");
-        return;
       }
-      
-      setValidSession(true);
-      setLoading(false);
     };
     
     checkSession();
