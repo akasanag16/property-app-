@@ -46,18 +46,14 @@ serve(async (req) => {
 
     const tableName = invitation_type === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
     
-    // Get invitation details
+    // Get invitation details - using a simpler query to avoid recursion issues
     const { data: invitation, error: fetchError } = await supabaseClient
       .from(tableName)
       .select(`
         id, 
         email, 
         link_token, 
-        property_id, 
-        properties:property_id (
-          name, 
-          address
-        )
+        property_id
       `)
       .eq('id', invitation_id)
       .single();
@@ -67,10 +63,20 @@ serve(async (req) => {
       throw fetchError || new Error("Invitation not found");
     }
 
-    // Get property details for better email context
-    const propertyName = invitation.properties?.name || "the property";
+    // Get property name using a separate query to avoid the recursion
+    const { data: property, error: propertyError } = await supabaseClient
+      .from('properties')
+      .select('name')
+      .eq('id', invitation.property_id)
+      .single();
+      
+    if (propertyError) {
+      console.error("Error fetching property:", propertyError);
+      // Don't throw error here, continue with a generic property name
+    }
     
     // Create invitation URL
+    const propertyName = property?.name || "the property";
     const inviteUrl = `${base_url || 'https://themanageproperty.app'}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
     
     // Prepare email content based on invitation type
