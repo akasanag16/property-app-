@@ -13,44 +13,35 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // For owner role, we'll fetch all maintenance requests directly
-      // For tenant/service_provider, we'll filter by their ID
-      
       let query;
       
       if (userRole === "tenant") {
-        // Tenants only see their own requests - simplified query to avoid recursion
+        // For tenants, fetch only their requests
         query = supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
-            property_id:property_id(properties(name)),
-            tenant_id:tenant_id(profiles(first_name, last_name)),
-            assigned_service_provider_id:assigned_service_provider_id(profiles(first_name, last_name))
+            property_id
           `)
           .eq("tenant_id", user?.id)
           .order("created_at", { ascending: false });
       } else if (userRole === "service_provider") {
-        // Service providers only see requests assigned to them - simplified query
+        // For service providers, fetch only requests assigned to them
         query = supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
-            property:properties(name),
-            tenant:profiles!maintenance_requests_tenant_id_fkey(first_name, last_name),
-            assigned_service_provider:profiles!maintenance_requests_assigned_service_provider_id_fkey(first_name, last_name)
+            property_id, tenant_id
           `)
           .eq("assigned_service_provider_id", user?.id)
           .order("created_at", { ascending: false });
       } else {
-        // Owner view - simplified to avoid recursion
+        // For owners, fetch all requests
         query = supabase
           .from("maintenance_requests")
           .select(`
             id, title, description, status, created_at,
-            property:properties(name),
-            tenant:profiles!maintenance_requests_tenant_id_fkey(first_name, last_name),
-            assigned_service_provider:profiles!maintenance_requests_assigned_service_provider_id_fkey(first_name, last_name)
+            property_id, tenant_id, assigned_service_provider_id
           `)
           .order("created_at", { ascending: false });
       }
@@ -61,23 +52,51 @@ export function useMaintenanceRequests(userRole: "owner" | "tenant" | "service_p
       if (error) throw error;
 
       console.log("Maintenance requests data:", data);
-
-      const typedData: MaintenanceRequest[] = (data || []).map(item => ({
-        ...item,
-        tenant: {
-          first_name: item.tenant?.first_name || "Unknown",
-          last_name: item.tenant?.last_name || "User",
-        },
-        property: {
-          name: item.property?.name || "Unknown Property"
-        },
-        assigned_service_provider: item.assigned_service_provider ? {
-          first_name: item.assigned_service_provider.first_name,
-          last_name: item.assigned_service_provider.last_name
-        } : null
+      
+      // After getting the initial data, make separate queries to get the related information
+      const enhancedRequests = await Promise.all((data || []).map(async (request) => {
+        // Get property info
+        const { data: propertyData } = await supabase
+          .from("properties")
+          .select("name")
+          .eq("id", request.property_id)
+          .single();
+        
+        // Get tenant info
+        const { data: tenantData } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", request.tenant_id)
+          .single();
+        
+        // Get service provider info if assigned
+        let serviceProviderData = null;
+        if (request.assigned_service_provider_id) {
+          const { data: spData } = await supabase
+            .from("profiles")
+            .select("first_name, last_name")
+            .eq("id", request.assigned_service_provider_id)
+            .single();
+          serviceProviderData = spData;
+        }
+        
+        return {
+          ...request,
+          property: {
+            name: propertyData?.name || "Unknown Property"
+          },
+          tenant: {
+            first_name: tenantData?.first_name || "Unknown",
+            last_name: tenantData?.last_name || "User"
+          },
+          assigned_service_provider: serviceProviderData ? {
+            first_name: serviceProviderData.first_name,
+            last_name: serviceProviderData.last_name
+          } : null
+        } as MaintenanceRequest;
       }));
-
-      setRequests(typedData);
+      
+      setRequests(enhancedRequests);
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
       toast.error("Failed to load maintenance requests");

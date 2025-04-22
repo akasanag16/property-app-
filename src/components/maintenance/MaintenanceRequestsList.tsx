@@ -4,11 +4,16 @@ import { toast } from "sonner";
 import { MaintenanceRequest, MaintenanceRequestsListProps } from "@/types/maintenance";
 import { MaintenanceRequestItem } from "./MaintenanceRequestItem";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: MaintenanceRequestsListProps) {
-  const { requests, loading } = useMaintenanceRequests(userRole, refreshKey);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
+  const { requests, loading } = useMaintenanceRequests(userRole, localRefreshKey);
+
+  // Update local refresh key when parent refresh key changes
+  useEffect(() => {
+    setLocalRefreshKey(refreshKey);
+  }, [refreshKey]);
 
   const updateStatus = async (requestId: string, newStatus: "accepted" | "completed") => {
     try {
@@ -20,7 +25,7 @@ export function MaintenanceRequestsList({ userRole, refreshKey = 0 }: Maintenanc
       if (error) throw error;
       
       toast.success(`Request marked as ${newStatus}`);
-      setRefreshTrigger(prev => prev + 1); // Trigger a refresh
+      setLocalRefreshKey(prev => prev + 1); // Trigger a refresh
     } catch (error) {
       console.error("Error updating request status:", error);
       toast.error("Failed to update request status");
