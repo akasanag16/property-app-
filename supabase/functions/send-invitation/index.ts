@@ -51,12 +51,15 @@ serve(async (req) => {
       
     const propertyName = property?.name || "the property";
 
+    // Ensure the base_url is properly formatted (remove trailing slash if present)
+    const formattedBaseUrl = base_url.endsWith('/') ? base_url.slice(0, -1) : base_url;
+    
     // Create magic link using Supabase Auth OTP
     const { data, error: otpError } = await supabaseClient.auth.admin.generateLink({
       type: 'magiclink',
       email: invitation.email,
       options: {
-        redirectTo: `${base_url}/invitation/accept?token=${invitation.id}&type=${invitation_type}`,
+        redirectTo: `${formattedBaseUrl}/invitation/accept?token=${invitation.id}&type=${invitation_type}`,
         data: {
           invitation_id: invitation.id,
           property_id: invitation.property_id,

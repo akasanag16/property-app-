@@ -24,6 +24,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check URL for password reset recovery token
+    const parseRecoveryFromURL = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+        try {
+          const urlParams = new URLSearchParams(hash.substring(1));
+          const accessToken = urlParams.get('access_token');
+          const refreshToken = urlParams.get('refresh_token');
+          const tokenType = urlParams.get('token_type');
+          
+          if (accessToken && refreshToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) throw error;
+            
+            // Redirect to password reset page
+            navigate('/auth/reset-password');
+            return true;
+          }
+        } catch (error) {
+          console.error("Error processing recovery:", error);
+          toast.error("Failed to process password recovery");
+        }
+      }
+      return false;
+    };
+
     // First, set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
@@ -48,6 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        // Check if we have a recovery token in the URL
+        const isRecovery = await parseRecoveryFromURL();
+        if (isRecovery) return;
+        
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         if (currentSession?.user) {
@@ -67,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   // Fetch user role from profiles table
   const fetchUserRole = async (userId: string) => {
