@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Building, MessageCircle, Clock } from "lucide-react";
 import { GradientCard } from "@/components/ui/gradient-card";
@@ -10,25 +11,26 @@ type TenantDashboardStatsProps = {
   loading?: boolean;
 };
 
+// Animation constants
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
+
 export function TenantDashboardStats({ properties, loading }: TenantDashboardStatsProps) {
   if (loading) {
     return <TenantStatsSkeleton />;
   }
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
 
   return (
     <motion.div 
