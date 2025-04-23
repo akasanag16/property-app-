@@ -11,12 +11,14 @@ export const useUserRole = (user: User | null) => {
     try {
       console.log("Fetching user role for:", userId);
       
+      // First check if the role is already in the user metadata
       if (user?.user_metadata?.role) {
         console.log("Using role from user metadata:", user.user_metadata.role);
         setUserRole(user.user_metadata.role as UserRole);
         return;
       }
       
+      // If not in metadata, try to get from profiles table
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
@@ -29,7 +31,7 @@ export const useUserRole = (user: User | null) => {
       }
 
       if (data) {
-        console.log("User role fetched:", data.role);
+        console.log("User role fetched from profiles:", data.role);
         setUserRole(data.role as UserRole);
       } else {
         console.warn("No profile found for user:", userId);
@@ -41,9 +43,7 @@ export const useUserRole = (user: User | null) => {
 
   useEffect(() => {
     if (user?.id) {
-      setTimeout(() => {
-        fetchUserRole(user.id);
-      }, 0);
+      fetchUserRole(user.id);
     } else {
       setUserRole(null);
     }

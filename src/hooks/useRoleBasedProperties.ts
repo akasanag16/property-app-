@@ -10,32 +10,31 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
     
     // Different fetching strategy based on user role
     if (userRole === 'tenant') {
-      // Use the secure function to get tenant properties
-      const { data: propertyIds, error: linkError } = await supabase
-        .rpc('get_tenant_properties_by_id', { tenant_id_param: userId });
+      // Directly query tenant property links to avoid recursion
+      const { data: links, error: linkError } = await supabase
+        .from('tenant_property_link')
+        .select('property_id')
+        .eq('tenant_id', userId);
         
       if (linkError) {
-        console.error('Error fetching tenant property IDs:', linkError);
+        console.error('Error fetching tenant property links:', linkError);
         throw linkError;
       }
       
-      console.log('Tenant property IDs:', propertyIds);
-      
-      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
+      if (!links || links.length === 0) {
+        console.log('No tenant property links found');
         return [];
       }
       
-      // Use the in clause with the returned property IDs
-      const propertyIdsArray = propertyIds as string[];
+      // Extract property IDs
+      const propertyIds = links.map(link => link.property_id);
+      console.log('Tenant property IDs:', propertyIds);
+      
+      // Fetch properties using the collected IDs
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
-        .select(`
-          id,
-          name,
-          address,
-          details
-        `)
-        .in('id', propertyIdsArray);
+        .select('id, name, address, details')
+        .in('id', propertyIds);
         
       if (propertiesError) {
         console.error('Error fetching tenant properties:', propertiesError);
@@ -45,29 +44,31 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'service_provider') {
-      // Fetch service provider properties using our secure function
-      const { data: propertyIds, error: idsError } = await supabase
-        .rpc('get_service_provider_properties_by_id', { provider_id_param: userId });
+      // Directly query service provider property links to avoid recursion
+      const { data: links, error: linkError } = await supabase
+        .from('service_provider_property_link')
+        .select('property_id')
+        .eq('service_provider_id', userId);
         
-      if (idsError) {
-        console.error('Error fetching service provider property IDs:', idsError);
-        throw idsError;
+      if (linkError) {
+        console.error('Error fetching service provider property links:', linkError);
+        throw linkError;
       }
       
-      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
+      if (!links || links.length === 0) {
+        console.log('No service provider property links found');
         return [];
       }
       
-      const propertyIdsArray = propertyIds as string[];
+      // Extract property IDs
+      const propertyIds = links.map(link => link.property_id);
+      console.log('Service provider property IDs:', propertyIds);
+      
+      // Fetch properties using the collected IDs
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
-        .select(`
-          id,
-          name,
-          address,
-          details
-        `)
-        .in('id', propertyIdsArray);
+        .select('id, name, address, details')
+        .in('id', propertyIds);
         
       if (propertiesError) {
         console.error('Error fetching service provider properties:', propertiesError);
@@ -77,15 +78,10 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'owner') {
-      // Direct query for owners, should work with our RLS policies
+      // Direct query for owners, should work with RLS policies
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
-        .select(`
-          id,
-          name,
-          address,
-          details
-        `)
+        .select('id, name, address, details')
         .eq('owner_id', userId);
         
       if (propertiesError) {

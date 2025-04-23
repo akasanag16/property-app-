@@ -4,6 +4,7 @@ import { MaintenanceRequest } from "@/types/maintenance";
 
 export async function getTenantRequests(tenantId: string): Promise<MaintenanceRequest[]> {
   try {
+    // Directly fetch maintenance requests for the tenant
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
       .select("id, title, description, status, created_at, property_id")
@@ -15,14 +16,12 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
-      // Get property name using our safe function
-      const { data: propertyName, error: nameError } = await supabase
-        .rpc('get_property_name', { property_id_param: request.property_id });
-        
-      if (nameError) {
-        console.error("Error getting property name:", nameError);
-        // Continue with unknown property name
-      }
+      // Get property information
+      const { data: propertyData } = await supabase
+        .from("properties")
+        .select("name")
+        .eq("id", request.property_id)
+        .maybeSingle();
         
       formattedRequests.push({
         id: request.id,
@@ -31,7 +30,7 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyName || "Unknown property",
+          name: propertyData?.name || "Unknown property",
           id: request.property_id
         },
         tenant: null,
@@ -48,24 +47,11 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
 
 export async function getServiceProviderRequests(providerId: string): Promise<MaintenanceRequest[]> {
   try {
-    // Get maintenance request IDs assigned to this provider
-    const { data: requestIds, error: idsError } = await supabase
-      .rpc('get_service_provider_maintenance_requests', { provider_id: providerId });
-      
-    if (idsError) {
-      console.error("Error getting service provider maintenance request IDs:", idsError);
-      throw idsError;
-    }
-    
-    if (!requestIds || requestIds.length === 0) {
-      return [];
-    }
-    
-    // Get the actual maintenance request data
+    // Directly query maintenance requests assigned to this provider
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
       .select("id, title, description, status, created_at, property_id, tenant_id")
-      .in("id", requestIds)
+      .eq("assigned_service_provider_id", providerId)
       .order("created_at", { ascending: false });
       
     if (requestError) throw requestError;
@@ -73,15 +59,14 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
-      // Get property name using our safe function
-      const { data: propertyName, error: nameError } = await supabase
-        .rpc('get_property_name', { property_id_param: request.property_id });
-        
-      if (nameError) {
-        console.error("Error getting property name:", nameError);
-        // Continue with unknown property name
-      }
-        
+      // Get property information
+      const { data: propertyData } = await supabase
+        .from("properties")
+        .select("name")
+        .eq("id", request.property_id)
+        .maybeSingle();
+      
+      // Get tenant information if available
       let tenant = { first_name: null, last_name: null };
       if (request.tenant_id) {
         const { data: tenantData } = await supabase
@@ -102,7 +87,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyName || "Unknown property",
+          name: propertyData?.name || "Unknown property",
           id: request.property_id
         },
         tenant,
@@ -119,7 +104,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
 
 export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequest[]> {
   try {
-    // Get properties owned by this owner using a secure query approach
+    // First get properties owned by this user
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
       .select("id, name")
@@ -131,13 +116,16 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       return [];
     }
     
+    // Create a map for property names
     const propertyIdMap = properties.reduce((map, prop) => {
       map[prop.id] = prop.name;
       return map;
     }, {} as Record<string, string>);
     
+    // Get property IDs
     const propertyIds = properties.map(p => p.id);
     
+    // Get all maintenance requests for these properties
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
       .select("id, title, description, status, created_at, property_id, tenant_id, assigned_service_provider_id")
@@ -149,6 +137,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
+      // Get tenant information if available
       let tenant = { first_name: null, last_name: null };
       if (request.tenant_id) {
         const { data: tenantData } = await supabase
@@ -162,6 +151,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
         }
       }
       
+      // Get service provider information if available
       let assigned_service_provider = null;
       if (request.assigned_service_provider_id) {
         const { data: providerData } = await supabase
