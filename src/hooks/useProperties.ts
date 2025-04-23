@@ -52,11 +52,12 @@ export function useProperties(userId?: string) {
       }
       
       // First get the role of the user to determine the query approach
+      console.log("Fetching user profile for ID:", userId);
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
         
       if (profileError) {
         console.error("Error fetching user role:", profileError);
@@ -72,7 +73,7 @@ export function useProperties(userId?: string) {
         return;
       }
       
-      const userRole = profileData?.role as PropertyRole;
+      const userRole = profileData.role as PropertyRole;
       console.log("Fetching properties for role:", userRole);
       
       try {
