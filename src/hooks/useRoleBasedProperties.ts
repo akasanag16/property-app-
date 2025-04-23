@@ -45,7 +45,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       propertiesData = properties || [];
       
     } else if (userRole === 'service_provider') {
-      // Fetch service provider properties using our new secure function
+      // Fetch service provider properties using our secure function
       const { data: propertyIds, error: idsError } = await supabase
         .rpc('get_service_provider_properties_by_id', { provider_id_param: userId });
         
