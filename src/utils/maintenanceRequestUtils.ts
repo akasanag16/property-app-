@@ -4,6 +4,8 @@ import { MaintenanceRequest } from "@/types/maintenance";
 
 export async function getTenantRequests(tenantId: string): Promise<MaintenanceRequest[]> {
   try {
+    console.log("Fetching maintenance requests for tenant:", tenantId);
+    
     // Directly fetch maintenance requests for the tenant
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
@@ -11,18 +13,22 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
       
-    if (requestError) throw requestError;
+    if (requestError) {
+      console.error("Error fetching tenant requests:", requestError);
+      throw requestError;
+    }
     
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
-      // Get property information
-      const { data: propertyData } = await supabase
-        .from("properties")
-        .select("name")
-        .eq("id", request.property_id)
-        .maybeSingle();
+      // Get property name using the secure function to avoid recursion
+      const { data: propertyName, error: propertyError } = await supabase
+        .rpc("get_property_name", { property_id_param: request.property_id });
         
+      if (propertyError) {
+        console.error("Error fetching property name:", propertyError);
+      }
+      
       formattedRequests.push({
         id: request.id,
         title: request.title,
@@ -30,7 +36,7 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyData?.name || "Unknown property",
+          name: propertyName || "Unknown property",
           id: request.property_id
         },
         tenant: null,
@@ -47,24 +53,43 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
 
 export async function getServiceProviderRequests(providerId: string): Promise<MaintenanceRequest[]> {
   try {
-    // Directly query maintenance requests assigned to this provider
+    console.log("Fetching maintenance requests for provider:", providerId);
+    
+    // Get request IDs using secure function
+    const { data: requestIds, error: idsError } = await supabase
+      .rpc("get_service_provider_maintenance_requests", { provider_id: providerId });
+      
+    if (idsError) {
+      console.error("Error fetching service provider request IDs:", idsError);
+      throw idsError;
+    }
+    
+    if (!requestIds || requestIds.length === 0) {
+      return [];
+    }
+    
+    // Fetch full request data using the IDs
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
       .select("id, title, description, status, created_at, property_id, tenant_id")
-      .eq("assigned_service_provider_id", providerId)
+      .in("id", requestIds)
       .order("created_at", { ascending: false });
       
-    if (requestError) throw requestError;
+    if (requestError) {
+      console.error("Error fetching service provider requests:", requestError);
+      throw requestError;
+    }
     
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
-      // Get property information
-      const { data: propertyData } = await supabase
-        .from("properties")
-        .select("name")
-        .eq("id", request.property_id)
-        .maybeSingle();
+      // Get property name using the secure function
+      const { data: propertyName, error: propertyError } = await supabase
+        .rpc("get_property_name", { property_id_param: request.property_id });
+        
+      if (propertyError) {
+        console.error("Error fetching property name:", propertyError);
+      }
       
       // Get tenant information if available
       let tenant = { first_name: null, last_name: null };
@@ -87,7 +112,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyData?.name || "Unknown property",
+          name: propertyName || "Unknown property",
           id: request.property_id
         },
         tenant,
@@ -104,13 +129,18 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
 
 export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequest[]> {
   try {
+    console.log("Fetching maintenance requests for owner:", ownerId);
+    
     // First get properties owned by this user
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
       .select("id, name")
       .eq("owner_id", ownerId);
       
-    if (propertiesError) throw propertiesError;
+    if (propertiesError) {
+      console.error("Error fetching owner properties:", propertiesError);
+      throw propertiesError;
+    }
     
     if (!properties || properties.length === 0) {
       return [];
@@ -132,7 +162,10 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       .in("property_id", propertyIds)
       .order("created_at", { ascending: false });
       
-    if (requestError) throw requestError;
+    if (requestError) {
+      console.error("Error fetching owner requests:", requestError);
+      throw requestError;
+    }
     
     const formattedRequests: MaintenanceRequest[] = [];
     

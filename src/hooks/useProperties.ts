@@ -19,6 +19,7 @@ export function useProperties(userId?: string) {
   };
 
   const useSampleProperties = () => {
+    console.log("Using sample properties data");
     const samplePropertiesWithImgUrl = sampleProperties.map(prop => ({
       id: prop.id,
       name: prop.name,
@@ -45,6 +46,7 @@ export function useProperties(userId?: string) {
       setError(null);
       
       if (!userId) {
+        console.log("No user ID provided, using sample properties");
         useSampleProperties();
         return;
       }
@@ -58,12 +60,14 @@ export function useProperties(userId?: string) {
         
       if (profileError) {
         console.error("Error fetching user role:", profileError);
+        setError("Failed to fetch user role: " + profileError.message);
         useSampleProperties();
         return;
       }
       
       if (!profileData) {
         console.warn("No profile found for user:", userId);
+        setError("No user profile found");
         useSampleProperties();
         return;
       }
@@ -73,9 +77,20 @@ export function useProperties(userId?: string) {
       
       try {
         const propertiesData = await fetchPropertiesByRole(userId, userRole);
+        console.log("Raw properties data:", propertiesData);
+        
+        if (propertiesData.length === 0) {
+          console.log("No properties found for user");
+          setProperties([]);
+          setFilteredProperties([]);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+        
         const propertiesWithImages = await fetchPropertyImages(propertiesData);
         
-        console.log("Fetched properties:", propertiesWithImages);
+        console.log("Properties with images:", propertiesWithImages);
         
         setProperties(propertiesWithImages);
         setFilteredProperties(propertiesWithImages);

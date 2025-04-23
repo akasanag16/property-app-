@@ -6,9 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = (user: User | null) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [fetching, setFetching] = useState(false);
 
   const fetchUserRole = async (userId: string) => {
     try {
+      setFetching(true);
       console.log("Fetching user role for:", userId);
       
       // First check if the role is already in the user metadata
@@ -18,12 +20,12 @@ export const useUserRole = (user: User | null) => {
         return;
       }
       
-      // If not in metadata, try to get from profiles table
+      // If not in metadata, try to get from profiles table using a simple, direct query
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
         console.error("Error fetching profile:", error);
@@ -38,6 +40,8 @@ export const useUserRole = (user: User | null) => {
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -49,5 +53,5 @@ export const useUserRole = (user: User | null) => {
     }
   }, [user?.id]);
 
-  return { userRole, fetchUserRole };
+  return { userRole, fetchUserRole, fetching };
 };
