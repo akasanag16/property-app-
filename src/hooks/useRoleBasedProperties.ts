@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import type { Property, PropertyRole } from "@/types/property";
+import type { Property, PropertyDetails, PropertyRole } from "@/types/property";
 
 export async function fetchPropertiesByRole(userId: string, userRole: PropertyRole): Promise<Property[]> {
   let properties: Property[] = [];
@@ -39,7 +39,13 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
       
-      properties = propertiesData || [];
+      // Process the properties data to ensure proper typing
+      properties = (propertiesData || []).map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        details: convertDetailsToPropertyDetails(prop.details)
+      }));
       
     } else if (userRole === 'service_provider') {
       // Use the security definer function to get property IDs
@@ -67,7 +73,13 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
       
-      properties = propertiesData || [];
+      // Process the properties data to ensure proper typing
+      properties = (propertiesData || []).map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        details: convertDetailsToPropertyDetails(prop.details)
+      }));
       
     } else if (userRole === 'owner') {
       // Direct query for owners using owner_id field
@@ -81,19 +93,51 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
       
-      properties = propertiesData || [];
+      // Process the properties data to ensure proper typing
+      properties = (propertiesData || []).map(prop => ({
+        id: prop.id,
+        name: prop.name,
+        address: prop.address,
+        details: convertDetailsToPropertyDetails(prop.details)
+      }));
     }
 
-    // Format and return properties
-    return properties.map(prop => ({
-      id: prop.id,
-      name: prop.name,
-      address: prop.address,
-      details: typeof prop.details === 'object' ? prop.details : {}
-    }));
+    return properties;
     
   } catch (error) {
     console.error('Error in fetchPropertiesByRole:', error);
     throw error;
   }
+}
+
+// Helper function to convert Json to PropertyDetails
+function convertDetailsToPropertyDetails(details: any): PropertyDetails {
+  if (!details) {
+    return {}; // Return empty object if details is null or undefined
+  }
+
+  // For JSON objects
+  if (typeof details === 'object') {
+    return {
+      type: details.type as string | undefined,
+      bedrooms: details.bedrooms as number | undefined,
+      bathrooms: details.bathrooms as number | undefined,
+      area: details.area as number | undefined,
+      rent: details.rent as number | undefined,
+    };
+  }
+  
+  // For string values, try to parse if it's JSON
+  if (typeof details === 'string') {
+    try {
+      const parsed = JSON.parse(details);
+      return convertDetailsToPropertyDetails(parsed);
+    } catch (e) {
+      console.warn('Could not parse property details:', details);
+      return {}; // Return empty object if parsing fails
+    }
+  }
+  
+  // Return empty object for any other case
+  return {};
 }
