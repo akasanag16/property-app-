@@ -13,6 +13,18 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       return [];
     }
 
+    // Log database structure to check for properties table
+    const { data: tables, error: tablesError } = await supabase
+      .from('pg_tables')
+      .select('tablename')
+      .eq('schemaname', 'public');
+    
+    if (tablesError) {
+      console.error('Error checking database tables:', tablesError);
+    } else {
+      console.log('Available tables in database:', tables);
+    }
+
     if (userRole === 'tenant') {
       const { data: propertyIds, error: functionError } = await supabase
         .rpc('get_tenant_properties_by_id', { tenant_id_param: userId });
@@ -37,6 +49,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
 
+      console.log('Tenant properties data:', propertiesData);
       properties = (propertiesData || []).map(prop => ({
         id: prop.id,
         name: prop.name,
@@ -68,6 +81,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
 
+      console.log('Service provider properties data:', propertiesData);
       properties = (propertiesData || []).map(prop => ({
         id: prop.id,
         name: prop.name,
@@ -76,7 +90,21 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
       }));
 
     } else if (userRole === 'owner') {
-      // Fetch property IDs using the security definer function, then fetch data by id
+      // Try direct query first to check if RLS is working
+      console.log('Attempting direct query for owner properties');
+      const { data: directProperties, error: directError } = await supabase
+        .from('properties')
+        .select('id, name, address, details, owner_id')
+        .eq('owner_id', userId);
+      
+      if (directError) {
+        console.error('Direct query error:', directError);
+      } else {
+        console.log('Direct query results:', directProperties);
+      }
+
+      // Now use the security definer function
+      console.log('Using get_owner_properties function for owner properties');
       const { data: propertyIds, error: functionError } = await supabase
         .rpc('get_owner_properties', { owner_id_param: userId });
 
@@ -85,6 +113,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw functionError;
       }
 
+      console.log('Owner property IDs:', propertyIds);
       if (!propertyIds || propertyIds.length === 0) {
         console.log('No owner properties found');
         return [];
@@ -100,12 +129,39 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
         throw propertiesError;
       }
 
+      console.log('Owner properties data:', propertiesData);
       properties = (propertiesData || []).map(prop => ({
         id: prop.id,
         name: prop.name,
         address: prop.address,
         details: convertDetailsToPropertyDetails(prop.details)
       }));
+
+      // If still no properties, try the edge function as a fallback
+      if (properties.length === 0) {
+        console.log('Trying edge function as fallback');
+        try {
+          const { data: edgeData, error: edgeError } = await supabase.functions.invoke(
+            "create-property",
+            {
+              method: "POST",
+              body: {
+                action: "fetch",
+                owner_id: userId
+              }
+            }
+          );
+          
+          if (edgeError) {
+            console.error('Edge function error:', edgeError);
+          } else if (edgeData && edgeData.length > 0) {
+            console.log('Edge function results:', edgeData);
+            properties = edgeData;
+          }
+        } catch (edgeFunctionError) {
+          console.error('Error calling edge function:', edgeFunctionError);
+        }
+      }
     }
 
     return properties;
