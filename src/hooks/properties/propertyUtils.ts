@@ -29,3 +29,20 @@ export function convertDetailsToPropertyDetails(details: any): PropertyDetails {
 
   return {};
 }
+
+// Helper function to check if tables exist in the database
+export async function checkTablesExist() {
+  try {
+    const { data: tables, error } = await supabase.rpc('list_public_tables');
+    
+    if (error) {
+      console.error('Error checking database tables:', error);
+      return null;
+    }
+    
+    return tables || [];
+  } catch (error) {
+    console.error('Failed to check database tables:', error);
+    return null;
+  }
+}

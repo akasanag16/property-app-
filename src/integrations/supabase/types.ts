@@ -583,6 +583,12 @@ export type Database = {
         Args: { property_id: string }
         Returns: boolean
       }
+      list_public_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+        }[]
+      }
       mark_all_notifications_as_read: {
         Args: { user_id_param: string }
         Returns: undefined

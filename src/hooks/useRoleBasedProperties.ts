@@ -16,11 +16,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
 
     // Check available tables in the database
     const { data: tables, error: tablesError } = await supabase
-      .functions.invoke('list_tables')
-      .catch(() => {
-        console.log('Function list_tables not found, will proceed with standard queries');
-        return { data: null, error: new Error('Function not found') };
-      });
+      .rpc('list_public_tables');
     
     if (tablesError) {
       console.error('Could not check database tables:', tablesError);
