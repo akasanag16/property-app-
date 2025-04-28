@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { MaintenanceRequest } from "@/types/maintenance";
-import { getServiceProviderRequests } from "@/utils/maintenanceRequestUtils";
+import { getServiceProviderRequests } from "@/utils/maintenance/serviceProviderRequestUtils";
 import { toast } from "sonner";
 
 export function useServiceProviderRequests(userId: string | undefined, refreshKey = 0) {
@@ -36,4 +35,3 @@ export function useServiceProviderRequests(userId: string | undefined, refreshKe
 
   return { requests, loading, error, refetch: fetchRequests };
 }
-

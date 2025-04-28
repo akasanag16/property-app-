@@ -1,4 +1,5 @@
 
+import { supabase } from "@/integrations/supabase/client";
 import type { PropertyDetails } from "@/types/property";
 
 // Helper function to convert Json to PropertyDetails
