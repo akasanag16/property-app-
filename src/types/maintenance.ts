@@ -1,3 +1,4 @@
+
 export type MaintenanceRequest = {
   id: string;
   title: string;
@@ -6,15 +7,20 @@ export type MaintenanceRequest = {
   created_at: string;
   property: {
     name: string;
-    id: string;  // Adding id to match what we're using in the hook
+    id: string;
+    address?: string;
   };
   tenant: {
     first_name: string | null;
     last_name: string | null;
+    email?: string;
+    phone?: string;
   } | null;
   assigned_service_provider: {
     first_name: string | null;
     last_name: string | null;
+    email?: string;
+    phone?: string;
   } | null;
 };
 

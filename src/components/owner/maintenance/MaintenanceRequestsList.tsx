@@ -1,30 +1,6 @@
 
 import { MaintenanceRequestCard } from "./MaintenanceRequestCard";
-
-type MaintenanceRequest = {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-  tenant: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-  };
-  property: {
-    id: string;
-    name: string;
-    address: string;
-  };
-  assigned_service_provider: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-  } | null;
-};
+import { MaintenanceRequest } from "@/types/maintenance";
 
 type MaintenanceRequestsListProps = {
   requests: MaintenanceRequest[];
@@ -46,6 +22,7 @@ export function MaintenanceRequestsList({ requests, onUpdateStatus }: Maintenanc
         <MaintenanceRequestCard 
           key={request.id} 
           request={request} 
+          userRole="owner"
           onUpdateStatus={onUpdateStatus} 
         />
       ))}
