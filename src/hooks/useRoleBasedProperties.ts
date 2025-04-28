@@ -15,7 +15,7 @@ export async function fetchPropertiesByRole(userId: string, userRole: PropertyRo
 
     // Use a raw SQL query to check for tables instead of pg_tables
     const { data: tables, error: tablesError } = await supabase
-      .rpc('list_tables')
+      .functions.invoke('list_tables')
       .catch(() => {
         console.log('Function list_tables not found, will proceed with standard queries');
         return { data: null, error: new Error('Function not found') };
