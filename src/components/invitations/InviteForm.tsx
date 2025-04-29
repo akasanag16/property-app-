@@ -40,6 +40,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
     setEmailSendingFailed(false);
     
     try {
+      console.log("Creating invitation for:", { email, inviteType, propertyId });
       const linkToken = crypto.randomUUID();
       
       // 1. Create the invitation in the database using RPC
@@ -50,9 +51,14 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         p_type: inviteType
       });
 
-      if (inviteError) throw inviteError;
+      if (inviteError) {
+        console.error("Error creating invitation:", inviteError);
+        throw inviteError;
+      }
 
-      // 2. Generate and send OTP link
+      console.log("Invitation created with ID:", inviteData);
+
+      // 2. Generate and send invitation link
       const baseUrl = window.location.origin;
       const { data, error: sendError } = await supabase.functions.invoke('send-invitation', {
         body: { 
@@ -64,7 +70,8 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       });
 
       if (sendError) {
-        throw sendError;
+        console.error("Error sending invitation:", sendError);
+        setEmailSendingFailed(true);
       }
 
       // Store magic link URL if provided
@@ -72,13 +79,13 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
         setInvitationUrl(data.magic_link);
       }
 
-      toast.success(`Invitation sent to ${email}`);
+      toast.success(`Invitation created for ${email}`);
       setEmail("");
       if (onInviteSuccess) onInviteSuccess();
 
     } catch (error: any) {
       console.error("Error sending invitation:", error);
-      toast.error(error.message || "Failed to send invitation");
+      toast.error(`Failed to create invitation: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }

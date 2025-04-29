@@ -22,8 +22,11 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
     
     for (const request of data || []) {
       // Get property name using the secure function to avoid recursion
-      const { data: propertyName, error: propertyError } = await supabase
-        .rpc("get_property_name", { property_id_param: request.property_id });
+      const { data: propertyData, error: propertyError } = await supabase
+        .from("properties")
+        .select("name")
+        .eq("id", request.property_id)
+        .maybeSingle();
         
       if (propertyError) {
         console.error("Error fetching property name:", propertyError);
@@ -36,7 +39,7 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyName || "Unknown property",
+          name: propertyData?.name || "Unknown property",
           id: request.property_id
         },
         tenant: null,

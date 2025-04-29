@@ -15,18 +15,23 @@ serve(async (req) => {
   }
 
   try {
-    const { action, token, email, firstName, lastName, password } = await req.json()
+    const requestData = await req.json()
+    const { action, token, email } = requestData
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log(`Processing invitation request: ${action}`)
+
     // Handle token validation
     if (action === 'validateToken') {
       if (!token || !email) {
         throw new Error("Missing token or email")
       }
+
+      console.log(`Validating token for email: ${email}`)
 
       // Check both tenant and service provider invitation tables
       const tablesToCheck = ['tenant_invitations', 'service_provider_invitations']
@@ -44,17 +49,22 @@ serve(async (req) => {
           .gt('expires_at', new Date().toISOString())
           .maybeSingle()
 
-        if (error) throw error
+        if (error) {
+          console.error(`Error checking ${table}:`, error)
+          throw error
+        }
         
         if (data) {
           validInvitation = data
           propertyId = data.property_id
           role = table === 'tenant_invitations' ? 'tenant' : 'service_provider'
+          console.log(`Found valid invitation in ${table}`)
           break
         }
       }
 
       if (!validInvitation) {
+        console.log('No valid invitation found')
         return new Response(
           JSON.stringify({ valid: false, message: "Invalid or expired invitation" }),
           {
@@ -80,11 +90,13 @@ serve(async (req) => {
     
     // Handle creating an invited user
     if (action === 'createInvitedUser') {
-      const { token, email, propertyId, role, firstName, lastName, password } = await req.json()
+      const { token, email, propertyId, role, firstName, lastName, password } = requestData
       
       if (!token || !email || !propertyId || !role || !firstName || !lastName || !password) {
         throw new Error("Missing required parameters")
       }
+
+      console.log(`Creating new user for invitation: ${email} as ${role}`)
 
       // Begin transaction
       const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations'
@@ -103,7 +115,12 @@ serve(async (req) => {
           }
         })
 
-        if (userError) throw userError
+        if (userError) {
+          console.error('Error creating user:', userError)
+          throw userError
+        }
+
+        console.log(`User created with ID: ${authUser.user.id}`)
 
         // 2. Mark invitation as used
         const { error: inviteError } = await supabaseClient
@@ -117,17 +134,27 @@ serve(async (req) => {
           .eq('link_token', token)
           .eq('email', email)
 
-        if (inviteError) throw inviteError
+        if (inviteError) {
+          console.error('Error updating invitation:', inviteError)
+          throw inviteError
+        }
 
         // 3. Create property link
+        const linkData = {
+          property_id: propertyId,
+        };
+        linkData[role === 'tenant' ? 'tenant_id' : 'service_provider_id'] = authUser.user.id;
+
         const { error: linkError } = await supabaseClient
           .from(linkTableName)
-          .insert({
-            property_id: propertyId,
-            [role === 'tenant' ? 'tenant_id' : 'service_provider_id']: authUser.user.id
-          })
+          .insert(linkData)
 
-        if (linkError) throw linkError
+        if (linkError) {
+          console.error('Error creating property link:', linkError)
+          throw linkError
+        }
+
+        console.log('User successfully created and linked to property')
 
         return new Response(
           JSON.stringify({ success: true }),

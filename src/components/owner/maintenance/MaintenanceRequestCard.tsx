@@ -13,10 +13,15 @@ type MaintenanceRequestCardProps = {
 };
 
 export function MaintenanceRequestCard({ request, userRole, onUpdateStatus }: MaintenanceRequestCardProps) {
+  // Determine what information to display based on user role
   const showTenantInfo = userRole === "owner" && request.tenant;
   const showServiceProviderInfo = request.assigned_service_provider;
+  
+  // Determine which action buttons to show based on role and status
   const canMarkInProgress = userRole === "owner" && request.status === "pending";
   const canMarkCompleted = userRole === "owner" && request.status === "accepted";
+  const canServiceProviderAccept = userRole === "service_provider" && request.status === "pending";
+  const canServiceProviderComplete = userRole === "service_provider" && request.status === "accepted";
 
   return (
     <Card className="mb-4">
@@ -25,7 +30,7 @@ export function MaintenanceRequestCard({ request, userRole, onUpdateStatus }: Ma
           <div>
             <CardTitle className="text-lg">{request.title}</CardTitle>
             <CardDescription>
-              {request.property.name} • Reported: {formatDate(request.created_at)}
+              {request.property?.name || "Unknown property"} • Reported: {formatDate(request.created_at)}
             </CardDescription>
           </div>
           <MaintenanceStatusBadge status={request.status} />
@@ -65,10 +70,10 @@ export function MaintenanceRequestCard({ request, userRole, onUpdateStatus }: Ma
               <div>
                 <span className="text-gray-500">Name: </span>
                 <span>
-                  {request.assigned_service_provider.first_name} {request.assigned_service_provider.last_name}
+                  {request.assigned_service_provider?.first_name} {request.assigned_service_provider?.last_name}
                 </span>
               </div>
-              {request.assigned_service_provider.phone && (
+              {request.assigned_service_provider?.phone && (
                 <div>
                   <span className="text-gray-500">Contact: </span>
                   <span>{request.assigned_service_provider.phone}</span>
@@ -107,7 +112,7 @@ export function MaintenanceRequestCard({ request, userRole, onUpdateStatus }: Ma
             </Button>
           )}
           
-          {userRole === "service_provider" && request.status === "pending" && (
+          {canServiceProviderAccept && (
             <Button 
               onClick={() => onUpdateStatus(request.id, "accepted")}
               size="sm"
@@ -118,7 +123,7 @@ export function MaintenanceRequestCard({ request, userRole, onUpdateStatus }: Ma
             </Button>
           )}
           
-          {userRole === "service_provider" && request.status === "accepted" && (
+          {canServiceProviderComplete && (
             <Button 
               onClick={() => onUpdateStatus(request.id, "completed")}
               size="sm"

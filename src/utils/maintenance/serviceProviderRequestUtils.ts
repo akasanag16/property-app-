@@ -6,24 +6,11 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
   try {
     console.log("Fetching maintenance requests for provider:", providerId);
     
-    // Get request IDs using secure function
-    const { data: requestIds, error: idsError } = await supabase
-      .rpc("get_service_provider_maintenance_requests", { provider_id: providerId });
-      
-    if (idsError) {
-      console.error("Error fetching service provider request IDs:", idsError);
-      throw idsError;
-    }
-    
-    if (!requestIds || requestIds.length === 0) {
-      return [];
-    }
-    
-    // Fetch full request data using the IDs
+    // Get requests assigned to this service provider
     const { data, error: requestError } = await supabase
       .from("maintenance_requests")
       .select("id, title, description, status, created_at, property_id, tenant_id")
-      .in("id", requestIds)
+      .eq("assigned_service_provider_id", providerId)
       .order("created_at", { ascending: false });
       
     if (requestError) {
@@ -34,9 +21,12 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
     const formattedRequests: MaintenanceRequest[] = [];
     
     for (const request of data || []) {
-      // Get property name using the secure function
-      const { data: propertyName, error: propertyError } = await supabase
-        .rpc("get_property_name", { property_id_param: request.property_id });
+      // Get property name
+      const { data: propertyData, error: propertyError } = await supabase
+        .from("properties")
+        .select("name")
+        .eq("id", request.property_id)
+        .maybeSingle();
         
       if (propertyError) {
         console.error("Error fetching property name:", propertyError);
@@ -63,7 +53,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
         status: request.status,
         created_at: request.created_at,
         property: {
-          name: propertyName || "Unknown property",
+          name: propertyData?.name || "Unknown property",
           id: request.property_id
         },
         tenant,
