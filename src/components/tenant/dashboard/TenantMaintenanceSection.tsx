@@ -5,6 +5,7 @@ import { MaintenanceRequestForm } from "@/components/maintenance/MaintenanceRequ
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import type { Property } from "@/types/property";
 import { TenantMaintenanceSkeleton } from "./TenantDashboardSkeleton";
+import { useState } from "react";
 
 type TenantMaintenanceSectionProps = {
   properties: Property[];
@@ -35,6 +36,14 @@ export function TenantMaintenanceSection({
   requestRefreshKey,
   loading
 }: TenantMaintenanceSectionProps) {
+  const [localRefreshKey, setLocalRefreshKey] = useState(requestRefreshKey);
+
+  // Update local refresh key when parent refresh key changes
+  const handleRequestUpdate = () => {
+    setLocalRefreshKey(prev => prev + 1);
+    onRequestCreated();
+  };
+
   if (loading) {
     return <TenantMaintenanceSkeleton />;
   }
@@ -51,7 +60,7 @@ export function TenantMaintenanceSection({
           <h2 className="text-xl font-semibold mb-4">Submit a Request</h2>
           <MaintenanceRequestForm 
             properties={properties}
-            onRequestCreated={onRequestCreated}
+            onRequestCreated={handleRequestUpdate}
           />
         </GradientCard>
       </motion.div>
@@ -61,7 +70,8 @@ export function TenantMaintenanceSection({
           <h2 className="text-xl font-semibold mb-4">My Requests</h2>
           <MaintenanceRequestsList 
             userRole="tenant"
-            refreshKey={requestRefreshKey}
+            refreshKey={localRefreshKey}
+            onRefreshNeeded={handleRequestUpdate}
           />
         </GradientCard>
       </motion.div>

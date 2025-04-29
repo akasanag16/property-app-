@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { MaintenanceRequest } from "@/types/maintenance";
 import { getTenantRequests } from "@/utils/maintenance/tenantRequestUtils";
 import { toast } from "sonner";
@@ -8,7 +9,7 @@ export function useTenantRequests(userId: string | undefined, refreshKey = 0) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!userId) {
       setRequests([]);
       setLoading(false);
@@ -18,20 +19,21 @@ export function useTenantRequests(userId: string | undefined, refreshKey = 0) {
     try {
       setLoading(true);
       setError(null);
+      console.log("Fetching tenant requests for user ID:", userId);
       const data = await getTenantRequests(userId);
       setRequests(data);
     } catch (err: any) {
       console.error("Error fetching tenant maintenance requests:", err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
       toast.error("Failed to load maintenance requests");
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchRequests();
-  }, [userId, refreshKey]);
+  }, [fetchRequests, refreshKey]);
 
   return { requests, loading, error, refetch: fetchRequests };
 }

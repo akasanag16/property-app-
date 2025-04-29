@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
@@ -17,14 +17,14 @@ export default function TenantDashboard() {
   const [requestRefreshKey, setRequestRefreshKey] = useState(0);
   
   // Set default tab based on the current path
-  const getInitialTab = () => {
+  const getInitialTab = useCallback(() => {
     if (location.pathname.includes("/tenant/maintenance")) {
       return "maintenance-requests";
     }
     return "my-properties";
-  };
+  }, [location.pathname]);
   
-  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const [activeTab, setActiveTab] = useState(() => getInitialTab());
   
   // Use the properties hook to fetch properties
   const { properties, loading, handleRefresh, error } = useProperties(user?.id);
@@ -32,6 +32,7 @@ export default function TenantDashboard() {
   const handleRequestCreated = () => {
     setActiveTab("maintenance-requests");
     setRequestRefreshKey(prev => prev + 1);
+    toast.success("Maintenance request created successfully");
   };
 
   const handleMaintenanceClick = () => {
@@ -41,7 +42,7 @@ export default function TenantDashboard() {
   // Update active tab when the route changes
   useEffect(() => {
     setActiveTab(getInitialTab());
-  }, [location.pathname]);
+  }, [location.pathname, getInitialTab]);
 
   return (
     <DashboardLayout>

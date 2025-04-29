@@ -67,13 +67,15 @@ export function MaintenanceRequestsList({
     );
   }
 
-  if (requests.length === 0) {
+  if (!requests || requests.length === 0) {
     return (
       <div className="text-center py-8 bg-gray-50 rounded-lg border">
         <p className="text-gray-500">No maintenance requests found</p>
       </div>
     );
   }
+
+  console.log("Rendering maintenance requests:", requests);
 
   return (
     <div className="space-y-4">
