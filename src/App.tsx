@@ -38,6 +38,10 @@ const App = () => (
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/confirm" element={<EmailConfirm />} />
             <Route path="/invitation/accept" element={<AcceptInvitation />} />
+            
+            {/* Add the new route that matches the URL format being sent */}
+            <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
+            
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Protected routes (any authenticated user) */}
