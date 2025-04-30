@@ -16,9 +16,10 @@ type Property = {
 type MaintenanceRequestFormProps = {
   properties: Property[];
   onRequestCreated?: () => void;
+  onError?: (errorMessage: string) => void;
 };
 
-export function MaintenanceRequestForm({ properties, onRequestCreated }: MaintenanceRequestFormProps) {
+export function MaintenanceRequestForm({ properties, onRequestCreated, onError }: MaintenanceRequestFormProps) {
   const { user } = useAuth();
   const [form, setForm] = useState({
     title: "",
@@ -38,7 +39,9 @@ export function MaintenanceRequestForm({ properties, onRequestCreated }: Mainten
     e.preventDefault();
     
     if (!form.title || !form.description || !form.propertyId) {
-      toast.error("Please fill in all fields");
+      const errorMsg = "Please fill in all fields";
+      toast.error(errorMsg);
+      if (onError) onError(errorMsg);
       return;
     }
 
@@ -68,9 +71,11 @@ export function MaintenanceRequestForm({ properties, onRequestCreated }: Mainten
       if (onRequestCreated) {
         onRequestCreated();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting maintenance request:", error);
-      toast.error("Failed to submit maintenance request");
+      const errorMessage = `Failed to submit maintenance request: ${error.message || "Unknown error"}`;
+      toast.error(errorMessage);
+      if (onError) onError(errorMessage);
     } finally {
       setSubmitting(false);
     }

@@ -45,8 +45,11 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
     // 3. Get property names
     let propertiesMap: Record<string, { id: string; name: string }> = {};
     
+    // Using a direct query instead of the RPC function
     const { data: propertiesData, error: propertyNamesError } = await supabase
-      .rpc('get_property_name_by_ids', { property_ids: propertyIds });
+      .from('properties')
+      .select('id, name')
+      .in('id', propertyIds);
     
     if (propertyNamesError) {
       console.error("Error fetching property names:", propertyNamesError);

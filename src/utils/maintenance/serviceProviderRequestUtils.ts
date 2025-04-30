@@ -38,8 +38,11 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
     let propertiesMap: Record<string, { id: string; name: string }> = {};
     
     if (uniquePropertyIds.length > 0) {
+      // Using a standard query instead of RPC function to avoid type errors
       const { data: propertiesData, error: propertiesError } = await supabase
-        .rpc('get_property_name_by_ids', { property_ids: uniquePropertyIds });
+        .from('properties')
+        .select('id, name')
+        .in('id', uniquePropertyIds);
       
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);
