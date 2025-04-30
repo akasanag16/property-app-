@@ -24,7 +24,8 @@ export function useTenantRequests(userId: string | undefined, refreshKey = 0) {
       setRequests(data);
     } catch (err: any) {
       console.error("Error fetching tenant maintenance requests:", err);
-      setError(err instanceof Error ? err : new Error(String(err)));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(new Error(errorMessage));
       toast.error("Failed to load maintenance requests");
     } finally {
       setLoading(false);

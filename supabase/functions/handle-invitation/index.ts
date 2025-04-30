@@ -8,6 +8,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
@@ -17,6 +18,10 @@ serve(async (req) => {
   try {
     const requestData = await req.json()
     const { action, token, email } = requestData
+    
+    if (!action) {
+      throw new Error("Missing required action parameter")
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -93,7 +98,16 @@ serve(async (req) => {
       const { token, email, propertyId, role, firstName, lastName, password } = requestData
       
       if (!token || !email || !propertyId || !role || !firstName || !lastName || !password) {
-        throw new Error("Missing required parameters")
+        const missingParams = [];
+        if (!token) missingParams.push('token');
+        if (!email) missingParams.push('email');
+        if (!propertyId) missingParams.push('propertyId');
+        if (!role) missingParams.push('role');
+        if (!firstName) missingParams.push('firstName');
+        if (!lastName) missingParams.push('lastName');
+        if (!password) missingParams.push('password');
+        
+        throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
       }
 
       console.log(`Creating new user for invitation: ${email} as ${role}`)
@@ -169,11 +183,11 @@ serve(async (req) => {
       }
     }
 
-    throw new Error('Invalid action')
+    throw new Error('Invalid action: ' + action)
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

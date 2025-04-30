@@ -6,7 +6,12 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
   try {
     console.log("Fetching maintenance requests for tenant:", tenantId);
     
-    // Directly fetch maintenance requests for the tenant
+    if (!tenantId) {
+      console.warn("No tenant ID provided");
+      return [];
+    }
+    
+    // Directly fetch maintenance requests for the tenant without joining
     const { data: requests, error: requestError } = await supabase
       .from("maintenance_requests")
       .select(`
@@ -15,7 +20,8 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
         description, 
         status, 
         created_at, 
-        property_id
+        property_id,
+        tenant_id
       `)
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
@@ -25,41 +31,50 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       throw requestError;
     }
 
+    if (!requests || requests.length === 0) {
+      console.log("No maintenance requests found for tenant");
+      return [];
+    }
+
     console.log("Fetched raw tenant requests:", requests);
     
-    // Prepare for property name lookups
-    const propertyIds = requests?.map(req => req.property_id) || [];
+    // Extract unique property IDs to fetch in a single query
+    const propertyIds = requests.map(req => req.property_id).filter(Boolean);
     const uniquePropertyIds = [...new Set(propertyIds)];
     
-    // Get all property names in a single query
-    const { data: propertiesData, error: propertiesError } = await supabase
-      .from("properties")
-      .select("id, name")
-      .in("id", uniquePropertyIds);
-      
-    if (propertiesError) {
-      console.error("Error fetching property names:", propertiesError);
+    // If we have property IDs, fetch their names in a single query
+    let propertyMap: Record<string, string> = {};
+    
+    if (uniquePropertyIds.length > 0) {
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from("properties")
+        .select("id, name")
+        .in("id", uniquePropertyIds);
+        
+      if (propertiesError) {
+        console.error("Error fetching property names:", propertiesError);
+      } else if (propertiesData) {
+        // Create a map of property IDs to names
+        propertyMap = propertiesData.reduce((map: Record<string, string>, property) => {
+          map[property.id] = property.name;
+          return map;
+        }, {});
+      }
     }
     
-    // Create a map of property IDs to names
-    const propertyMap = new Map();
-    propertiesData?.forEach(property => {
-      propertyMap.set(property.id, property.name);
-    });
-    
     // Format the requests with the property names
-    const formattedRequests: MaintenanceRequest[] = (requests || []).map(request => ({
+    const formattedRequests: MaintenanceRequest[] = requests.map(request => ({
       id: request.id,
       title: request.title,
       description: request.description,
       status: request.status,
       created_at: request.created_at,
       property: {
-        name: propertyMap.get(request.property_id) || "Unknown property",
+        name: propertyMap[request.property_id] || "Unknown property",
         id: request.property_id
       },
-      tenant: null,
-      assigned_service_provider: null
+      tenant: null, // We don't need tenant info for tenant's own requests
+      assigned_service_provider: null // We'll fetch this separately if needed
     }));
     
     console.log("Formatted tenant requests:", formattedRequests);

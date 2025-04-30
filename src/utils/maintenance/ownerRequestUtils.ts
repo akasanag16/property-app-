@@ -6,7 +6,12 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
   try {
     console.log("Fetching maintenance requests for owner:", ownerId);
     
-    // First get properties owned by this user
+    if (!ownerId) {
+      console.warn("No owner ID provided");
+      return [];
+    }
+    
+    // First get properties owned by this user - without any joins to avoid recursion
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
       .select("id, name")
@@ -18,6 +23,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
     }
     
     if (!properties || properties.length === 0) {
+      console.log("No properties found for owner");
       return [];
     }
     
@@ -30,10 +36,19 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
     // Get property IDs
     const propertyIds = properties.map(p => p.id);
     
-    // Get all maintenance requests for these properties
-    const { data, error: requestError } = await supabase
+    // Get all maintenance requests for these properties - without joins
+    const { data: requests, error: requestError } = await supabase
       .from("maintenance_requests")
-      .select("id, title, description, status, created_at, property_id, tenant_id, assigned_service_provider_id")
+      .select(`
+        id, 
+        title, 
+        description, 
+        status, 
+        created_at, 
+        property_id, 
+        tenant_id, 
+        assigned_service_provider_id
+      `)
       .in("property_id", propertyIds)
       .order("created_at", { ascending: false });
       
@@ -42,38 +57,82 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       throw requestError;
     }
     
-    const formattedRequests: MaintenanceRequest[] = [];
+    if (!requests || requests.length === 0) {
+      console.log("No maintenance requests found for owner properties");
+      return [];
+    }
+
+    // Get unique tenant IDs from the requests
+    const tenantIds = requests
+      .map(req => req.tenant_id)
+      .filter(Boolean)
+      .filter((id, index, self) => self.indexOf(id) === index);
+      
+    // Get unique service provider IDs from the requests
+    const providerIds = requests
+      .map(req => req.assigned_service_provider_id)
+      .filter(Boolean)
+      .filter((id, index, self) => self.indexOf(id) === index);
     
-    for (const request of data || []) {
-      // Get tenant information if available
-      let tenant = { first_name: null, last_name: null };
-      if (request.tenant_id) {
-        const { data: tenantData } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", request.tenant_id)
-          .maybeSingle();
-          
-        if (tenantData) {
-          tenant = tenantData;
-        }
+    // Get tenant information in a single query
+    let tenantsMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+    
+    if (tenantIds.length > 0) {
+      const { data: tenants, error: tenantsError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", tenantIds);
+        
+      if (tenantsError) {
+        console.error("Error fetching tenant profiles:", tenantsError);
+      } else if (tenants) {
+        tenantsMap = tenants.reduce((map: any, tenant) => {
+          map[tenant.id] = { 
+            first_name: tenant.first_name, 
+            last_name: tenant.last_name 
+          };
+          return map;
+        }, {});
+      }
+    }
+    
+    // Get service provider information in a single query
+    let providersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+    
+    if (providerIds.length > 0) {
+      const { data: providers, error: providersError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", providerIds);
+        
+      if (providersError) {
+        console.error("Error fetching service provider profiles:", providersError);
+      } else if (providers) {
+        providersMap = providers.reduce((map: any, provider) => {
+          map[provider.id] = { 
+            first_name: provider.first_name, 
+            last_name: provider.last_name 
+          };
+          return map;
+        }, {});
+      }
+    }
+    
+    // Format the results
+    const formattedRequests: MaintenanceRequest[] = requests.map(request => {
+      // Get tenant information
+      let tenant = null;
+      if (request.tenant_id && tenantsMap[request.tenant_id]) {
+        tenant = tenantsMap[request.tenant_id];
       }
       
-      // Get service provider information if available
+      // Get service provider information
       let assigned_service_provider = null;
-      if (request.assigned_service_provider_id) {
-        const { data: providerData } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", request.assigned_service_provider_id)
-          .maybeSingle();
-          
-        if (providerData) {
-          assigned_service_provider = providerData;
-        }
+      if (request.assigned_service_provider_id && providersMap[request.assigned_service_provider_id]) {
+        assigned_service_provider = providersMap[request.assigned_service_provider_id];
       }
       
-      formattedRequests.push({
+      return {
         id: request.id,
         title: request.title,
         description: request.description,
@@ -85,8 +144,8 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
         },
         tenant,
         assigned_service_provider
-      });
-    }
+      };
+    });
     
     return formattedRequests;
   } catch (error) {

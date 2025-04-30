@@ -29,6 +29,12 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate form inputs first
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("First name and last name are required");
+      return;
+    }
+    
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -43,6 +49,11 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
     setError("");
     
     try {
+      console.log("Submitting invitation acceptance for:", email);
+      console.log("With token:", token);
+      console.log("For property:", propertyId);
+      console.log("As role:", role);
+      
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
           action: "createInvitedUser",
@@ -56,7 +67,15 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
         }
       });
       
-      if (functionError) throw new Error(functionError.message);
+      if (functionError) {
+        console.error("Function error:", functionError);
+        throw new Error(functionError.message || "Error accepting invitation");
+      }
+      
+      if (!data?.success) {
+        console.error("Operation failed:", data);
+        throw new Error("Failed to create account. Please try again.");
+      }
       
       toast.success("Account created successfully! Please sign in to continue.");
       setTimeout(() => navigate("/auth"), 2000);

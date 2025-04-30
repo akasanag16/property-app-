@@ -7,11 +7,17 @@ import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { useState, useEffect } from "react";
 import { ErrorAlert } from "@/components/ui/alert-error";
 
+type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
+  onRefreshNeeded?: () => void;
+  onError?: (message: string) => void;
+};
+
 export function MaintenanceRequestsList({ 
   userRole, 
   refreshKey = 0,
-  onRefreshNeeded 
-}: MaintenanceRequestsListProps & { onRefreshNeeded?: () => void }) {
+  onRefreshNeeded,
+  onError
+}: ExtendedMaintenanceRequestsListProps) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
   const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey);
 
@@ -19,6 +25,13 @@ export function MaintenanceRequestsList({
   useEffect(() => {
     setLocalRefreshKey(refreshKey);
   }, [refreshKey]);
+
+  // Report errors up to parent component if needed
+  useEffect(() => {
+    if (error && onError) {
+      onError(error.message || "Unknown error loading maintenance requests");
+    }
+  }, [error, onError]);
 
   const handleRetry = () => {
     console.log("Retrying maintenance requests fetch...");
@@ -61,7 +74,7 @@ export function MaintenanceRequestsList({
   if (error) {
     return (
       <ErrorAlert 
-        message={`Error loading maintenance requests: ${error.message}`} 
+        message={`Error loading maintenance requests: ${error.message || "Unknown error"}`} 
         onRetry={handleRetry} 
       />
     );

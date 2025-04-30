@@ -5,7 +5,8 @@ import { MaintenanceRequestForm } from "@/components/maintenance/MaintenanceRequ
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import type { Property } from "@/types/property";
 import { TenantMaintenanceSkeleton } from "./TenantDashboardSkeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ErrorAlert } from "@/components/ui/alert-error";
 
 type TenantMaintenanceSectionProps = {
   properties: Property[];
@@ -37,11 +38,23 @@ export function TenantMaintenanceSection({
   loading
 }: TenantMaintenanceSectionProps) {
   const [localRefreshKey, setLocalRefreshKey] = useState(requestRefreshKey);
+  const [error, setError] = useState<string | null>(null);
 
   // Update local refresh key when parent refresh key changes
+  useEffect(() => {
+    setLocalRefreshKey(requestRefreshKey);
+  }, [requestRefreshKey]);
+
+  // Handle request update from child components
   const handleRequestUpdate = () => {
     setLocalRefreshKey(prev => prev + 1);
+    setError(null); // Clear any previous errors
     onRequestCreated();
+  };
+
+  // Handle errors from child components
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
   };
 
   if (loading) {
@@ -68,11 +81,16 @@ export function TenantMaintenanceSection({
       <motion.div variants={item}>
         <GradientCard gradient="blue">
           <h2 className="text-xl font-semibold mb-4">My Requests</h2>
-          <MaintenanceRequestsList 
-            userRole="tenant"
-            refreshKey={localRefreshKey}
-            onRefreshNeeded={handleRequestUpdate}
-          />
+          {error ? (
+            <ErrorAlert message={error} onRetry={handleRequestUpdate} />
+          ) : (
+            <MaintenanceRequestsList 
+              userRole="tenant"
+              refreshKey={localRefreshKey}
+              onRefreshNeeded={handleRequestUpdate}
+              onError={handleError}
+            />
+          )}
         </GradientCard>
       </motion.div>
     </motion.div>
