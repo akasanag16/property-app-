@@ -54,6 +54,20 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
       console.log("For property:", propertyId);
       console.log("As role:", role);
       
+      // Check if user already exists with this email
+      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
+        email,
+        password: "temporary-check-only"
+      });
+      
+      if (!checkError || (checkError && checkError.message?.includes("Invalid login credentials"))) {
+        // If the user already exists (either successful login or invalid password error)
+        // We'll handle this gracefully - direct them to login
+        toast.info("An account with this email already exists. Please sign in instead.");
+        setTimeout(() => navigate("/auth"), 2000);
+        return;
+      }
+      
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
           action: "createInvitedUser",
@@ -74,6 +88,13 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
       
       if (!data?.success) {
         console.error("Operation failed:", data);
+        // Check if this is a known error about email already existing
+        if (data?.error && data.error.includes("already been registered")) {
+          toast.info("An account with this email already exists. Please sign in instead.");
+          setTimeout(() => navigate("/auth"), 2000);
+          return;
+        }
+        
         throw new Error(data?.error || "Failed to create account. Please try again.");
       }
       
@@ -81,6 +102,15 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
       setTimeout(() => navigate("/auth"), 2000);
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
+      
+      // Handle specific error cases
+      if (error.message?.includes("already been registered") || 
+          error.message?.includes("email_exists")) {
+        toast.info("An account with this email already exists. Please sign in instead.");
+        setTimeout(() => navigate("/auth"), 2000);
+        return;
+      }
+      
       setError(error.message || "Failed to create account. Please try again.");
     } finally {
       setLoading(false);

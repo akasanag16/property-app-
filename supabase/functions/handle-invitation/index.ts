@@ -117,6 +117,23 @@ serve(async (req) => {
       console.log(`Property ID: ${propertyId}`);
       console.log(`First name: ${firstName}, Last name: ${lastName}`);
 
+      // Check if user already exists
+      const { data: existingUser, error: existingUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
+      
+      if (existingUser && existingUser.user) {
+        console.log(`User with email ${email} already exists`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "A user with this email address has already been registered" 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
+
       // Begin transaction
       const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
       const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
@@ -191,8 +208,24 @@ serve(async (req) => {
             status: 200,
           }
         );
-      } catch (error) {
+      } catch (error: any) {
         console.error('Transaction error:', error);
+        
+        // Check if this is an email_exists error
+        if (error.code === "email_exists" || 
+            (error.message && error.message.includes("already been registered"))) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "A user with this email address has already been registered"
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ 
             error: error.message || "Error processing invitation",
@@ -207,7 +240,7 @@ serve(async (req) => {
     }
 
     throw new Error('Invalid action: ' + action);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ 
