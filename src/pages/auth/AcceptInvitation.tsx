@@ -13,6 +13,7 @@ export default function AcceptInvitation() {
   const navigate = useNavigate();
   const { validating, isValid, error, invitationData } = useInvitationValidation();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [redirectSeconds, setRedirectSeconds] = useState<number>(10);
 
   // If we encounter a validation or submission error, show a timer to redirect back to login
   useEffect(() => {
@@ -21,7 +22,21 @@ export default function AcceptInvitation() {
         navigate("/auth");
       }, 10000); // Redirect after 10 seconds
       
-      return () => clearTimeout(timer);
+      // Countdown timer
+      const countdownInterval = setInterval(() => {
+        setRedirectSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearInterval(countdownInterval);
+      };
     }
   }, [validating, isValid, submissionError, navigate]);
 
@@ -37,6 +52,9 @@ export default function AcceptInvitation() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <ValidationError error={error} />
+        <p className="mt-4 text-sm text-gray-500">
+          Redirecting to login page in {redirectSeconds} seconds...
+        </p>
       </div>
     );
   }
@@ -57,7 +75,7 @@ export default function AcceptInvitation() {
               <AlertDescription>{submissionError}</AlertDescription>
             </Alert>
             <p className="mt-4 text-sm text-gray-500 text-center">
-              You will be redirected to the login page in a few seconds.
+              You will be redirected to the login page in {redirectSeconds} seconds.
               If you already have an account, you can sign in there.
             </p>
           </CardContent>
@@ -77,7 +95,7 @@ export default function AcceptInvitation() {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Accept Invitation</CardTitle>
           <CardDescription>
-            Create your account to access the property management portal
+            Create your account or link your existing account to access the property management portal
             {invitationData?.role && (
               <span className="block mt-1 font-medium">
                 You'll be joining as a {invitationData.role.replace('_', ' ')}

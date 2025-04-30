@@ -9,6 +9,7 @@ interface InvitationData {
   email: string;
   propertyId: string;
   role: UserRole;
+  invitationType?: string;
 }
 
 export function useInvitationValidation() {
@@ -49,7 +50,8 @@ export function useInvitationValidation() {
           token,
           email,
           propertyId: data.propertyId,
-          role: data.role as UserRole
+          role: data.role as UserRole,
+          invitationType: data.invitationType
         });
         
         setIsValid(true);

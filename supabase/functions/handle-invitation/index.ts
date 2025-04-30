@@ -43,6 +43,7 @@ serve(async (req) => {
       let validInvitation = null
       let propertyId = null
       let role = null
+      let invitationType = null
 
       for (const table of tablesToCheck) {
         const { data, error } = await supabaseClient
@@ -63,6 +64,7 @@ serve(async (req) => {
           validInvitation = data
           propertyId = data.property_id
           role = table === 'tenant_invitations' ? 'tenant' : 'service_provider'
+          invitationType = table === 'tenant_invitations' ? 'tenant' : 'service_provider'
           console.log(`Found valid invitation in ${table}`)
           break
         }
@@ -86,6 +88,7 @@ serve(async (req) => {
           role,
           email,
           token,
+          invitationType,
           invitationId: validInvitation.id
         }),
         {
@@ -95,72 +98,66 @@ serve(async (req) => {
       )
     }
     
-    // Handle creating an invited user
+    // Handle creating an invited user or linking existing user
     if (action === 'createInvitedUser') {
       const { token, email, propertyId, role, firstName, lastName, password } = requestData
       
-      if (!token || !email || !propertyId || !role || !firstName || !lastName || !password) {
+      if (!token || !email || !propertyId || !role) {
         const missingParams = [];
         if (!token) missingParams.push('token');
         if (!email) missingParams.push('email');
         if (!propertyId) missingParams.push('propertyId');
         if (!role) missingParams.push('role');
-        if (!firstName) missingParams.push('firstName');
-        if (!lastName) missingParams.push('lastName');
-        if (!password) missingParams.push('password');
         
         console.error("Missing parameters:", missingParams);
         throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
       }
 
-      console.log(`Creating new user for invitation: ${email} as ${role}`);
+      console.log(`Processing invitation for: ${email} as ${role}`);
       console.log(`Property ID: ${propertyId}`);
-      console.log(`First name: ${firstName}, Last name: ${lastName}`);
 
       // Check if user already exists
       const { data: existingUser, error: existingUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
       
-      if (existingUser && existingUser.user) {
-        console.log(`User with email ${email} already exists`);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "A user with this email address has already been registered" 
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-          }
-        );
-      }
-
       // Begin transaction
       const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
       const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
       
       try {
-        // 1. Create the user account
-        const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: {
-            first_name: firstName,
-            last_name: lastName,
-            role
+        let userId;
+
+        if (existingUser && existingUser.user) {
+          console.log(`User with email ${email} already exists - linking to property instead`);
+          userId = existingUser.user.id;
+        } else {
+          // If user doesn't exist, create new user account
+          if (!firstName || !lastName || !password) {
+            throw new Error("Missing required parameters for creating a new user");
           }
-        });
 
-        if (userError) {
-          console.error('Error creating user:', userError);
-          throw userError;
+          const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+              first_name: firstName,
+              last_name: lastName,
+              role
+            }
+          });
+
+          if (userError) {
+            console.error('Error creating user:', userError);
+            throw userError;
+          }
+
+          if (!authUser || !authUser.user) {
+            throw new Error("Failed to create user account");
+          }
+
+          console.log(`New user created with ID: ${authUser.user.id}`);
+          userId = authUser.user.id;
         }
-
-        if (!authUser || !authUser.user) {
-          throw new Error("Failed to create user account");
-        }
-
-        console.log(`User created with ID: ${authUser.user.id}`);
 
         // 2. Mark invitation as used
         const { error: inviteError } = await supabaseClient
@@ -169,7 +166,7 @@ serve(async (req) => {
             is_used: true,
             status: 'accepted',
             accepted_at: new Date().toISOString(),
-            accepted_by_user_id: authUser.user.id
+            accepted_by_user_id: userId
           })
           .eq('link_token', token)
           .eq('email', email);
@@ -179,27 +176,160 @@ serve(async (req) => {
           throw inviteError;
         }
 
-        // 3. Create property link
-        const linkData: any = {
+        // 3. Check if the property link already exists
+        const linkQuery = {
           property_id: propertyId,
         };
         
         if (role === 'tenant') {
-          linkData.tenant_id = authUser.user.id;
+          linkQuery.tenant_id = userId;
         } else {
-          linkData.service_provider_id = authUser.user.id;
+          linkQuery.service_provider_id = userId;
         }
-
-        const { error: linkError } = await supabaseClient
+        
+        // First check if link already exists
+        const { data: existingLink, error: existingLinkError } = await supabaseClient
           .from(linkTableName)
-          .insert(linkData);
+          .select('id')
+          .eq('property_id', propertyId)
+          .eq(role === 'tenant' ? 'tenant_id' : 'service_provider_id', userId)
+          .maybeSingle();
+          
+        if (existingLinkError) {
+          console.error('Error checking existing property link:', existingLinkError);
+          throw existingLinkError;
+        }
+        
+        // Only create the link if it doesn't already exist
+        if (!existingLink) {
+          const linkData = {
+            property_id: propertyId,
+          };
+          
+          if (role === 'tenant') {
+            linkData.tenant_id = userId;
+          } else {
+            linkData.service_provider_id = userId;
+          }
 
-        if (linkError) {
-          console.error('Error creating property link:', linkError);
-          throw linkError;
+          const { error: linkError } = await supabaseClient
+            .from(linkTableName)
+            .insert(linkData);
+
+          if (linkError) {
+            console.error('Error creating property link:', linkError);
+            throw linkError;
+          }
+          
+          console.log('User successfully linked to property');
+        } else {
+          console.log('User was already linked to this property');
         }
 
-        console.log('User successfully created and linked to property');
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            userExists: existingUser && existingUser.user ? true : false,
+            userLinked: true
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (error: any) {
+        console.error('Transaction error:', error);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: error.message || "Error processing invitation",
+            details: JSON.stringify(error)
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
+    }
+    
+    // New action to link an existing user to a property from an invitation token
+    if (action === 'linkExistingUser') {
+      const { token, email, propertyId, role, userId } = requestData;
+      
+      if (!token || !email || !propertyId || !role || !userId) {
+        const missingParams = [];
+        if (!token) missingParams.push('token');
+        if (!email) missingParams.push('email');
+        if (!propertyId) missingParams.push('propertyId');
+        if (!role) missingParams.push('role');
+        if (!userId) missingParams.push('userId');
+        
+        console.error("Missing parameters:", missingParams);
+        throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+      }
+      
+      console.log(`Linking existing user ${userId} to property ${propertyId} as ${role}`);
+      
+      // Begin transaction
+      const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
+      const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
+      
+      try {
+        // 1. Mark invitation as used
+        const { error: inviteError } = await supabaseClient
+          .from(tableName)
+          .update({ 
+            is_used: true,
+            status: 'accepted',
+            accepted_at: new Date().toISOString(),
+            accepted_by_user_id: userId
+          })
+          .eq('link_token', token)
+          .eq('email', email);
+
+        if (inviteError) {
+          console.error('Error updating invitation:', inviteError);
+          throw inviteError;
+        }
+        
+        // 2. Create property link if it doesn't exist
+        const linkData = {
+          property_id: propertyId,
+        };
+        
+        if (role === 'tenant') {
+          linkData.tenant_id = userId;
+        } else {
+          linkData.service_provider_id = userId;
+        }
+        
+        // First check if link already exists
+        const { data: existingLink, error: existingLinkError } = await supabaseClient
+          .from(linkTableName)
+          .select('id')
+          .eq('property_id', propertyId)
+          .eq(role === 'tenant' ? 'tenant_id' : 'service_provider_id', userId)
+          .maybeSingle();
+          
+        if (existingLinkError) {
+          console.error('Error checking existing property link:', existingLinkError);
+          throw existingLinkError;
+        }
+        
+        // Only create the link if it doesn't already exist
+        if (!existingLink) {
+          const { error: linkError } = await supabaseClient
+            .from(linkTableName)
+            .insert(linkData);
+
+          if (linkError) {
+            console.error('Error creating property link:', linkError);
+            throw linkError;
+          }
+        } else {
+          console.log('User was already linked to this property');
+        }
 
         return new Response(
           JSON.stringify({ success: true }),
@@ -209,26 +339,10 @@ serve(async (req) => {
           }
         );
       } catch (error: any) {
-        console.error('Transaction error:', error);
-        
-        // Check if this is an email_exists error
-        if (error.code === "email_exists" || 
-            (error.message && error.message.includes("already been registered"))) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: "A user with this email address has already been registered"
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400,
-            }
-          );
-        }
-        
+        console.error('Error linking existing user:', error);
         return new Response(
           JSON.stringify({ 
-            error: error.message || "Error processing invitation",
+            error: error.message || "Error linking user to property",
             details: JSON.stringify(error)
           }),
           {
