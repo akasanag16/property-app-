@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { UserRole } from "@/lib/auth";
 
@@ -74,7 +74,7 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
       
       if (!data?.success) {
         console.error("Operation failed:", data);
-        throw new Error("Failed to create account. Please try again.");
+        throw new Error(data?.error || "Failed to create account. Please try again.");
       }
       
       toast.success("Account created successfully! Please sign in to continue.");
@@ -85,6 +85,10 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    navigate("/auth");
   };
 
   return (
@@ -148,6 +152,15 @@ export function InvitationAcceptanceForm({ email, token, propertyId, role }: Inv
         ) : (
           "Create Account"
         )}
+      </Button>
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full flex items-center justify-center" 
+        onClick={handleBackToLogin}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Login
       </Button>
     </form>
   );

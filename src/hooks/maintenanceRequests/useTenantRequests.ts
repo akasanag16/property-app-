@@ -36,5 +36,10 @@ export function useTenantRequests(userId: string | undefined, refreshKey = 0) {
     fetchRequests();
   }, [fetchRequests, refreshKey]);
 
-  return { requests, loading, error, refetch: fetchRequests };
+  return { 
+    requests, 
+    loading, 
+    error, 
+    refetch: fetchRequests 
+  };
 }

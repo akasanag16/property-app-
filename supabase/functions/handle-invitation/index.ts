@@ -84,6 +84,8 @@ serve(async (req) => {
           valid: true, 
           propertyId, 
           role,
+          email,
+          token,
           invitationId: validInvitation.id
         }),
         {
@@ -107,14 +109,17 @@ serve(async (req) => {
         if (!lastName) missingParams.push('lastName');
         if (!password) missingParams.push('password');
         
+        console.error("Missing parameters:", missingParams);
         throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
       }
 
-      console.log(`Creating new user for invitation: ${email} as ${role}`)
+      console.log(`Creating new user for invitation: ${email} as ${role}`);
+      console.log(`Property ID: ${propertyId}`);
+      console.log(`First name: ${firstName}, Last name: ${lastName}`);
 
       // Begin transaction
-      const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations'
-      const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link'
+      const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
+      const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
       
       try {
         // 1. Create the user account
@@ -127,14 +132,18 @@ serve(async (req) => {
             last_name: lastName,
             role
           }
-        })
+        });
 
         if (userError) {
-          console.error('Error creating user:', userError)
-          throw userError
+          console.error('Error creating user:', userError);
+          throw userError;
         }
 
-        console.log(`User created with ID: ${authUser.user.id}`)
+        if (!authUser || !authUser.user) {
+          throw new Error("Failed to create user account");
+        }
+
+        console.log(`User created with ID: ${authUser.user.id}`);
 
         // 2. Mark invitation as used
         const { error: inviteError } = await supabaseClient
@@ -146,29 +155,34 @@ serve(async (req) => {
             accepted_by_user_id: authUser.user.id
           })
           .eq('link_token', token)
-          .eq('email', email)
+          .eq('email', email);
 
         if (inviteError) {
-          console.error('Error updating invitation:', inviteError)
-          throw inviteError
+          console.error('Error updating invitation:', inviteError);
+          throw inviteError;
         }
 
         // 3. Create property link
-        const linkData = {
+        const linkData: any = {
           property_id: propertyId,
         };
-        linkData[role === 'tenant' ? 'tenant_id' : 'service_provider_id'] = authUser.user.id;
+        
+        if (role === 'tenant') {
+          linkData.tenant_id = authUser.user.id;
+        } else {
+          linkData.service_provider_id = authUser.user.id;
+        }
 
         const { error: linkError } = await supabaseClient
           .from(linkTableName)
-          .insert(linkData)
+          .insert(linkData);
 
         if (linkError) {
-          console.error('Error creating property link:', linkError)
-          throw linkError
+          console.error('Error creating property link:', linkError);
+          throw linkError;
         }
 
-        console.log('User successfully created and linked to property')
+        console.log('User successfully created and linked to property');
 
         return new Response(
           JSON.stringify({ success: true }),
@@ -176,22 +190,34 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
           }
-        )
+        );
       } catch (error) {
-        console.error('Transaction error:', error)
-        throw error
+        console.error('Transaction error:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: error.message || "Error processing invitation",
+            details: JSON.stringify(error)
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
       }
     }
 
-    throw new Error('Invalid action: ' + action)
+    throw new Error('Invalid action: ' + action);
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      JSON.stringify({ 
+        error: error.message || "Unknown error occurred",
+        details: error.stack || ""
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
-    )
+    );
   }
-})
+});

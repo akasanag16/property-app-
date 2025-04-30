@@ -6,6 +6,8 @@ import { MaintenanceRequestItem } from "./MaintenanceRequestItem";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { useState, useEffect } from "react";
 import { ErrorAlert } from "@/components/ui/alert-error";
+import { Button } from "../ui/button";
+import { RefreshCcw } from "lucide-react";
 
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
@@ -73,10 +75,18 @@ export function MaintenanceRequestsList({
 
   if (error) {
     return (
-      <ErrorAlert 
-        message={`Error loading maintenance requests: ${error.message || "Unknown error"}`} 
-        onRetry={handleRetry} 
-      />
+      <div className="space-y-4">
+        <ErrorAlert 
+          message={`Error loading maintenance requests: ${error.message || "Unknown error"}`} 
+          onRetry={handleRetry} 
+        />
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={handleRetry} className="flex items-center">
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -84,6 +94,10 @@ export function MaintenanceRequestsList({
     return (
       <div className="text-center py-8 bg-gray-50 rounded-lg border">
         <p className="text-gray-500">No maintenance requests found</p>
+        <Button variant="ghost" onClick={handleRetry} className="mt-2">
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
     );
   }
@@ -100,6 +114,12 @@ export function MaintenanceRequestsList({
           onUpdateStatus={updateStatus}
         />
       ))}
+      <div className="flex justify-center mt-4">
+        <Button variant="outline" onClick={handleRetry} className="flex items-center">
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
     </div>
   );
 }

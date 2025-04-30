@@ -11,82 +11,68 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       return [];
     }
     
-    // First get properties owned by this user - without any joins to avoid recursion
-    const { data: properties, error: propertiesError } = await supabase
-      .from("properties")
-      .select("id, name")
-      .eq("owner_id", ownerId);
+    // 1. First, get properties owned by this owner
+    const { data: propertyIds, error: propertiesError } = await supabase
+      .rpc('get_owner_properties', { owner_id_param: ownerId });
       
     if (propertiesError) {
       console.error("Error fetching owner properties:", propertiesError);
       throw propertiesError;
     }
     
-    if (!properties || properties.length === 0) {
+    if (!propertyIds || propertyIds.length === 0) {
       console.log("No properties found for owner");
       return [];
     }
-    
-    // Create a map for property names
-    const propertyIdMap = properties.reduce((map, prop) => {
-      map[prop.id] = prop.name;
-      return map;
-    }, {} as Record<string, string>);
-    
-    // Get property IDs
-    const propertyIds = properties.map(p => p.id);
-    
-    // Get all maintenance requests for these properties - without joins
-    const { data: requests, error: requestError } = await supabase
+
+    // 2. Get maintenance requests for these properties
+    const { data: requestsData, error: requestsError } = await supabase
       .from("maintenance_requests")
-      .select(`
-        id, 
-        title, 
-        description, 
-        status, 
-        created_at, 
-        property_id, 
-        tenant_id, 
-        assigned_service_provider_id
-      `)
+      .select("*")
       .in("property_id", propertyIds)
       .order("created_at", { ascending: false });
       
-    if (requestError) {
-      console.error("Error fetching owner requests:", requestError);
-      throw requestError;
+    if (requestsError) {
+      console.error("Error fetching maintenance requests:", requestsError);
+      throw requestsError;
     }
     
-    if (!requests || requests.length === 0) {
-      console.log("No maintenance requests found for owner properties");
+    if (!requestsData || requestsData.length === 0) {
+      console.log("No maintenance requests found for properties");
       return [];
     }
-
-    // Get unique tenant IDs from the requests
-    const tenantIds = requests
-      .map(req => req.tenant_id)
-      .filter(Boolean)
-      .filter((id, index, self) => self.indexOf(id) === index);
-      
-    // Get unique service provider IDs from the requests
-    const providerIds = requests
-      .map(req => req.assigned_service_provider_id)
-      .filter(Boolean)
-      .filter((id, index, self) => self.indexOf(id) === index);
     
-    // Get tenant information in a single query
+    // 3. Get property names
+    let propertiesMap: Record<string, { id: string; name: string }> = {};
+    
+    const { data: propertiesData, error: propertyNamesError } = await supabase
+      .rpc('get_property_name_by_ids', { property_ids: propertyIds });
+    
+    if (propertyNamesError) {
+      console.error("Error fetching property names:", propertyNamesError);
+    } else if (propertiesData) {
+      // Create a map of property IDs to names
+      for (const prop of propertiesData) {
+        propertiesMap[prop.id] = { id: prop.id, name: prop.name || "Unknown property" };
+      }
+    }
+    
+    // 4. Get tenant information
+    const tenantIds = requestsData.map(req => req.tenant_id).filter(Boolean);
+    const uniqueTenantIds = [...new Set(tenantIds)];
+    
     let tenantsMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
     
-    if (tenantIds.length > 0) {
-      const { data: tenants, error: tenantsError } = await supabase
+    if (uniqueTenantIds.length > 0) {
+      const { data: tenantsData, error: tenantsError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .in("id", tenantIds);
+        .in("id", uniqueTenantIds);
         
       if (tenantsError) {
         console.error("Error fetching tenant profiles:", tenantsError);
-      } else if (tenants) {
-        tenantsMap = tenants.reduce((map: any, tenant) => {
+      } else if (tenantsData) {
+        tenantsMap = tenantsData.reduce((map: any, tenant) => {
           map[tenant.id] = { 
             first_name: tenant.first_name, 
             last_name: tenant.last_name 
@@ -96,19 +82,25 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       }
     }
     
-    // Get service provider information in a single query
-    let providersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+    // 5. Get service provider information
+    const serviceProviderIds = requestsData
+      .map(req => req.assigned_service_provider_id)
+      .filter(Boolean);
     
-    if (providerIds.length > 0) {
-      const { data: providers, error: providersError } = await supabase
+    const uniqueServiceProviderIds = [...new Set(serviceProviderIds)];
+    
+    let serviceProvidersMap: Record<string, { first_name: string | null; last_name: string | null }> = {};
+    
+    if (uniqueServiceProviderIds.length > 0) {
+      const { data: providersData, error: providersError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .in("id", providerIds);
+        .in("id", uniqueServiceProviderIds);
         
       if (providersError) {
         console.error("Error fetching service provider profiles:", providersError);
-      } else if (providers) {
-        providersMap = providers.reduce((map: any, provider) => {
+      } else if (providersData) {
+        serviceProvidersMap = providersData.reduce((map: any, provider) => {
           map[provider.id] = { 
             first_name: provider.first_name, 
             last_name: provider.last_name 
@@ -118,8 +110,8 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       }
     }
     
-    // Format the results
-    const formattedRequests: MaintenanceRequest[] = requests.map(request => {
+    // 6. Format the requests
+    const formattedRequests: MaintenanceRequest[] = requestsData.map(request => {
       // Get tenant information
       let tenant = null;
       if (request.tenant_id && tenantsMap[request.tenant_id]) {
@@ -127,9 +119,9 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       }
       
       // Get service provider information
-      let assigned_service_provider = null;
-      if (request.assigned_service_provider_id && providersMap[request.assigned_service_provider_id]) {
-        assigned_service_provider = providersMap[request.assigned_service_provider_id];
+      let serviceProvider = null;
+      if (request.assigned_service_provider_id && serviceProvidersMap[request.assigned_service_provider_id]) {
+        serviceProvider = serviceProvidersMap[request.assigned_service_provider_id];
       }
       
       return {
@@ -138,15 +130,16 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
         description: request.description,
         status: request.status,
         created_at: request.created_at,
-        property: {
-          name: propertyIdMap[request.property_id] || "Unknown property",
-          id: request.property_id
+        property: propertiesMap[request.property_id] || {
+          id: request.property_id,
+          name: "Unknown property"
         },
         tenant,
-        assigned_service_provider
+        assigned_service_provider: serviceProvider
       };
     });
     
+    console.log("Formatted owner requests:", formattedRequests.length);
     return formattedRequests;
   } catch (error) {
     console.error("Error in getOwnerRequests:", error);
