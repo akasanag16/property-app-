@@ -176,6 +176,17 @@ serve(async (req) => {
 
         const userId = authUser.user.id;
         console.log(`New user created with ID: ${userId}`);
+        
+        // Make sure profile has the email set
+        const { error: profileUpdateError } = await supabaseClient
+          .from('profiles')
+          .update({ email: email })
+          .eq('id', userId);
+          
+        if (profileUpdateError) {
+          console.error('Error updating profile with email:', profileUpdateError);
+          // Continue anyway as this is not critical
+        }
 
         // 2. Mark invitation as used
         const { error: inviteError } = await supabaseClient
@@ -291,6 +302,40 @@ serve(async (req) => {
             }
             
             userIdToUse = foundUser.id;
+            
+            // Make sure profile exists and has the email set
+            const { error: profileCheckError } = await supabaseClient
+              .from('profiles')
+              .select('id')
+              .eq('id', userIdToUse)
+              .maybeSingle();
+              
+            if (profileCheckError) {
+              // If profile doesn't exist, create it
+              const { error: profileCreateError } = await supabaseClient
+                .from('profiles')
+                .insert({
+                  id: userIdToUse,
+                  email: email,
+                  role: role
+                });
+                
+              if (profileCreateError) {
+                console.error('Error creating profile:', profileCreateError);
+                // Continue anyway as we might have a race condition
+              }
+            } else {
+              // Update the profile with the email
+              const { error: profileUpdateError } = await supabaseClient
+                .from('profiles')
+                .update({ email: email })
+                .eq('id', userIdToUse);
+                
+              if (profileUpdateError) {
+                console.error('Error updating profile email:', profileUpdateError);
+                // Continue anyway as this is not critical
+              }
+            }
           } else {
             userIdToUse = userByEmail.id;
           }
