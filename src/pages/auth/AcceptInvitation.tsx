@@ -40,6 +40,8 @@ export default function AcceptInvitation() {
     }
   }, [validating, isValid, submissionError, navigate]);
 
+  console.log("AcceptInvitation render state:", { validating, isValid, error, submissionError });
+
   if (validating) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">

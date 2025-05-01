@@ -138,8 +138,6 @@ export function InvitationAcceptanceForm({
         throw new Error("Failed to authenticate");
       }
       
-      const userId = signInData.user.id;
-      
       // Now link the user to the property
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
@@ -147,8 +145,7 @@ export function InvitationAcceptanceForm({
           token,
           email,
           propertyId,
-          role,
-          userId
+          role
         }
       });
       
@@ -166,13 +163,13 @@ export function InvitationAcceptanceForm({
       // Navigate to the appropriate dashboard based on role
       setTimeout(() => {
         if (role === 'tenant') {
-          navigate("/tenant/dashboard");
+          navigate("/tenant-dashboard");
         } else if (role === 'service_provider') {
-          navigate("/service-provider/dashboard");
+          navigate("/service-provider-dashboard");
         } else {
           navigate("/dashboard");
         }
-      }, 2000);
+      }, 1000);
       
     } catch (error: any) {
       console.error("Error linking existing account:", error);

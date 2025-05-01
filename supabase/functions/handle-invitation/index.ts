@@ -253,29 +253,45 @@ serve(async (req) => {
       }
     }
     
-    // New action to link an existing user to a property from an invitation token
+    // Handle linking an existing user to a property from an invitation token
     if (action === 'linkExistingUser') {
-      const { token, email, propertyId, role, userId } = requestData;
+      const { token, email, propertyId, role } = requestData;
       
-      if (!token || !email || !propertyId || !role || !userId) {
+      if (!token || !email || !propertyId || !role) {
         const missingParams = [];
         if (!token) missingParams.push('token');
         if (!email) missingParams.push('email');
         if (!propertyId) missingParams.push('propertyId');
         if (!role) missingParams.push('role');
-        if (!userId) missingParams.push('userId');
         
         console.error("Missing parameters:", missingParams);
         throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
       }
       
-      console.log(`Linking existing user ${userId} to property ${propertyId} as ${role}`);
-      
-      // Begin transaction
-      const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
-      const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
+      console.log(`Linking existing user with email ${email} to property ${propertyId} as ${role}`);
       
       try {
+        // First verify the user exists and get their ID
+        const { data: existingUser, error: existingUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
+        
+        if (existingUserError || !existingUser?.user) {
+          console.error('Error finding user:', existingUserError || "User not found");
+          return new Response(
+            JSON.stringify({ error: "Unable to find user account with this email" }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
+        
+        const userId = existingUser.user.id;
+        console.log(`Found existing user with ID: ${userId}`);
+        
+        // Begin transaction
+        const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
+        const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
+        
         // 1. Mark invitation as used
         const { error: inviteError } = await supabaseClient
           .from(tableName)
@@ -294,14 +310,14 @@ serve(async (req) => {
         }
         
         // 2. Create property link if it doesn't exist
-        const linkData = {
-          property_id: propertyId,
-        };
+        const linkData = {};
         
         if (role === 'tenant') {
           linkData.tenant_id = userId;
+          linkData.property_id = propertyId;
         } else {
           linkData.service_provider_id = userId;
+          linkData.property_id = propertyId;
         }
         
         // First check if link already exists
@@ -327,12 +343,18 @@ serve(async (req) => {
             console.error('Error creating property link:', linkError);
             throw linkError;
           }
+          console.log('User successfully linked to property');
         } else {
           console.log('User was already linked to this property');
         }
 
         return new Response(
-          JSON.stringify({ success: true }),
+          JSON.stringify({ 
+            success: true,
+            userLinked: true, 
+            userId,
+            role
+          }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

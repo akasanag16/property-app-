@@ -31,6 +31,8 @@ export function useInvitationValidation() {
           return;
         }
 
+        console.log(`Validating invitation: token=${token}, email=${email}`);
+
         const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
           body: { 
             action: "validateToken",
@@ -39,9 +41,18 @@ export function useInvitationValidation() {
           }
         });
 
-        if (functionError || !data || !data.valid) {
-          console.error("Invitation validation error:", functionError || "Invalid token");
-          setError("This invitation is invalid or has expired.");
+        if (functionError) {
+          console.error("Invitation function error:", functionError);
+          setError("Error validating invitation. Please try again.");
+          setValidating(false);
+          return;
+        }
+
+        console.log("Validation response:", data);
+
+        if (!data || !data.valid) {
+          console.error("Invitation validation failed:", data?.message || "Invalid token");
+          setError(data?.message || "This invitation is invalid or has expired.");
           setValidating(false);
           return;
         }
