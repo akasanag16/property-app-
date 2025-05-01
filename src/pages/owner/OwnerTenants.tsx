@@ -82,17 +82,18 @@ export default function OwnerTenants() {
         if (tenantLinks && tenantLinks.length > 0) {
           const tenantIds = tenantLinks.map(link => link.tenant_id);
           
-          // Get tenant profiles
-          const { data: tenantProfiles, error: profilesError } = await supabase
+          // Get tenant profiles - Now explicitly checking if profiles is not an error object
+          const profilesResponse = await supabase
             .from('profiles')
             .select('id, first_name, last_name, email')
             .in('id', tenantIds);
             
-          if (profilesError) {
-            console.error("Error fetching tenant profiles:", profilesError);
+          if (profilesResponse.error) {
+            console.error("Error fetching tenant profiles:", profilesResponse.error);
             continue;
           }
           
+          const tenantProfiles = profilesResponse.data;
           console.log(`Found ${tenantProfiles?.length || 0} tenant profiles`);
           
           // Get latest payments for tenants
