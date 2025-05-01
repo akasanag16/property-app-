@@ -33,6 +33,19 @@ export function useInvitationValidation() {
 
         console.log(`Validating invitation: token=${token}, email=${email}`);
 
+        // Check if we're already authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          // If we're already logged in with a different email, we need to sign out first
+          const currentUserEmail = session.user.email;
+          
+          if (currentUserEmail && currentUserEmail.toLowerCase() !== email.toLowerCase()) {
+            console.log("Signed in with different email. Signing out first...");
+            await supabase.auth.signOut();
+          }
+        }
+
         const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
           body: { 
             action: "validateToken",

@@ -108,11 +108,6 @@ export default function AcceptInvitation() {
         <CardContent>
           <InvitationAcceptanceForm {...invitationData!} />
         </CardContent>
-        <CardFooter>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>
-            I already have an account
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

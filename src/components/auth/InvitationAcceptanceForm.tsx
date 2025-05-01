@@ -32,7 +32,7 @@ export function InvitationAcceptanceForm({
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [mode, setMode] = useState<'new' | 'existing'>('existing'); // Default to existing account mode
   const [existingPassword, setExistingPassword] = useState("");
 
   const handleSubmitNewAccount = async (e: React.FormEvent) => {
@@ -124,6 +124,10 @@ export function InvitationAcceptanceForm({
     setError("");
     
     try {
+      console.log("Linking existing account with email:", email);
+      console.log("For property:", propertyId);
+      console.log("With role:", role);
+
       // First, sign in the user to verify credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -131,12 +135,15 @@ export function InvitationAcceptanceForm({
       });
       
       if (signInError) {
+        console.error("Sign in error:", signInError);
         throw new Error(signInError.message || "Invalid login credentials");
       }
       
       if (!signInData?.user) {
         throw new Error("Failed to authenticate");
       }
+      
+      console.log("User authenticated successfully:", signInData.user.id);
       
       // Now link the user to the property
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
@@ -145,7 +152,8 @@ export function InvitationAcceptanceForm({
           token,
           email,
           propertyId,
-          role
+          role,
+          userId: signInData.user.id
         }
       });
       
