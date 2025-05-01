@@ -117,7 +117,10 @@ serve(async (req) => {
       console.log(`Property ID: ${propertyId}`);
 
       // Check if user already exists
-      const { data: existingUser, error: existingUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
+      const { data: existingUsers, error: existingUserError } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('id', email);
       
       if (existingUserError) {
         console.error('Error checking existing user:', existingUserError);
@@ -125,7 +128,7 @@ serve(async (req) => {
       }
       
       // If user already exists, return appropriate message
-      if (existingUser && existingUser.user) {
+      if (existingUsers && existingUsers.length > 0) {
         console.log(`User with email ${email} already exists - should use linking flow instead`);
         return new Response(
           JSON.stringify({ 
@@ -149,14 +152,16 @@ serve(async (req) => {
           throw new Error("Missing required parameters for creating a new user");
         }
 
-        const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
+        const { data: authUser, error: userError } = await supabaseClient.auth.signUp({
           email,
           password,
-          email_confirm: true,
-          user_metadata: {
-            first_name: firstName,
-            last_name: lastName,
-            role
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              role,
+              email_verified: true
+            }
           }
         });
 
@@ -260,21 +265,35 @@ serve(async (req) => {
         let userIdToUse = userId;
         
         if (!userIdToUse) {
-          // Verify the user exists and get their ID
-          const { data: existingUser, error: existingUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
+          // Find the user by email
+          const { data: userByEmail, error: userByEmailError } = await supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
           
-          if (existingUserError || !existingUser?.user) {
-            console.error('Error finding user:', existingUserError || "User not found");
-            return new Response(
-              JSON.stringify({ error: "Unable to find user account with this email" }),
-              {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400,
-              }
-            );
+          if (userByEmailError || !userByEmail) {
+            console.error('Error finding user by email:', userByEmailError || "User not found");
+            
+            // If user not found by email, try querying auth.users directly through auth.admin
+            const { data, error } = await supabaseClient.auth.admin.listUsers();
+            const foundUser = data?.users.find(user => user.email === email);
+            
+            if (error || !foundUser) {
+              console.error('Error finding user through admin API:', error || "User not found");
+              return new Response(
+                JSON.stringify({ error: "Unable to find user account with this email" }),
+                {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 400,
+                }
+              );
+            }
+            
+            userIdToUse = foundUser.id;
+          } else {
+            userIdToUse = userByEmail.id;
           }
-          
-          userIdToUse = existingUser.user.id;
         }
         
         console.log(`Found existing user with ID: ${userIdToUse}`);

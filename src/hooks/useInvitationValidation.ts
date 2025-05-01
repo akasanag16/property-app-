@@ -46,6 +46,7 @@ export function useInvitationValidation() {
           }
         }
 
+        // Now validate the token
         const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
           body: { 
             action: "validateToken",
