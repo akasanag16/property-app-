@@ -1,8 +1,8 @@
 
+import React from "react";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TenantTableRow } from "./TenantTableRow";
 import { Tenant } from "@/types/tenant";
 
 interface TenantTableProps {
@@ -43,33 +44,7 @@ export function TenantTable({ tenants }: TenantTableProps) {
           </TableHeader>
           <TableBody>
             {tenants.map((tenant) => (
-              <TableRow key={tenant.id}>
-                <TableCell className="font-medium">
-                  {tenant.first_name} {tenant.last_name}
-                </TableCell>
-                <TableCell>{tenant.property.name}</TableCell>
-                <TableCell>{tenant.last_payment?.date}</TableCell>
-                <TableCell>{tenant.next_payment?.date}</TableCell>
-                <TableCell>${tenant.next_payment?.amount}</TableCell>
-                <TableCell>
-                  <span 
-                    className={`inline-block px-2 py-1 rounded-full text-xs ${
-                      tenant.last_payment?.status === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : tenant.last_payment?.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {tenant.last_payment?.status === 'paid' 
-                      ? 'Paid' 
-                      : tenant.last_payment?.status === 'pending'
-                        ? 'Pending'
-                        : 'Overdue'
-                    }
-                  </span>
-                </TableCell>
-              </TableRow>
+              <TenantTableRow key={tenant.id} tenant={tenant} />
             ))}
           </TableBody>
         </Table>
