@@ -1,5 +1,6 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// For browser/Node environment, use a regular import
+import { createClient } from '@supabase/supabase-js';
 
 // Shared CORS headers
 export const corsHeaders = {
@@ -9,10 +10,20 @@ export const corsHeaders = {
 
 // Create and return a Supabase client
 export function getSupabaseClient() {
+  // Check if we're in a Deno environment (Edge Function)
+  if (typeof globalThis.Deno !== 'undefined') {
+    // In Deno environment, use dynamic import
+    return createClient(
+      globalThis.Deno.env.get('SUPABASE_URL') ?? '',
+      globalThis.Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+  }
+  
+  // In browser/Node environment, use environment variables
   return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
+    process.env.SUPABASE_URL ?? '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+  );
 }
 
 // Helper function to format responses
