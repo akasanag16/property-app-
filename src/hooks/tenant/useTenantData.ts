@@ -30,12 +30,11 @@ export function useTenantData(user: User | null, refreshKey: number) {
 
         // First check if email column exists
         const hasEmailColumn = await checkEmailColumnExists(supabase);
+        setEmailColumnMissing(!hasEmailColumn);
+        
         if (!hasEmailColumn) {
-          setEmailColumnMissing(true);
-          console.error("Email column is missing from profiles table");
-          toast.error("Database error: Email column is missing from profiles table");
-          setLoading(false);
-          return;
+          console.warn("Email column is missing from profiles table");
+          toast.warning("Database update required: Email column is missing");
         }
         
         // Get properties owned by this owner
@@ -51,6 +50,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
         if (!propertyIds || propertyIds.length === 0) {
           console.log("No properties found for owner");
           setTenants([]);
+          setLoading(false);
           return;
         }
         

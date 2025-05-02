@@ -1,31 +1,22 @@
 
 export async function checkEmailColumnExists(supabase: any) {
   try {
-    const { data, error } = await supabase.rpc('list_public_tables');
-    
-    if (error) {
-      console.error('Error checking tables:', error);
-      return false;
-    }
-    
-    // Get table structure
-    const { data: columns, error: columnsError } = await supabase
+    // A more direct way to check for column existence in Postgres
+    const { data, error } = await supabase
       .from('information_schema.columns')
       .select('column_name')
       .eq('table_schema', 'public')
-      .eq('table_name', 'profiles');
+      .eq('table_name', 'profiles')
+      .eq('column_name', 'email');
       
-    if (columnsError) {
-      console.error('Error checking columns:', columnsError);
+    if (error) {
+      console.error('Error checking columns:', error);
       return false;
     }
     
-    if (columns) {
-      const hasEmailColumn = columns.some(col => col.column_name === 'email');
-      return hasEmailColumn;
-    }
+    // If data is an array with at least one item, the email column exists
+    return data && data.length > 0;
     
-    return false;
   } catch (error) {
     console.error('Error checking email column:', error);
     return false;

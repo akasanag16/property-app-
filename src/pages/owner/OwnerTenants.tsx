@@ -9,6 +9,7 @@ import { TenantTable } from "@/components/tenant/TenantTable";
 import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/TenantStates";
 import { useTenantData } from "@/hooks/tenant/useTenantData";
 import { ErrorAlert } from "@/components/ui/alert-error";
+import { DatabaseWarningBanner } from "@/components/tenant/DatabaseWarningBanner";
 
 export default function OwnerTenants() {
   const { user } = useAuth();
@@ -40,12 +41,9 @@ export default function OwnerTenants() {
         </p>
 
         {emailColumnMissing && (
-          <div className="bg-amber-100 border border-amber-300 text-amber-700 px-4 py-3 rounded relative mb-4">
-            <p>
-              <strong>Database Update Required:</strong> The email column is missing from the profiles table. 
-              Please run the database migration to add this column.
-            </p>
-          </div>
+          <DatabaseWarningBanner 
+            message="The email column is missing from the profiles table. Please run the database migration to add this column."
+          />
         )}
 
         {error && (
@@ -61,7 +59,7 @@ export default function OwnerTenants() {
           <TenantEmptyState />
         ) : (
           <>
-            <TenantStats tenants={tenants} />
+            <TenantStats tenants={tenants} emailColumnMissing={emailColumnMissing} />
             <TenantTable tenants={tenants} />
           </>
         )}
