@@ -10,6 +10,7 @@ import { TenantStats } from "@/components/tenant/TenantStats";
 import { TenantTable } from "@/components/tenant/TenantTable";
 import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/TenantStates";
 import { Tenant } from "@/types/tenant";
+import { checkEmailColumnExists } from "@/supabase/functions/handle-invitation/utils";
 
 // Fallback to sample data if needed for development/testing
 import { sampleTenants } from "@/data/sampleTenants";
@@ -19,6 +20,7 @@ export default function OwnerTenants() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [emailColumnMissing, setEmailColumnMissing] = useState(false);
   
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -30,6 +32,16 @@ export default function OwnerTenants() {
       
       if (!user?.id) {
         console.error("No user ID available to fetch tenants");
+        return;
+      }
+
+      // First check if email column exists
+      const hasEmailColumn = await checkEmailColumnExists(supabase);
+      if (!hasEmailColumn) {
+        setEmailColumnMissing(true);
+        console.error("Email column is missing from profiles table");
+        toast.error("Database error: Email column is missing from profiles table");
+        setLoading(false);
         return;
       }
       
@@ -82,7 +94,7 @@ export default function OwnerTenants() {
         if (tenantLinks && tenantLinks.length > 0) {
           const tenantIds = tenantLinks.map(link => link.tenant_id);
           
-          // Get tenant profiles with proper error handling
+          // Get tenant profiles
           const { data: tenantProfiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, email')
@@ -90,10 +102,6 @@ export default function OwnerTenants() {
           
           if (profilesError) {
             console.error("Error fetching tenant profiles:", profilesError);
-            // Check if this is the specific error about missing email column
-            if (profilesError.message?.includes("column 'email' does not exist")) {
-              toast.error("The database schema needs to be updated. Please run the migration for adding email to profiles.");
-            }
             continue;
           }
           
@@ -196,6 +204,15 @@ export default function OwnerTenants() {
         <p className="text-gray-600">
           View and manage your tenants and their payments.
         </p>
+
+        {emailColumnMissing && (
+          <div className="bg-amber-100 border border-amber-300 text-amber-700 px-4 py-3 rounded relative mb-4">
+            <p>
+              <strong>Database Update Required:</strong> The email column is missing from the profiles table. 
+              Please run the database migration to add this column.
+            </p>
+          </div>
+        )}
 
         {loading ? (
           <TenantLoadingState />
