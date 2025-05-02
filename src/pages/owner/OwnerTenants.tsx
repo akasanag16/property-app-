@@ -43,6 +43,7 @@ export default function OwnerTenants() {
         {emailColumnMissing && (
           <DatabaseWarningBanner 
             message="The email column is missing from the profiles table. Please run the database migration to add this column."
+            migrationFile="20250501_add_email_to_profiles.sql"
           />
         )}
 

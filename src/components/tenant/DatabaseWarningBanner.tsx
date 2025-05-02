@@ -5,11 +5,13 @@ import { AlertTriangle } from "lucide-react";
 interface DatabaseWarningBannerProps {
   message: string;
   alertType?: "warning" | "error";
+  migrationFile?: string;
 }
 
 export function DatabaseWarningBanner({ 
   message,
-  alertType = "warning" 
+  alertType = "warning",
+  migrationFile
 }: DatabaseWarningBannerProps) {
   const bgColor = alertType === "warning" 
     ? "bg-amber-50 border-amber-300 text-amber-800"
@@ -28,6 +30,9 @@ export function DatabaseWarningBanner({
           </p>
           <p className="mt-2 text-sm">
             Please run the database migration in the Supabase dashboard to resolve this issue.
+            {migrationFile && (
+              <span className="font-medium"> Migration file: <code>{migrationFile}</code></span>
+            )}
           </p>
         </div>
       </div>

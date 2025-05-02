@@ -18,6 +18,7 @@ export function TenantStats({ tenants, emailColumnMissing }: TenantStatsProps) {
         <DatabaseWarningBanner 
           message="The email column is missing from the profiles table. This is needed for proper tenant management."
           alertType="warning"
+          migrationFile="20250501_add_email_to_profiles.sql"
         />
       )}
       
