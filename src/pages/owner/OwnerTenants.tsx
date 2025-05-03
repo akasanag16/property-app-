@@ -10,16 +10,26 @@ import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/Tenant
 import { useTenantData } from "@/hooks/tenant/useTenantData";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { DatabaseWarningBanner } from "@/components/tenant/DatabaseWarningBanner";
+import { toast } from "sonner";
 
 export default function OwnerTenants() {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   
   const { tenants, loading, error, emailColumnMissing } = useTenantData(user, refreshKey);
   
   const handleRefresh = () => {
+    setRefreshing(true);
     setRefreshKey(prev => prev + 1);
+    toast.success("Refreshing tenant data...");
   };
+
+  useEffect(() => {
+    if (!loading && refreshing) {
+      setRefreshing(false);
+    }
+  }, [loading, refreshing]);
 
   return (
     <DashboardLayout>
@@ -30,9 +40,10 @@ export default function OwnerTenants() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
+            disabled={refreshing}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
 

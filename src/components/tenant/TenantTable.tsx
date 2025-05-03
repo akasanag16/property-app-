@@ -31,24 +31,33 @@ export function TenantTable({ tenants }: TenantTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Property</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Last Payment</TableHead>
-              <TableHead>Next Due</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tenants.map((tenant) => (
-              <TenantTableRow key={tenant.id} tenant={tenant} />
-            ))}
-          </TableBody>
-        </Table>
+        {tenants.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No tenant data available. 
+            <div className="mt-2 text-sm">
+              Add tenants to your properties to see their information here.
+            </div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Property</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Last Payment</TableHead>
+                <TableHead>Next Due</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tenants.map((tenant) => (
+                <TenantTableRow key={tenant.id} tenant={tenant} />
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

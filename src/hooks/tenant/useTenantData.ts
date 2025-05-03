@@ -58,10 +58,10 @@ export function useTenantData(user: User | null, refreshKey: number) {
         
         try {
           const allTenants = await fetchTenantsForProperties(propertyIds);
-          
           console.log("Final tenant list:", allTenants);
           
-          if (allTenants.length === 0) {
+          // Only use sample data if we have NO tenant data AND we're in development
+          if (allTenants.length === 0 && process.env.NODE_ENV === 'development') {
             console.log("No tenant data found, using sample data for development");
             setTenants(sampleTenants);
           } else {
@@ -69,17 +69,24 @@ export function useTenantData(user: User | null, refreshKey: number) {
           }
         } catch (err) {
           console.error("Error in tenant fetching process:", err);
-          // Still use sample data as fallback in case of error
-          console.log("Using sample tenant data due to fetch error");
-          setTenants(sampleTenants);
+          setError("Failed to load tenants data.");
+          
+          // Only fallback to sample data in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Using sample tenant data due to fetch error");
+            setTenants(sampleTenants);
+          }
         }
         
       } catch (error) {
         console.error("Error fetching tenants:", error);
         setError("Failed to load tenants. Please try again.");
-        toast.error("Failed to load tenants");
-        // Fallback to sample data
-        setTenants(sampleTenants);
+        
+        // Only fallback to sample data in development mode
+        if (process.env.NODE_ENV === 'development') {
+          toast.error("Failed to load tenants");
+          setTenants(sampleTenants);
+        }
       } finally {
         setLoading(false);
       }

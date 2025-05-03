@@ -4,6 +4,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { TenantStatusBadge } from "./TenantStatusBadge";
 import { Tenant } from "@/types/tenant";
 import { formatDate } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface TenantTableRowProps {
   tenant: Tenant;
@@ -17,7 +18,9 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
       </TableCell>
       <TableCell>{tenant.property.name}</TableCell>
       <TableCell>
-        {tenant.email || "No email available"}
+        {tenant.email || (
+          <Badge variant="warning" className="text-xs">No email</Badge>
+        )}
       </TableCell>
       <TableCell>
         {tenant.last_payment?.date ? formatDate(tenant.last_payment.date) : "N/A"}
@@ -30,7 +33,7 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
         {tenant.last_payment?.status ? (
           <TenantStatusBadge status={tenant.last_payment.status} />
         ) : (
-          "N/A"
+          <Badge variant="info">New Tenant</Badge>
         )}
       </TableCell>
     </TableRow>
