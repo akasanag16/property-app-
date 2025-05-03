@@ -17,12 +17,15 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
       </TableCell>
       <TableCell>{tenant.property.name}</TableCell>
       <TableCell>
+        {tenant.email || "No email available"}
+      </TableCell>
+      <TableCell>
         {tenant.last_payment?.date ? formatDate(tenant.last_payment.date) : "N/A"}
       </TableCell>
       <TableCell>
         {tenant.next_payment?.date ? formatDate(tenant.next_payment.date) : "N/A"}
       </TableCell>
-      <TableCell>${tenant.next_payment?.amount.toFixed(2) || "N/A"}</TableCell>
+      <TableCell>${tenant.next_payment?.amount?.toFixed(2) || "N/A"}</TableCell>
       <TableCell>
         {tenant.last_payment?.status ? (
           <TenantStatusBadge status={tenant.last_payment.status} />

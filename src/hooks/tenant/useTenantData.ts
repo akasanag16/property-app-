@@ -56,15 +56,22 @@ export function useTenantData(user: User | null, refreshKey: number) {
         
         console.log("Found properties:", propertyIds);
         
-        const allTenants = await fetchTenantsForProperties(propertyIds);
-        
-        console.log("Final tenant list:", allTenants);
-        
-        if (allTenants.length === 0) {
-          console.log("No tenant data found, using sample data for development");
+        try {
+          const allTenants = await fetchTenantsForProperties(propertyIds);
+          
+          console.log("Final tenant list:", allTenants);
+          
+          if (allTenants.length === 0) {
+            console.log("No tenant data found, using sample data for development");
+            setTenants(sampleTenants);
+          } else {
+            setTenants(allTenants);
+          }
+        } catch (err) {
+          console.error("Error in tenant fetching process:", err);
+          // Still use sample data as fallback in case of error
+          console.log("Using sample tenant data due to fetch error");
           setTenants(sampleTenants);
-        } else {
-          setTenants(allTenants);
         }
         
       } catch (error) {
@@ -88,55 +95,63 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
   let allTenants: Tenant[] = [];
   
   for (const propertyId of propertyIds) {
-    // Get property details first
-    const { data: propertyData, error: propertyError } = await supabase
-      .from('properties')
-      .select('id, name')
-      .eq('id', propertyId)
-      .single();
-      
-    if (propertyError) {
-      console.error(`Error fetching property ${propertyId}:`, propertyError);
-      continue;
-    }
-    
-    // Get tenant links for this property
-    const { data: tenantLinks, error: linksError } = await supabase
-      .from('tenant_property_link')
-      .select('tenant_id')
-      .eq('property_id', propertyId);
-      
-    if (linksError) {
-      console.error(`Error fetching tenant links for property ${propertyId}:`, linksError);
-      continue;
-    }
-    
-    console.log(`Found ${tenantLinks?.length || 0} tenant links for property ${propertyId}`);
-    
-    if (tenantLinks && tenantLinks.length > 0) {
-      const tenantIds = tenantLinks.map(link => link.tenant_id);
-      
-      // Get tenant profiles
-      const { data: tenantProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email')
-        .in('id', tenantIds);
-      
-      if (profilesError) {
-        console.error("Error fetching tenant profiles:", profilesError);
+    try {
+      // Get property details first
+      const { data: propertyData, error: propertyError } = await supabase
+        .from('properties')
+        .select('id, name')
+        .eq('id', propertyId)
+        .single();
+        
+      if (propertyError) {
+        console.error(`Error fetching property ${propertyId}:`, propertyError);
         continue;
       }
       
-      // Only proceed if we have valid profiles data
-      if (tenantProfiles && Array.isArray(tenantProfiles)) {
-        console.log(`Found ${tenantProfiles.length || 0} tenant profiles`);
+      // Get tenant links for this property using a simpler, direct approach
+      const { data: tenantLinks, error: linksError } = await supabase
+        .from('tenant_property_link')
+        .select('tenant_id')
+        .eq('property_id', propertyId);
         
-        // Get latest payments for tenants
-        for (const profile of tenantProfiles) {
-          const tenant = await createTenantWithPaymentInfo(profile, propertyData, propertyId);
-          allTenants.push(tenant);
+      if (linksError) {
+        console.error(`Error fetching tenant links for property ${propertyId}:`, linksError);
+        continue;
+      }
+      
+      console.log(`Found ${tenantLinks?.length || 0} tenant links for property ${propertyId}`);
+      
+      if (tenantLinks && tenantLinks.length > 0) {
+        const tenantIds = tenantLinks.map(link => link.tenant_id);
+        
+        // Get tenant profiles with a direct query
+        const { data: tenantProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', tenantIds);
+        
+        if (profilesError) {
+          console.error("Error fetching tenant profiles:", profilesError);
+          continue;
+        }
+        
+        // Only proceed if we have valid profiles data
+        if (tenantProfiles && Array.isArray(tenantProfiles)) {
+          console.log(`Found ${tenantProfiles.length || 0} tenant profiles for property ${propertyId}`);
+          
+          // Add tenant to our list with property information
+          for (const profile of tenantProfiles) {
+            try {
+              const tenant = await createTenantWithPaymentInfo(profile, propertyData, propertyId);
+              allTenants.push(tenant);
+            } catch (err) {
+              console.error(`Error processing tenant ${profile.id}:`, err);
+            }
+          }
         }
       }
+    } catch (err) {
+      console.error(`Error processing property ${propertyId}:`, err);
     }
   }
   

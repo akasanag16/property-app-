@@ -36,6 +36,7 @@ export function TenantTable({ tenants }: TenantTableProps) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Property</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Last Payment</TableHead>
               <TableHead>Next Due</TableHead>
               <TableHead>Amount</TableHead>
