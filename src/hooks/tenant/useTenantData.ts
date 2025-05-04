@@ -37,7 +37,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
           toast.warning("Database update required: Email column is missing");
         }
         
-        // Get properties owned by this owner
+        // Use the safer RPC function to get properties
         const { data: propertyIds, error: propertiesError } = await supabase
           .rpc('get_owner_properties', { owner_id_param: user.id });
         

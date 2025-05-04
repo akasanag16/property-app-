@@ -20,15 +20,12 @@ export function useTenantsPageData(user: User | null) {
   };
 
   useEffect(() => {
-    // Initial load - force refresh once on component mount
-    if (refreshKey === 0) {
-      setRefreshKey(1);
-    }
-
+    // Don't auto-refresh on mount - wait for user interaction
+    
     if (!loading && refreshing) {
       setRefreshing(false);
     }
-  }, [loading, refreshing, refreshKey]);
+  }, [loading, refreshing]);
 
   return {
     tenants,

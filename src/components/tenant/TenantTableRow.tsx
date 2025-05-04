@@ -16,7 +16,7 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
       <TableCell className="font-medium">
         {tenant.first_name} {tenant.last_name}
       </TableCell>
-      <TableCell>{tenant.property.name || "Unknown Property"}</TableCell>
+      <TableCell>{tenant.property?.name || "Unknown Property"}</TableCell>
       <TableCell>
         {tenant.email ? (
           <span className="text-xs">{tenant.email}</span>

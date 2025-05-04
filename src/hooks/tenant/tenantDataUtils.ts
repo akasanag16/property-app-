@@ -33,24 +33,14 @@ export async function checkProfileEmailColumn() {
 }
 
 /**
- * Fetch tenants for a list of property IDs
+ * Fetch tenants for a list of property IDs using a direct query approach
+ * that avoids potential recursion issues with RLS policies
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
-    // Get all tenants linked to these properties
+    // 1. First fetch tenant-property links directly
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .from('tenant_property_link')
-      .select(`
-        id,
-        tenant_id,
-        property_id,
-        properties:property_id (
-          id,
-          name,
-          address
-        )
-      `)
-      .in('property_id', propertyIds);
+      .rpc('get_tenant_property_links_for_properties', { property_ids: propertyIds });
       
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
@@ -61,13 +51,21 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return [];
     }
     
-    // Extract tenant IDs to fetch their profiles
+    // 2. Extract tenant IDs and property info
     const tenantIds = tenantLinks.map(link => link.tenant_id);
+    const propertyMap = new Map();
     
-    // Fetch profile data for these tenants
+    tenantLinks.forEach(link => {
+      propertyMap.set(link.tenant_id, {
+        id: link.property_id,
+        name: link.property_name || "Unknown Property"
+      });
+    });
+    
+    // 3. Fetch profile data for these tenants
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, first_name, last_name, email')
       .in('id', tenantIds);
       
     if (profilesError) {
@@ -75,10 +73,10 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       throw profilesError;
     }
     
-    // Fetch payment data for these tenants
+    // 4. Fetch payment data for these tenants
     const { data: payments, error: paymentsError } = await supabase
       .from('tenant_payments')
-      .select('*')
+      .select('tenant_id, due_date, amount, status, paid_date')
       .in('tenant_id', tenantIds)
       .order('due_date', { ascending: false });
       
@@ -87,24 +85,22 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       throw paymentsError;
     }
     
-    // Process the data to create tenant objects
-    const tenants: Tenant[] = tenantLinks.map(link => {
-      // Find the profile for this tenant
-      const profile = profiles?.find(p => p.id === link.tenant_id);
+    // 5. Process the data to create tenant objects
+    const tenants: Tenant[] = profiles.map(profile => {
+      // Get property from the map
+      const property = propertyMap.get(profile.id) || { id: "unknown", name: "Unknown Property" };
       
-      if (!profile) {
-        console.warn(`No profile found for tenant ID: ${link.tenant_id}`);
-        return null;
-      }
+      // Find payments for this tenant
+      const tenantPayments = payments.filter(p => p.tenant_id === profile.id);
       
       // Get the most recent past payment (for "last payment")
-      const lastPayment = payments
-        ?.filter(p => p.tenant_id === link.tenant_id && new Date(p.due_date) <= new Date())
+      const lastPayment = tenantPayments
+        .filter(p => new Date(p.due_date) <= new Date())
         .sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
       
       // Get the next upcoming payment
-      const nextPayment = payments
-        ?.filter(p => p.tenant_id === link.tenant_id && new Date(p.due_date) >= new Date())
+      const nextPayment = tenantPayments
+        .filter(p => new Date(p.due_date) >= new Date())
         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
       
       // Calculate days until next payment
@@ -118,7 +114,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
         first_name: profile.first_name || "Unknown",
         last_name: profile.last_name || "Tenant",
         email: profile.email || null,
-        property: link.properties || { name: "Unknown", id: link.property_id, address: "Unknown" },
+        property: property,
         last_payment: lastPayment ? {
           date: lastPayment.due_date,
           status: lastPayment.status,
@@ -130,7 +126,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
           due_in_days: daysUntilNext
         } : null
       };
-    }).filter(tenant => tenant !== null) as Tenant[];
+    });
     
     return tenants;
   } catch (error) {
