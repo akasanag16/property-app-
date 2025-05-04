@@ -15,12 +15,6 @@ export default function OwnerTenants() {
     refreshing,
     handleRefresh
   } = useTenantsPageData(user);
-  
-  // Debug logs
-  console.log("OwnerTenants - user:", user?.id);
-  console.log("OwnerTenants - tenants:", tenants);
-  console.log("OwnerTenants - loading:", loading);
-  console.log("OwnerTenants - error:", error);
 
   return (
     <DashboardLayout>

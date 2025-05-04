@@ -22,7 +22,7 @@ export function useTenantsPageData(user: User | null) {
   useEffect(() => {
     // Initial load - force refresh once on component mount
     if (refreshKey === 0) {
-      handleRefresh();
+      setRefreshKey(1);
     }
 
     if (!loading && refreshing) {

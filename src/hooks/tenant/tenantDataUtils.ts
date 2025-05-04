@@ -1,146 +1,140 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Tenant } from "@/types/tenant";
-import { checkEmailColumnExists } from "./tenantUtils";
-import { toast } from "sonner";
 
 /**
- * Fetches tenant profiles and payment data for the given properties
+ * Check if the email column exists in the profiles table
+ */
+export async function checkProfileEmailColumn() {
+  try {
+    // Try to select the email column from any profile
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .limit(1);
+      
+    if (error) {
+      console.warn('Error checking for email column:', error.message);
+      // Check if the error message indicates the column doesn't exist
+      if (error.message.includes("column \"email\" does not exist") ||
+          error.message.includes("does not exist in the current schema")) {
+        return false;
+      }
+      // For other errors, assume column might exist but there's another issue
+      return false;
+    }
+    
+    // If we got here without errors, the column exists
+    return true;
+  } catch (error) {
+    console.error('Error checking email column:', error);
+    return false;
+  }
+}
+
+/**
+ * Fetch tenants for a list of property IDs
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
-  let allTenants: Tenant[] = [];
-  
-  console.log("Starting to fetch tenants for properties:", propertyIds);
-  
-  for (const propertyId of propertyIds) {
-    try {
-      // Get property details first
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
-        .select('id, name')
-        .eq('id', propertyId)
-        .single();
-        
-      if (propertyError) {
-        console.error(`Error fetching property ${propertyId}:`, propertyError);
-        continue;
-      }
+  try {
+    // Get all tenants linked to these properties
+    const { data: tenantLinks, error: tenantLinksError } = await supabase
+      .from('tenant_property_link')
+      .select(`
+        id,
+        tenant_id,
+        property_id,
+        properties:property_id (
+          id,
+          name,
+          address
+        )
+      `)
+      .in('property_id', propertyIds);
       
-      console.log(`Successfully fetched property data for ${propertyId}:`, propertyData);
-      
-      // Get tenant links for this property
-      const { data: tenantLinks, error: linksError } = await supabase
-        .from('tenant_property_link')
-        .select('tenant_id')
-        .eq('property_id', propertyId);
-        
-      if (linksError) {
-        console.error(`Error fetching tenant links for property ${propertyId}:`, linksError);
-        continue;
-      }
-      
-      console.log(`Found ${tenantLinks?.length || 0} tenant links for property ${propertyId}:`, tenantLinks);
-      
-      if (tenantLinks && tenantLinks.length > 0) {
-        const tenantIds = tenantLinks.map(link => link.tenant_id);
-        
-        console.log(`Fetching profiles for tenant IDs:`, tenantIds);
-        
-        // Get tenant profiles with a direct query
-        const { data: tenantProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email')
-          .in('id', tenantIds);
-        
-        if (profilesError) {
-          console.error("Error fetching tenant profiles:", profilesError);
-          continue;
-        }
-        
-        console.log(`Fetched tenant profiles:`, tenantProfiles);
-        
-        // Only proceed if we have valid profiles data
-        if (tenantProfiles && Array.isArray(tenantProfiles)) {
-          console.log(`Found ${tenantProfiles.length || 0} tenant profiles for property ${propertyId}`);
-          
-          // Add tenant to our list with property information
-          for (const profile of tenantProfiles) {
-            try {
-              const tenant = await createTenantWithPaymentInfo(profile, propertyData, propertyId);
-              allTenants.push(tenant);
-              console.log(`Added tenant to list:`, tenant);
-            } catch (err) {
-              console.error(`Error processing tenant ${profile.id}:`, err);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`Error processing property ${propertyId}:`, err);
+    if (tenantLinksError) {
+      console.error("Error fetching tenant links:", tenantLinksError);
+      throw tenantLinksError;
     }
-  }
-  
-  console.log(`Total tenants found: ${allTenants.length}`);
-  return allTenants;
-}
-
-/**
- * Creates a tenant object with payment information
- */
-export async function createTenantWithPaymentInfo(profile: any, propertyData: any, propertyId: string): Promise<Tenant> {
-  console.log(`Creating tenant object for profile:`, profile);
-  
-  // Get latest payment
-  const { data: paymentData, error: paymentError } = await supabase
-    .from('tenant_payments')
-    .select('*')
-    .eq('tenant_id', profile.id)
-    .eq('property_id', propertyId)
-    .order('due_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
     
-  if (paymentError) {
-    console.log(`No payment data found for tenant ${profile.id}:`, paymentError);
-  }
-  
-  // Format tenant data
-  const tenant: Tenant = {
-    id: profile.id,
-    first_name: profile.first_name || 'Unknown',
-    last_name: profile.last_name || 'User',
-    property: {
-      id: propertyData.id,
-      name: propertyData.name
-    },
-    email: profile.email || '',
-  };
-  
-  // Add payment info if available
-  if (paymentData) {
-    const now = new Date();
-    const dueDate = new Date(paymentData.due_date);
-    const dueInDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+    if (!tenantLinks || tenantLinks.length === 0) {
+      return [];
+    }
     
-    tenant.last_payment = {
-      amount: paymentData.amount,
-      date: paymentData.paid_date || paymentData.due_date,
-      status: paymentData.status as 'paid' | 'pending' | 'overdue'
-    };
+    // Extract tenant IDs to fetch their profiles
+    const tenantIds = tenantLinks.map(link => link.tenant_id);
     
-    tenant.next_payment = {
-      amount: paymentData.amount,
-      date: paymentData.due_date,
-      due_in_days: dueInDays
-    };
+    // Fetch profile data for these tenants
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', tenantIds);
+      
+    if (profilesError) {
+      console.error("Error fetching tenant profiles:", profilesError);
+      throw profilesError;
+    }
+    
+    // Fetch payment data for these tenants
+    const { data: payments, error: paymentsError } = await supabase
+      .from('tenant_payments')
+      .select('*')
+      .in('tenant_id', tenantIds)
+      .order('due_date', { ascending: false });
+      
+    if (paymentsError) {
+      console.error("Error fetching tenant payments:", paymentsError);
+      throw paymentsError;
+    }
+    
+    // Process the data to create tenant objects
+    const tenants: Tenant[] = tenantLinks.map(link => {
+      // Find the profile for this tenant
+      const profile = profiles?.find(p => p.id === link.tenant_id);
+      
+      if (!profile) {
+        console.warn(`No profile found for tenant ID: ${link.tenant_id}`);
+        return null;
+      }
+      
+      // Get the most recent past payment (for "last payment")
+      const lastPayment = payments
+        ?.filter(p => p.tenant_id === link.tenant_id && new Date(p.due_date) <= new Date())
+        .sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
+      
+      // Get the next upcoming payment
+      const nextPayment = payments
+        ?.filter(p => p.tenant_id === link.tenant_id && new Date(p.due_date) >= new Date())
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+      
+      // Calculate days until next payment
+      const daysUntilNext = nextPayment 
+        ? Math.ceil((new Date(nextPayment.due_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+        : null;
+      
+      // Build the tenant object
+      return {
+        id: profile.id,
+        first_name: profile.first_name || "Unknown",
+        last_name: profile.last_name || "Tenant",
+        email: profile.email || null,
+        property: link.properties || { name: "Unknown", id: link.property_id, address: "Unknown" },
+        last_payment: lastPayment ? {
+          date: lastPayment.due_date,
+          status: lastPayment.status,
+          amount: lastPayment.amount
+        } : null,
+        next_payment: nextPayment ? {
+          date: nextPayment.due_date,
+          amount: nextPayment.amount,
+          due_in_days: daysUntilNext
+        } : null
+      };
+    }).filter(tenant => tenant !== null) as Tenant[];
+    
+    return tenants;
+  } catch (error) {
+    console.error("Error in tenant data processing:", error);
+    throw error;
   }
-  
-  return tenant;
-}
-
-/**
- * Checks if the email column exists in the profiles table
- */
-export async function checkProfileEmailColumn(): Promise<boolean> {
-  return await checkEmailColumnExists(supabase);
 }

@@ -5,16 +5,12 @@ import { TenantStatusBadge } from "./TenantStatusBadge";
 import { Tenant } from "@/types/tenant";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 interface TenantTableRowProps {
   tenant: Tenant;
 }
 
 export function TenantTableRow({ tenant }: TenantTableRowProps) {
-  // Debug logging to check tenant data structure
-  console.log("Rendering tenant:", tenant);
-
   return (
     <TableRow key={tenant.id} className="hover:bg-muted/30">
       <TableCell className="font-medium">

@@ -22,7 +22,6 @@ export function useTenantData(user: User | null, refreshKey: number) {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching tenants for user:", user?.id);
         
         if (!user?.id) {
           console.error("No user ID available to fetch tenants");
@@ -55,14 +54,10 @@ export function useTenantData(user: User | null, refreshKey: number) {
           return;
         }
         
-        console.log("Found properties:", propertyIds);
-        
         try {
           const allTenants = await fetchTenantsForProperties(propertyIds);
-          console.log("Final tenant list:", allTenants);
           
           if (allTenants.length === 0) {
-            console.log("No tenant data found, using sample data only in development mode");
             // Only use sample data if we're in development
             if (process.env.NODE_ENV === 'development') {
               setTenants(sampleTenants);

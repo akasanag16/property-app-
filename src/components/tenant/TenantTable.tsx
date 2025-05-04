@@ -22,9 +22,6 @@ interface TenantTableProps {
 }
 
 export function TenantTable({ tenants }: TenantTableProps) {
-  // Debug logging to check tenants array
-  console.log("TenantTable - received tenants:", tenants);
-  
   return (
     <Card>
       <CardHeader>
