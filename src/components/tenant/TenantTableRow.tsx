@@ -5,20 +5,26 @@ import { TenantStatusBadge } from "./TenantStatusBadge";
 import { Tenant } from "@/types/tenant";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface TenantTableRowProps {
   tenant: Tenant;
 }
 
 export function TenantTableRow({ tenant }: TenantTableRowProps) {
+  // Debug logging to check tenant data structure
+  console.log("Rendering tenant:", tenant);
+
   return (
-    <TableRow>
+    <TableRow key={tenant.id} className="hover:bg-muted/30">
       <TableCell className="font-medium">
         {tenant.first_name} {tenant.last_name}
       </TableCell>
-      <TableCell>{tenant.property.name}</TableCell>
+      <TableCell>{tenant.property.name || "Unknown Property"}</TableCell>
       <TableCell>
-        {tenant.email || (
+        {tenant.email ? (
+          <span className="text-xs">{tenant.email}</span>
+        ) : (
           <Badge variant="warning" className="text-xs">No email</Badge>
         )}
       </TableCell>

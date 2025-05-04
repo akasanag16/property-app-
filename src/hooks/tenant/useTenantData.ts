@@ -22,6 +22,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
       try {
         setLoading(true);
         setError(null);
+        console.log("Fetching tenants for user:", user?.id);
         
         if (!user?.id) {
           console.error("No user ID available to fetch tenants");
@@ -60,10 +61,14 @@ export function useTenantData(user: User | null, refreshKey: number) {
           const allTenants = await fetchTenantsForProperties(propertyIds);
           console.log("Final tenant list:", allTenants);
           
-          // Only use sample data if we have NO tenant data AND we're in development
-          if (allTenants.length === 0 && process.env.NODE_ENV === 'development') {
-            console.log("No tenant data found, using sample data for development");
-            setTenants(sampleTenants);
+          if (allTenants.length === 0) {
+            console.log("No tenant data found, using sample data only in development mode");
+            // Only use sample data if we're in development
+            if (process.env.NODE_ENV === 'development') {
+              setTenants(sampleTenants);
+            } else {
+              setTenants([]);
+            }
           } else {
             setTenants(allTenants);
           }
@@ -86,6 +91,8 @@ export function useTenantData(user: User | null, refreshKey: number) {
         if (process.env.NODE_ENV === 'development') {
           toast.error("Failed to load tenants");
           setTenants(sampleTenants);
+        } else {
+          setTenants([]);
         }
       } finally {
         setLoading(false);
@@ -101,6 +108,8 @@ export function useTenantData(user: User | null, refreshKey: number) {
 async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   let allTenants: Tenant[] = [];
   
+  console.log("Starting to fetch tenants for properties:", propertyIds);
+  
   for (const propertyId of propertyIds) {
     try {
       // Get property details first
@@ -115,6 +124,8 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
         continue;
       }
       
+      console.log(`Successfully fetched property data for ${propertyId}:`, propertyData);
+      
       // Get tenant links for this property using a simpler, direct approach
       const { data: tenantLinks, error: linksError } = await supabase
         .from('tenant_property_link')
@@ -126,10 +137,12 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
         continue;
       }
       
-      console.log(`Found ${tenantLinks?.length || 0} tenant links for property ${propertyId}`);
+      console.log(`Found ${tenantLinks?.length || 0} tenant links for property ${propertyId}:`, tenantLinks);
       
       if (tenantLinks && tenantLinks.length > 0) {
         const tenantIds = tenantLinks.map(link => link.tenant_id);
+        
+        console.log(`Fetching profiles for tenant IDs:`, tenantIds);
         
         // Get tenant profiles with a direct query
         const { data: tenantProfiles, error: profilesError } = await supabase
@@ -142,6 +155,8 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
           continue;
         }
         
+        console.log(`Fetched tenant profiles:`, tenantProfiles);
+        
         // Only proceed if we have valid profiles data
         if (tenantProfiles && Array.isArray(tenantProfiles)) {
           console.log(`Found ${tenantProfiles.length || 0} tenant profiles for property ${propertyId}`);
@@ -151,6 +166,7 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
             try {
               const tenant = await createTenantWithPaymentInfo(profile, propertyData, propertyId);
               allTenants.push(tenant);
+              console.log(`Added tenant to list:`, tenant);
             } catch (err) {
               console.error(`Error processing tenant ${profile.id}:`, err);
             }
@@ -162,10 +178,13 @@ async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[
     }
   }
   
+  console.log(`Total tenants found: ${allTenants.length}`);
   return allTenants;
 }
 
 async function createTenantWithPaymentInfo(profile: any, propertyData: any, propertyId: string): Promise<Tenant> {
+  console.log(`Creating tenant object for profile:`, profile);
+  
   // Get latest payment
   const { data: paymentData, error: paymentError } = await supabase
     .from('tenant_payments')

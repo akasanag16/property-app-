@@ -22,6 +22,9 @@ interface TenantTableProps {
 }
 
 export function TenantTable({ tenants }: TenantTableProps) {
+  // Debug logging to check tenants array
+  console.log("TenantTable - received tenants:", tenants);
+  
   return (
     <Card>
       <CardHeader>
@@ -31,7 +34,7 @@ export function TenantTable({ tenants }: TenantTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {tenants.length === 0 ? (
+        {!tenants || tenants.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No tenant data available. 
             <div className="mt-2 text-sm">
@@ -39,24 +42,26 @@ export function TenantTable({ tenants }: TenantTableProps) {
             </div>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Property</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Last Payment</TableHead>
-                <TableHead>Next Due</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants.map((tenant) => (
-                <TenantTableRow key={tenant.id} tenant={tenant} />
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Last Payment</TableHead>
+                  <TableHead>Next Due</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tenants.map((tenant) => (
+                  <TenantTableRow key={tenant.id} tenant={tenant} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

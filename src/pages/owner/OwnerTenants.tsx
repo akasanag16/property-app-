@@ -19,6 +19,12 @@ export default function OwnerTenants() {
   
   const { tenants, loading, error, emailColumnMissing } = useTenantData(user, refreshKey);
   
+  // Debug logs
+  console.log("OwnerTenants - user:", user?.id);
+  console.log("OwnerTenants - tenants:", tenants);
+  console.log("OwnerTenants - loading:", loading);
+  console.log("OwnerTenants - error:", error);
+  
   const handleRefresh = () => {
     setRefreshing(true);
     setRefreshKey(prev => prev + 1);
@@ -26,10 +32,15 @@ export default function OwnerTenants() {
   };
 
   useEffect(() => {
+    // Initial load - force refresh once on component mount
+    if (refreshKey === 0) {
+      handleRefresh();
+    }
+
     if (!loading && refreshing) {
       setRefreshing(false);
     }
-  }, [loading, refreshing]);
+  }, [loading, refreshing, refreshKey]);
 
   return (
     <DashboardLayout>
