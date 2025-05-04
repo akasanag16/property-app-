@@ -1,92 +1,37 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { TenantStats } from "@/components/tenant/TenantStats";
-import { TenantTable } from "@/components/tenant/TenantTable";
-import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/TenantStates";
-import { useTenantData } from "@/hooks/tenant/useTenantData";
-import { ErrorAlert } from "@/components/ui/alert-error";
-import { DatabaseWarningBanner } from "@/components/tenant/DatabaseWarningBanner";
-import { toast } from "sonner";
+import { TenantPageContent } from "@/components/tenant/TenantPageContent";
+import { useTenantsPageData } from "@/hooks/tenant/useTenantsPageData";
 
 export default function OwnerTenants() {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  const { tenants, loading, error, emailColumnMissing } = useTenantData(user, refreshKey);
+  const {
+    tenants,
+    loading,
+    error,
+    emailColumnMissing,
+    refreshing,
+    handleRefresh
+  } = useTenantsPageData(user);
   
   // Debug logs
   console.log("OwnerTenants - user:", user?.id);
   console.log("OwnerTenants - tenants:", tenants);
   console.log("OwnerTenants - loading:", loading);
   console.log("OwnerTenants - error:", error);
-  
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setRefreshKey(prev => prev + 1);
-    toast.success("Refreshing tenant data...");
-  };
-
-  useEffect(() => {
-    // Initial load - force refresh once on component mount
-    if (refreshKey === 0) {
-      handleRefresh();
-    }
-
-    if (!loading && refreshing) {
-      setRefreshing(false);
-    }
-  }, [loading, refreshing, refreshKey]);
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Tenants</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-
-        <p className="text-gray-600">
-          View and manage your tenants and their payments.
-        </p>
-
-        {emailColumnMissing && (
-          <DatabaseWarningBanner 
-            message="The email column is missing from the profiles table. Please run the database migration to add this column."
-            migrationFile="20250501_add_email_to_profiles.sql"
-          />
-        )}
-
-        {error && (
-          <ErrorAlert 
-            message={error}
-            onRetry={handleRefresh}
-          />
-        )}
-
-        {loading ? (
-          <TenantLoadingState />
-        ) : tenants.length === 0 ? (
-          <TenantEmptyState />
-        ) : (
-          <>
-            <TenantStats tenants={tenants} emailColumnMissing={emailColumnMissing} />
-            <TenantTable tenants={tenants} />
-          </>
-        )}
-      </div>
+      <TenantPageContent
+        tenants={tenants}
+        loading={loading}
+        error={error}
+        emailColumnMissing={emailColumnMissing}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+      />
     </DashboardLayout>
   );
 }
