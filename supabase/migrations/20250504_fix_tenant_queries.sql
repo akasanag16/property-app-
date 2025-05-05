@@ -24,3 +24,6 @@ BEGIN
     tpl.property_id = ANY(property_ids);
 END;
 $$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_tenant_property_links_for_properties(uuid[]) TO authenticated;

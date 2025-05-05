@@ -38,9 +38,15 @@ export async function checkProfileEmailColumn() {
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
-    // 1. First fetch tenant-property links directly
+    // 1. First fetch tenant-property links directly using SQL query instead of RPC
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .rpc('get_tenant_property_links_for_properties', { property_ids: propertyIds });
+      .from('tenant_property_link')
+      .select(`
+        tenant_id,
+        property_id,
+        properties(name)
+      `)
+      .in('property_id', propertyIds);
       
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
@@ -58,7 +64,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     tenantLinks.forEach(link => {
       propertyMap.set(link.tenant_id, {
         id: link.property_id,
-        name: link.property_name || "Unknown Property"
+        name: link.properties?.name || "Unknown Property"
       });
     });
     
@@ -108,23 +114,31 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
         ? Math.ceil((new Date(nextPayment.due_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
         : null;
       
+      // Map the payment status to the allowed types in the Tenant interface
+      let paymentStatus: 'paid' | 'pending' | 'overdue' = 'pending';
+      if (lastPayment) {
+        if (lastPayment.status === 'paid') paymentStatus = 'paid';
+        else if (lastPayment.status === 'overdue') paymentStatus = 'overdue';
+        else paymentStatus = 'pending';
+      }
+      
       // Build the tenant object
       return {
         id: profile.id,
         first_name: profile.first_name || "Unknown",
         last_name: profile.last_name || "Tenant",
-        email: profile.email || null,
+        email: profile.email || "",
         property: property,
         last_payment: lastPayment ? {
           date: lastPayment.due_date,
-          status: lastPayment.status,
+          status: paymentStatus,
           amount: lastPayment.amount
-        } : null,
+        } : undefined,
         next_payment: nextPayment ? {
           date: nextPayment.due_date,
           amount: nextPayment.amount,
           due_in_days: daysUntilNext
-        } : null
+        } : undefined
       };
     });
     
