@@ -38,13 +38,16 @@ export async function checkProfileEmailColumn() {
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
-    // 1. First fetch tenant-property links directly using SQL query instead of RPC
+    if (!propertyIds || propertyIds.length === 0) {
+      return [];
+    }
+    
+    // 1. First fetch tenant-property links directly using direct SQL instead of RLS-protected queries
     const { data: tenantLinks, error: tenantLinksError } = await supabase
       .from('tenant_property_link')
       .select(`
         tenant_id,
-        property_id,
-        properties(name)
+        property_id
       `)
       .in('property_id', propertyIds);
       
@@ -57,18 +60,40 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return [];
     }
     
-    // 2. Extract tenant IDs and property info
+    // 2. Extract tenant IDs
     const tenantIds = tenantLinks.map(link => link.tenant_id);
-    const propertyMap = new Map();
     
-    tenantLinks.forEach(link => {
-      propertyMap.set(link.tenant_id, {
-        id: link.property_id,
-        name: link.properties?.name || "Unknown Property"
+    // 3. Get property names directly to avoid recursive policies
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id, name')
+      .in('id', propertyIds);
+      
+    if (propertiesError) {
+      console.error("Error fetching property names:", propertiesError);
+      throw propertiesError;
+    }
+    
+    // Create a mapping of property IDs to names
+    const propertyMap = new Map();
+    properties?.forEach(property => {
+      propertyMap.set(property.id, {
+        id: property.id,
+        name: property.name || "Unknown Property"
       });
     });
     
-    // 3. Fetch profile data for these tenants
+    // Map tenant IDs to their properties
+    const tenantPropertyMap = new Map();
+    tenantLinks.forEach(link => {
+      const property = propertyMap.get(link.property_id) || {
+        id: link.property_id,
+        name: "Unknown Property"
+      };
+      tenantPropertyMap.set(link.tenant_id, property);
+    });
+    
+    // 4. Fetch profile data for these tenants
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email')
@@ -79,7 +104,11 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       throw profilesError;
     }
     
-    // 4. Fetch payment data for these tenants
+    if (!profiles || profiles.length === 0) {
+      return [];
+    }
+    
+    // 5. Fetch payment data for these tenants
     const { data: payments, error: paymentsError } = await supabase
       .from('tenant_payments')
       .select('tenant_id, due_date, amount, status, paid_date')
@@ -91,13 +120,24 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       throw paymentsError;
     }
     
-    // 5. Process the data to create tenant objects
+    // Create a map of tenant IDs to their payments
+    const tenantPaymentsMap = new Map();
+    if (payments) {
+      payments.forEach(payment => {
+        if (!tenantPaymentsMap.has(payment.tenant_id)) {
+          tenantPaymentsMap.set(payment.tenant_id, []);
+        }
+        tenantPaymentsMap.get(payment.tenant_id).push(payment);
+      });
+    }
+    
+    // 6. Process the data to create tenant objects
     const tenants: Tenant[] = profiles.map(profile => {
       // Get property from the map
-      const property = propertyMap.get(profile.id) || { id: "unknown", name: "Unknown Property" };
+      const property = tenantPropertyMap.get(profile.id);
       
       // Find payments for this tenant
-      const tenantPayments = payments.filter(p => p.tenant_id === profile.id);
+      const tenantPayments = tenantPaymentsMap.get(profile.id) || [];
       
       // Get the most recent past payment (for "last payment")
       const lastPayment = tenantPayments

@@ -16,6 +16,7 @@ export function useMaintenanceRequests(
   useEffect(() => {
     async function fetchUserId() {
       try {
+        setError(null);
         const { data, error } = await supabase.auth.getUser();
         if (error) {
           console.error("Error getting user:", error);

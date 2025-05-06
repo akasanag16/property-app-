@@ -11,7 +11,8 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       return [];
     }
     
-    // 1. First, get properties owned by this owner
+    // 1. First, get properties owned by this owner using the RPC function
+    // This is safe because the get_owner_properties function is SECURITY DEFINER
     const { data: propertyIds, error: propertiesError } = await supabase
       .rpc('get_owner_properties', { owner_id_param: ownerId });
       
@@ -25,7 +26,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       return [];
     }
 
-    // 2. Get maintenance requests for these properties
+    // 2. Get maintenance requests for these properties directly
     const { data: requestsData, error: requestsError } = await supabase
       .from("maintenance_requests")
       .select("*")
@@ -42,10 +43,10 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       return [];
     }
     
-    // 3. Get property names
+    // 3. Get property names directly
     let propertiesMap: Record<string, { id: string; name: string }> = {};
     
-    // Using a direct query instead of the RPC function
+    // Direct query to get property information
     const { data: propertiesData, error: propertyNamesError } = await supabase
       .from('properties')
       .select('id, name')
@@ -60,7 +61,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       }
     }
     
-    // 4. Get tenant information
+    // 4. Get tenant information directly
     const tenantIds = requestsData.map(req => req.tenant_id).filter(Boolean);
     const uniqueTenantIds = [...new Set(tenantIds)];
     
@@ -85,7 +86,7 @@ export async function getOwnerRequests(ownerId: string): Promise<MaintenanceRequ
       }
     }
     
-    // 5. Get service provider information
+    // 5. Get service provider information directly
     const serviceProviderIds = requestsData
       .map(req => req.assigned_service_provider_id)
       .filter(Boolean);

@@ -11,7 +11,7 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       return [];
     }
     
-    // Get all maintenance requests for this tenant
+    // Get all maintenance requests for this tenant directly
     const { data: requestsData, error: requestsError } = await supabase
       .from("maintenance_requests")
       .select("*")
@@ -28,15 +28,15 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       return [];
     }
     
-    // Extract unique property IDs to fetch in a single query
+    // Extract unique property IDs to fetch in bulk
     const propertyIds = requestsData.map(req => req.property_id).filter(Boolean);
     const uniquePropertyIds = [...new Set(propertyIds)];
     
-    // Get property information (in a separate query to avoid recursion)
+    // Get property information directly without using RPC functions
     let propertiesMap: Record<string, { id: string; name: string }> = {};
     
     if (uniquePropertyIds.length > 0) {
-      // Using a raw SQL query instead of RPC function to avoid type errors
+      // Direct query to properties table
       const { data: propertiesData, error: propertiesError } = await supabase
         .from('properties')
         .select('id, name')

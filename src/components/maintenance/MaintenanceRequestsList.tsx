@@ -74,6 +74,7 @@ export function MaintenanceRequestsList({
   }
 
   if (error) {
+    console.error("Error in MaintenanceRequestsList:", error);
     return (
       <div className="space-y-4">
         <ErrorAlert 
