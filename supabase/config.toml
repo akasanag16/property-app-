@@ -25,3 +25,10 @@ enabled = true
 
 [functions.maintenance-request]
 verify_jwt = true
+
+[functions.send-invitation]
+verify_jwt = true
+
+[functions.handle-invitation]
+verify_jwt = true
+

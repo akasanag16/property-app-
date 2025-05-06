@@ -47,8 +47,7 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      // Use raw POST request to the function endpoint to bypass TypeScript limitations
-      const { data, error } = await supabase.functions.invoke<{ id: string }>('maintenance-request', {
+      const { data, error } = await supabase.functions.invoke('maintenance-request', {
         body: {
           title: form.title,
           description: form.description,
@@ -58,7 +57,15 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error from maintenance-request function:", error);
+        throw new Error(`Failed to submit request: ${error.message || "Unknown error"}`);
+      }
+      
+      if (!data || !data.success) {
+        console.error("Invalid response from maintenance-request function:", data);
+        throw new Error("Failed to submit request: Unexpected response from server");
+      }
       
       toast.success("Maintenance request submitted successfully");
       setForm({

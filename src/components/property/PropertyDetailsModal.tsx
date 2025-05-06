@@ -1,180 +1,229 @@
-
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Home, DollarSign, Bed, Bath, SquareDot, MapPin } from "lucide-react";
-import type { Property } from "@/types/property";
-import { InvitationsList } from "@/components/invitations/InvitationsList";
-import { InviteForm } from "@/components/invitations/InviteForm";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Edit, Plus, Loader2, ChevronLeft } from "lucide-react";
+import { Property } from "@/types/property";
+import { PropertyInvitesTabs } from "./PropertyInvitesTabs";
 
-type PropertyDetailsModalProps = {
-  property: Property;
-  onClose: () => void;
-};
+interface PropertyDetailsModalProps {
+  propertyId: string;
+  onSuccess: () => void;
+}
 
-export function PropertyDetailsModal({ property, onClose }: PropertyDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState("details");
-  const [inviteRefreshKey, setInviteRefreshKey] = useState(0);
+type ActiveView = 'details' | 'invitations';
 
-  const handleInviteSuccess = () => {
-    // Force refresh invitations list when new invite is created
-    setInviteRefreshKey(prev => prev + 1);
-    
-    // Switch to the appropriate tab based on the last invite type
-    const inviteForm = document.querySelector('form') as HTMLFormElement;
-    const inviteTypeSelect = inviteForm?.querySelector('[id="inviteType"]') as HTMLElement;
-    const selectedValue = inviteTypeSelect?.getAttribute('data-value') || 'tenant';
-    
-    if (selectedValue === 'tenant') {
-      setActiveTab('tenants');
-    } else {
-      setActiveTab('service-providers');
+export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsModalProps) {
+  const [open, setOpen] = useState(false);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const { user } = useAuth();
+  const [activeView, setActiveView] = useState<ActiveView>('details');
+
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const fetchProperty = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', propertyId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching property:", error);
+          toast.error("Failed to load property details");
+        } else if (data) {
+          setProperty(data);
+          setName(data.name);
+          setDescription(data.description || "");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (open) {
+      fetchProperty();
+    }
+  }, [open, propertyId]);
+
+  const handleOpen = () => {
+    setOpen(true);
+  };
+
+  const onOpenChange = (open: boolean) => {
+    setOpen(open);
+    if (!open) {
+      setEditing(false);
+      setActiveView('details');
     }
   };
 
-  return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-indigo-800">{property.name}</DialogTitle>
-          <DialogDescription className="text-gray-600 flex items-center">
-            <MapPin className="h-4 w-4 mr-1" />
-            {property.address}
-          </DialogDescription>
-        </DialogHeader>
+  const handleEdit = () => {
+    setEditing(true);
+  };
 
-        <div>
-          <div className="mb-6">
-            {property.image_url ? (
-              <img 
-                src={property.image_url} 
-                alt={property.name} 
-                className="w-full h-60 object-cover rounded-md"
-              />
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('properties')
+        .update({ name, description })
+        .eq('id', propertyId);
+
+      if (error) {
+        console.error("Error updating property:", error);
+        toast.error("Failed to update property");
+      } else {
+        setProperty({ ...property!, name, description });
+        toast.success("Property updated successfully");
+        setEditing(false);
+        onSuccess();
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInvite = () => {
+    setActiveView('invitations');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Edit className="h-4 w-4 mr-2" />
+          View Details
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {loading ? (
+              "Loading..."
+            ) : editing ? (
+              "Edit Property"
             ) : (
-              <div className="w-full h-60 bg-gray-200 flex items-center justify-center rounded-md">
-                <Home className="h-16 w-16 text-gray-400" />
+              property?.name || "Property Details"
+            )}
+          </DialogTitle>
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <DialogDescription>
+              {editing ? "Update property details." : property?.description || "View property details."}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        
+        {activeView === 'details' && (
+          <>
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!editing}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Input
+                    type="text"
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={!editing}
+                    className="col-span-3"
+                  />
+                </div>
               </div>
             )}
-          </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-indigo-50">
-              <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
-                Property Details
-              </TabsTrigger>
-              <TabsTrigger value="tenants" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
-                Tenants
-              </TabsTrigger>
-              <TabsTrigger value="service-providers" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
-                Service Providers
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {property.details?.type && (
-                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
-                    <Home className="h-5 w-5 mr-3 text-indigo-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">Property Type</p>
-                      <p className="font-medium capitalize">{property.details.type}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {property.details?.rent !== undefined && (
-                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
-                    <DollarSign className="h-5 w-5 mr-3 text-indigo-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">Monthly Rent</p>
-                      <p className="font-medium">${property.details.rent}/month</p>
-                    </div>
-                  </div>
-                )}
-                
-                {property.details?.bedrooms !== undefined && (
-                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
-                    <Bed className="h-5 w-5 mr-3 text-indigo-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">Bedrooms</p>
-                      <p className="font-medium">{property.details.bedrooms}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {property.details?.bathrooms !== undefined && (
-                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
-                    <Bath className="h-5 w-5 mr-3 text-indigo-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">Bathrooms</p>
-                      <p className="font-medium">{property.details.bathrooms}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {property.details?.area !== undefined && (
-                  <div className="flex items-center p-3 border border-indigo-100 rounded-md">
-                    <SquareDot className="h-5 w-5 mr-3 text-indigo-600" />
-                    <div>
-                      <p className="text-sm text-gray-500">Area</p>
-                      <p className="font-medium">{property.details.area} sq ft</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="tenants" className="pt-4 space-y-4">
-              <h3 className="text-lg font-medium mb-2">Invite Tenant</h3>
-              <InviteForm 
-                propertyId={property.id} 
-                onInviteSuccess={handleInviteSuccess}
-              />
-              
-              <h3 className="text-lg font-medium mb-2 mt-6">Tenant Invitations</h3>
-              <InvitationsList 
-                key={`tenant-${inviteRefreshKey}`}
-                propertyId={property.id} 
-                type="tenant"
-              />
-            </TabsContent>
-            
-            <TabsContent value="service-providers" className="pt-4 space-y-4">
-              <h3 className="text-lg font-medium mb-2">Invite Service Provider</h3>
-              <InviteForm 
-                propertyId={property.id} 
-                onInviteSuccess={handleInviteSuccess}
-              />
-              
-              <h3 className="text-lg font-medium mb-2 mt-6">Service Provider Invitations</h3>
-              <InvitationsList 
-                key={`sp-${inviteRefreshKey}`}
-                propertyId={property.id} 
-                type="service_provider"
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+            <DialogFooter>
+              {editing ? (
+                <>
+                  <Button type="button" variant="secondary" onClick={() => setEditing(false)} disabled={loading}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={handleSave} disabled={loading}>
+                    {loading ? (
+                      <>
+                        Saving <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="secondary" onClick={handleInvite} disabled={loading}>
+                    Manage Invitations
+                  </Button>
+                  <Button type="button" onClick={handleEdit} disabled={loading}>
+                    Edit Property
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </>
+        )}
 
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-          >
-            Close
-          </Button>
-        </DialogFooter>
+        {activeView === 'invitations' && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  onClick={() => setActiveView('details')}
+                >
+                  <ChevronLeft size={18} />
+                </Button>
+                Manage Invitations for {property?.name || "Property"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <PropertyInvitesTabs 
+              propertyId={property?.id || ""}
+              onClose={() => setActiveView('details')}
+            />
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

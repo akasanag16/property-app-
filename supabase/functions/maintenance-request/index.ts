@@ -36,10 +36,13 @@ Deno.serve(async (req) => {
     )
     
     // Validate required fields
-    const { title, description, property_id, tenant_id, status } = requestData
+    const { title, description, property_id, tenant_id, status = 'pending' } = requestData
     if (!title || !description || !property_id || !tenant_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: { title, description, property_id, tenant_id }
+        }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -60,20 +63,27 @@ Deno.serve(async (req) => {
       .select('id')
       .single()
     
-    if (error) throw error
+    if (error) {
+      console.error('Error inserting maintenance request:', error);
+      throw error;
+    }
     
     // Return success with the new request ID
     return new Response(
-      JSON.stringify({ id: data.id }),
+      JSON.stringify({ success: true, id: data.id }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   } catch (error) {
+    console.error('Error in maintenance-request function:', error);
     // Return error response
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Unknown error occurred',
+        stack: error.stack
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

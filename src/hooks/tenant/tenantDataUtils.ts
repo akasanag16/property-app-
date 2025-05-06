@@ -32,29 +32,28 @@ export async function checkProfileEmailColumn() {
   }
 }
 
-// Define a type for tenant links to ensure type safety
-type TenantPropertyLink = {
-  tenant_id: string;
-  property_id: string;
-  property_name: string;
-}
-
 /**
  * Fetch tenants for a list of property IDs using direct queries
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
     if (!propertyIds || propertyIds.length === 0) {
+      console.log("No property IDs provided to fetchTenantsForProperties");
       return [];
     }
     
-    // Fetch tenant links using SQL query directly to bypass TypeScript type limitations
+    console.log("Fetching tenants for properties:", propertyIds);
+    
+    // Fetch tenant-property links with join to properties
     const { data: tenantLinks, error: tenantLinksError } = await supabase
       .from('tenant_property_link')
       .select(`
         tenant_id,
         property_id,
-        properties!inner(name)
+        properties (
+          id,
+          name
+        )
       `)
       .in('property_id', propertyIds);
       
@@ -64,32 +63,26 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     }
     
     if (!tenantLinks || !Array.isArray(tenantLinks) || tenantLinks.length === 0) {
+      console.log("No tenant links found for the provided property IDs");
       return [];
     }
     
-    // Extract tenant IDs from the links
+    // Extract tenant IDs and create a property map for each tenant
     const tenantIds: string[] = [];
-    const propertyMap = new Map<string, {id: string; name: string}>();
-    const tenantPropertyMap = new Map<string, {id: string; name: string}>();
+    const tenantToPropertyMap = new Map<string, { id: string; name: string }>();
     
-    // Process each tenant link
-    for (const link of tenantLinks) {
-      if (link && link.tenant_id) {
+    tenantLinks.forEach(link => {
+      if (link && link.tenant_id && link.properties) {
         tenantIds.push(link.tenant_id);
-        
-        // Map property info - ensuring we have the correct structure
-        const propertyName = link.properties?.name || "Unknown Property";
-        const propertyInfo = {
+        tenantToPropertyMap.set(link.tenant_id, {
           id: link.property_id,
-          name: propertyName
-        };
-        
-        propertyMap.set(link.property_id, propertyInfo);
-        tenantPropertyMap.set(link.tenant_id, propertyInfo);
+          name: (link.properties as any).name || "Unknown Property"
+        });
       }
-    }
+    });
     
     if (tenantIds.length === 0) {
+      console.log("No valid tenant IDs found in the links");
       return [];
     }
     
@@ -105,6 +98,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     }
     
     if (!profiles || profiles.length === 0) {
+      console.log("No profiles found for the tenant IDs");
       return [];
     }
     
@@ -117,12 +111,12 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       
     if (paymentsError) {
       console.error("Error fetching tenant payments:", paymentsError);
-      throw paymentsError;
+      // Continue without payments data - not critical
     }
     
     // Create a map of tenant IDs to their payments
     const tenantPaymentsMap = new Map();
-    if (payments) {
+    if (payments && Array.isArray(payments)) {
       payments.forEach(payment => {
         if (!tenantPaymentsMap.has(payment.tenant_id)) {
           tenantPaymentsMap.set(payment.tenant_id, []);
@@ -134,20 +128,20 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     // Process the data to create tenant objects
     const tenants: Tenant[] = profiles.map(profile => {
       // Get property from the map
-      const property = tenantPropertyMap.get(profile.id);
+      const property = tenantToPropertyMap.get(profile.id);
       
       // Find payments for this tenant
       const tenantPayments = tenantPaymentsMap.get(profile.id) || [];
       
       // Get the most recent past payment (for "last payment")
       const lastPayment = tenantPayments
-        .filter(p => new Date(p.due_date) <= new Date())
-        .sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
+        .filter((p: any) => new Date(p.due_date) <= new Date())
+        .sort((a: any, b: any) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
       
       // Get the next upcoming payment
       const nextPayment = tenantPayments
-        .filter(p => new Date(p.due_date) >= new Date())
-        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+        .filter((p: any) => new Date(p.due_date) >= new Date())
+        .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
       
       // Calculate days until next payment
       const daysUntilNext = nextPayment 
@@ -166,7 +160,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return {
         id: profile.id,
         first_name: profile.first_name || "Unknown",
-        last_name: profile.last_name || "Tenant",
+        last_name: profile.last_name || "Unknown",
         email: profile.email || "",
         property: property || { id: "", name: "Unknown Property" },
         last_payment: lastPayment ? {
@@ -182,6 +176,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       };
     });
     
+    console.log(`Successfully processed ${tenants.length} tenants`);
     return tenants;
   } catch (error) {
     console.error("Error in tenant data processing:", error);
