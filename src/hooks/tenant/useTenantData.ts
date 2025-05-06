@@ -39,7 +39,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
         
         // Use the safer RPC function to get properties
         const { data: propertyIds, error: propertiesError } = await supabase
-          .rpc('get_owner_properties', { owner_id_param: user.id });
+          .rpc('safe_get_owner_properties', { owner_id_param: user.id });
         
         if (propertiesError) {
           console.error("Error fetching owner properties:", propertiesError);
@@ -47,7 +47,9 @@ export function useTenantData(user: User | null, refreshKey: number) {
           throw propertiesError;
         }
         
-        if (!propertyIds || propertyIds.length === 0) {
+        const ownerPropertyIds = propertyIds?.map(prop => prop.id) || [];
+        
+        if (!ownerPropertyIds || ownerPropertyIds.length === 0) {
           console.log("No properties found for owner");
           setTenants([]);
           setLoading(false);
@@ -55,7 +57,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
         }
         
         try {
-          const allTenants = await fetchTenantsForProperties(propertyIds);
+          const allTenants = await fetchTenantsForProperties(ownerPropertyIds);
           
           if (allTenants.length === 0) {
             // Only use sample data if we're in development

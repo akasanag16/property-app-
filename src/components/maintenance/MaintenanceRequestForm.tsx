@@ -47,17 +47,14 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      const requestData = {
-        title: form.title,
-        description: form.description,
-        property_id: form.propertyId,
-        tenant_id: user?.id || '',
-        status: "pending" as const // Explicitly type this as a literal "pending"
-      };
-
-      const { error } = await supabase
-        .from('maintenance_requests')
-        .insert(requestData);
+      // Use RPC call instead of direct database insertion to avoid recursion
+      const { data, error } = await supabase.rpc('create_maintenance_request', {
+        title_param: form.title,
+        description_param: form.description,
+        property_id_param: form.propertyId,
+        tenant_id_param: user?.id || '',
+        status_param: 'pending'
+      });
 
       if (error) throw error;
       
