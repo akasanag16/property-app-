@@ -47,15 +47,16 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      // Use direct POST request to the RPC function
-      const { data, error } = await supabase
-        .rpc('create_maintenance_request', {
-          title_param: form.title,
-          description_param: form.description,
-          property_id_param: form.propertyId,
-          tenant_id_param: user?.id || '',
-          status_param: 'pending'
-        });
+      // Use raw POST request to the function endpoint to bypass TypeScript limitations
+      const { data, error } = await supabase.functions.invoke<{ id: string }>('maintenance-request', {
+        body: {
+          title: form.title,
+          description: form.description,
+          property_id: form.propertyId,
+          tenant_id: user?.id || '',
+          status: 'pending'
+        }
+      });
 
       if (error) throw error;
       

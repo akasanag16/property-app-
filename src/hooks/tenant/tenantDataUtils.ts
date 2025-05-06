@@ -32,9 +32,15 @@ export async function checkProfileEmailColumn() {
   }
 }
 
+// Define a type for tenant links to ensure type safety
+type TenantPropertyLink = {
+  tenant_id: string;
+  property_id: string;
+  property_name: string;
+}
+
 /**
  * Fetch tenants for a list of property IDs using direct queries
- * and our new security definer functions
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
@@ -42,12 +48,15 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return [];
     }
     
-    // Call the RPC function directly with the property IDs array
-    // TypeScript already knows about this function so we can call it directly
+    // Fetch tenant links using SQL query directly to bypass TypeScript type limitations
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .rpc('get_tenant_property_links_for_properties', { 
-        property_ids: propertyIds 
-      });
+      .from('tenant_property_link')
+      .select(`
+        tenant_id,
+        property_id,
+        properties!inner(name)
+      `)
+      .in('property_id', propertyIds);
       
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
@@ -59,19 +68,20 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     }
     
     // Extract tenant IDs from the links
-    const tenantIds = [];
-    const propertyMap = new Map();
-    const tenantPropertyMap = new Map();
+    const tenantIds: string[] = [];
+    const propertyMap = new Map<string, {id: string; name: string}>();
+    const tenantPropertyMap = new Map<string, {id: string; name: string}>();
     
     // Process each tenant link
     for (const link of tenantLinks) {
       if (link && link.tenant_id) {
         tenantIds.push(link.tenant_id);
         
-        // Map property info
+        // Map property info - ensuring we have the correct structure
+        const propertyName = link.properties?.name || "Unknown Property";
         const propertyInfo = {
           id: link.property_id,
-          name: link.property_name || "Unknown Property"
+          name: propertyName
         };
         
         propertyMap.set(link.property_id, propertyInfo);
@@ -158,7 +168,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
         first_name: profile.first_name || "Unknown",
         last_name: profile.last_name || "Tenant",
         email: profile.email || "",
-        property: property,
+        property: property || { id: "", name: "Unknown Property" },
         last_payment: lastPayment ? {
           date: lastPayment.due_date,
           status: paymentStatus,
