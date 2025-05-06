@@ -17,17 +17,24 @@ export function MaintenanceRequestItem({ request, userRole, onUpdateStatus }: Ma
     return null;
   }
 
+  // Safely extract values with fallbacks to prevent null/undefined errors
+  const title = request.title || "Untitled Request";
+  const status = request.status || "pending";
+  const propertyName = request.property?.name || "Unknown Property";
+  const description = request.description || "No description provided.";
+  const createdDate = request.created_at ? formatDate(request.created_at) : "Unknown Date";
+
   return (
     <div className="bg-white rounded-lg border p-4 shadow-sm">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="font-medium text-lg">{request.title || "Untitled Request"}</h3>
-        <MaintenanceStatusBadge status={request.status || "pending"} />
+        <h3 className="font-medium text-lg">{title}</h3>
+        <MaintenanceStatusBadge status={status} />
       </div>
       
       <div className="text-sm text-gray-500 mb-2">
-        <span>Property: {request.property?.name || "Unknown Property"}</span>
+        <span>Property: {propertyName}</span>
         <span className="mx-2">•</span>
-        <span>Reported: {request.created_at ? formatDate(request.created_at) : "Unknown Date"}</span>
+        <span>Reported: {createdDate}</span>
       </div>
       
       {userRole === "owner" && request.tenant && (
@@ -36,7 +43,7 @@ export function MaintenanceRequestItem({ request, userRole, onUpdateStatus }: Ma
         </div>
       )}
       
-      <p className="text-gray-700 mb-4">{request.description || "No description provided."}</p>
+      <p className="text-gray-700 mb-4">{description}</p>
       
       {request.assigned_service_provider && (
         <div className="text-sm text-gray-600 mb-3">
@@ -45,7 +52,7 @@ export function MaintenanceRequestItem({ request, userRole, onUpdateStatus }: Ma
         </div>
       )}
       
-      {userRole === "service_provider" && request.status === "pending" && (
+      {userRole === "service_provider" && status === "pending" && (
         <Button 
           onClick={() => onUpdateStatus(request.id, "accepted")}
           size="sm"
@@ -56,7 +63,7 @@ export function MaintenanceRequestItem({ request, userRole, onUpdateStatus }: Ma
         </Button>
       )}
       
-      {userRole === "service_provider" && request.status === "accepted" && (
+      {userRole === "service_provider" && status === "accepted" && (
         <Button 
           onClick={() => onUpdateStatus(request.id, "completed")}
           size="sm"

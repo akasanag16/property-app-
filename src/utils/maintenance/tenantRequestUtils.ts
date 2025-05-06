@@ -11,12 +11,9 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       return [];
     }
     
-    // Get all maintenance requests for this tenant directly
+    // Use our new security definer function to avoid infinite recursion
     const { data: requestsData, error: requestsError } = await supabase
-      .from("maintenance_requests")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false });
+      .rpc('safe_get_tenant_maintenance_requests', { tenant_id_param: tenantId });
     
     if (requestsError) {
       console.error("Error fetching maintenance requests:", requestsError);
@@ -28,44 +25,22 @@ export async function getTenantRequests(tenantId: string): Promise<MaintenanceRe
       return [];
     }
     
-    // Extract unique property IDs to fetch in bulk
-    const propertyIds = requestsData.map(req => req.property_id).filter(Boolean);
-    const uniquePropertyIds = [...new Set(propertyIds)];
-    
-    // Get property information directly without using RPC functions
-    let propertiesMap: Record<string, { id: string; name: string }> = {};
-    
-    if (uniquePropertyIds.length > 0) {
-      // Direct query to properties table
-      const { data: propertiesData, error: propertiesError } = await supabase
-        .from('properties')
-        .select('id, name')
-        .in('id', uniquePropertyIds);
-      
-      if (propertiesError) {
-        console.error("Error fetching properties:", propertiesError);
-      } else if (propertiesData) {
-        // Create a map of property IDs to names
-        for (const prop of propertiesData) {
-          propertiesMap[prop.id] = { id: prop.id, name: prop.name || "Unknown property" };
-        }
-      }
-    }
-    
     // Format the requests
-    const formattedRequests: MaintenanceRequest[] = requestsData.map(request => ({
-      id: request.id,
-      title: request.title,
-      description: request.description,
-      status: request.status,
-      created_at: request.created_at,
-      property: propertiesMap[request.property_id] || {
-        id: request.property_id,
-        name: "Unknown property"
-      },
-      tenant: null, // We don't need tenant info for tenant's own requests
-      assigned_service_provider: null
-    }));
+    const formattedRequests: MaintenanceRequest[] = requestsData.map(request => {
+      return {
+        id: request.id,
+        title: request.title || "Untitled Request",
+        description: request.description || "",
+        status: request.status as "pending" | "accepted" | "completed",
+        created_at: request.created_at,
+        property: {
+          id: request.property_id,
+          name: request.property_name || "Unknown property"
+        },
+        tenant: null, // We don't need tenant info for tenant's own requests
+        assigned_service_provider: null
+      };
+    });
     
     console.log("Formatted tenant requests:", formattedRequests.length);
     return formattedRequests;

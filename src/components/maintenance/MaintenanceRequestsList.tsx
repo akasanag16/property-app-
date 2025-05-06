@@ -31,7 +31,10 @@ export function MaintenanceRequestsList({
   // Report errors up to parent component if needed
   useEffect(() => {
     if (error && onError) {
-      onError(error.message || "Unknown error loading maintenance requests");
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Unknown error loading maintenance requests";
+      onError(errorMessage);
     }
   }, [error, onError]);
 
@@ -75,10 +78,14 @@ export function MaintenanceRequestsList({
 
   if (error) {
     console.error("Error in MaintenanceRequestsList:", error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "Unknown error loading maintenance requests";
+    
     return (
       <div className="space-y-4">
         <ErrorAlert 
-          message={`Error loading maintenance requests: ${error.message || "Unknown error"}`} 
+          message={`Error loading maintenance requests: ${errorMessage}`} 
           onRetry={handleRetry} 
         />
         <div className="flex justify-center">

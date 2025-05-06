@@ -33,8 +33,8 @@ export async function checkProfileEmailColumn() {
 }
 
 /**
- * Fetch tenants for a list of property IDs using a direct query approach
- * that avoids potential recursion issues with RLS policies
+ * Fetch tenants for a list of property IDs using direct queries
+ * and our new security definer functions
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
@@ -42,13 +42,10 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return [];
     }
     
-    // 1. First fetch tenant-property links directly using direct SQL instead of RLS-protected queries
+    // 1. Get tenant-property links directly using a basic query
     const { data: tenantLinks, error: tenantLinksError } = await supabase
       .from('tenant_property_link')
-      .select(`
-        tenant_id,
-        property_id
-      `)
+      .select('tenant_id, property_id')
       .in('property_id', propertyIds);
       
     if (tenantLinksError) {
@@ -63,7 +60,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     // 2. Extract tenant IDs
     const tenantIds = tenantLinks.map(link => link.tenant_id);
     
-    // 3. Get property names directly to avoid recursive policies
+    // 3. Get property names using direct query
     const { data: properties, error: propertiesError } = await supabase
       .from('properties')
       .select('id, name')
@@ -76,12 +73,14 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     
     // Create a mapping of property IDs to names
     const propertyMap = new Map();
-    properties?.forEach(property => {
-      propertyMap.set(property.id, {
-        id: property.id,
-        name: property.name || "Unknown Property"
+    if (properties) {
+      properties.forEach(property => {
+        propertyMap.set(property.id, {
+          id: property.id,
+          name: property.name || "Unknown Property"
+        });
       });
-    });
+    }
     
     // Map tenant IDs to their properties
     const tenantPropertyMap = new Map();

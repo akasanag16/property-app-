@@ -604,6 +604,82 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      safe_get_owner_maintenance_requests: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: string
+          created_at: string
+          property_id: string
+          property_name: string
+          tenant_id: string
+          tenant_first_name: string
+          tenant_last_name: string
+          assigned_service_provider_id: string
+          provider_first_name: string
+          provider_last_name: string
+        }[]
+      }
+      safe_get_owner_properties: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          address: string
+          details: Json
+          owner_id: string
+        }[]
+      }
+      safe_get_service_provider_maintenance_requests: {
+        Args: { provider_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: string
+          created_at: string
+          property_id: string
+          property_name: string
+          tenant_id: string
+          tenant_first_name: string
+          tenant_last_name: string
+          assigned_service_provider_id: string
+        }[]
+      }
+      safe_get_service_provider_properties: {
+        Args: { provider_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          address: string
+          details: Json
+        }[]
+      }
+      safe_get_tenant_maintenance_requests: {
+        Args: { tenant_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: string
+          created_at: string
+          property_id: string
+          property_name: string
+          tenant_id: string
+          assigned_service_provider_id: string
+        }[]
+      }
+      safe_get_tenant_properties: {
+        Args: { tenant_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          address: string
+          details: Json
+        }[]
+      }
       update_invitation_expiry: {
         Args: { p_invitation_id: string; p_invitation_type: string }
         Returns: undefined

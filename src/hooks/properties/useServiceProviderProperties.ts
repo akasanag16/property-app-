@@ -5,27 +5,25 @@ import { convertDetailsToPropertyDetails } from "./propertyUtils";
 
 export async function fetchServiceProviderProperties(userId: string): Promise<Property[]> {
   try {
-    const { data: propertyIds, error: functionError } = await supabase
-      .rpc('get_service_provider_properties_by_id', { provider_id_param: userId });
-
-    if (functionError) {
-      console.error('Error calling get_service_provider_properties_by_id:', functionError);
-      throw functionError;
-    }
-
-    if (!propertyIds || propertyIds.length === 0) {
-      console.log('No service provider properties found');
+    console.log('Fetching service provider properties for user:', userId);
+    
+    if (!userId) {
+      console.warn('No provider ID provided');
       return [];
     }
-
+    
+    // Use our new security definer function to avoid infinite recursion
     const { data: propertiesData, error: propertiesError } = await supabase
-      .from('properties')
-      .select('id, name, address, details')
-      .in('id', propertyIds);
+      .rpc('safe_get_service_provider_properties', { provider_id_param: userId });
 
     if (propertiesError) {
       console.error('Error fetching service provider properties:', propertiesError);
       throw propertiesError;
+    }
+
+    if (!propertiesData || propertiesData.length === 0) {
+      console.log('No service provider properties found');
+      return [];
     }
 
     console.log('Service provider properties data:', propertiesData);
