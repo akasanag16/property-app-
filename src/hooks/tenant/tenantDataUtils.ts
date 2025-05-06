@@ -42,12 +42,12 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       return [];
     }
     
-    // Use a direct REST call to execute the function since TypeScript doesn't know about it yet
+    // Call the RPC function directly with the property IDs array
+    // TypeScript already knows about this function so we can call it directly
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .from('rpc')
-      .select('*')
-      .eq('name', 'get_tenant_property_links_for_properties')
-      .eq('args', { property_ids: propertyIds });
+      .rpc('get_tenant_property_links_for_properties', { 
+        property_ids: propertyIds 
+      });
       
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
@@ -63,29 +63,19 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     const propertyMap = new Map();
     const tenantPropertyMap = new Map();
     
-    // Process the array, assuming the response structure
-    const processedLinks = tenantLinks[0].result || [];
-    
-    if (!Array.isArray(processedLinks) || processedLinks.length === 0) {
-      return [];
-    }
-    
-    // Now process each link in the array
-    for (const link of processedLinks) {
-      if (link.tenant_id) {
+    // Process each tenant link
+    for (const link of tenantLinks) {
+      if (link && link.tenant_id) {
         tenantIds.push(link.tenant_id);
         
         // Map property info
-        propertyMap.set(link.property_id, {
+        const propertyInfo = {
           id: link.property_id,
           name: link.property_name || "Unknown Property"
-        });
+        };
         
-        // Map tenant to property
-        tenantPropertyMap.set(link.tenant_id, {
-          id: link.property_id,
-          name: link.property_name || "Unknown Property"
-        });
+        propertyMap.set(link.property_id, propertyInfo);
+        tenantPropertyMap.set(link.tenant_id, propertyInfo);
       }
     }
     

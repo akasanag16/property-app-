@@ -47,12 +47,9 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      // Use REST call instead of RPC to bypass TypeScript type limitations
+      // Use direct POST request to the RPC function
       const { data, error } = await supabase
-        .from('rpc')
-        .select('*')
-        .eq('name', 'create_maintenance_request')
-        .eq('args', {
+        .rpc('create_maintenance_request', {
           title_param: form.title,
           description_param: form.description,
           property_id_param: form.propertyId,
