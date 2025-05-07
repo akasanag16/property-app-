@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,9 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Edit, Plus, Loader2, ChevronLeft } from "lucide-react";
+import { Edit, Loader2, ChevronLeft } from "lucide-react";
 import { Property } from "@/types/property";
 import { PropertyInvitesTabs } from "./PropertyInvitesTabs";
+import { convertDetailsToPropertyDetails } from "@/hooks/properties/propertyUtils";
 
 interface PropertyDetailsModalProps {
   propertyId: string;
@@ -51,9 +53,18 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           console.error("Error fetching property:", error);
           toast.error("Failed to load property details");
         } else if (data) {
-          setProperty(data);
-          setName(data.name);
-          setDescription(data.description || "");
+          const propertyWithDetails: Property = {
+            id: data.id,
+            name: data.name,
+            address: data.address,
+            description: data.description || "",
+            details: convertDetailsToPropertyDetails(data.details),
+            owner_id: data.owner_id,
+            image_url: null
+          };
+          setProperty(propertyWithDetails);
+          setName(propertyWithDetails.name);
+          setDescription(propertyWithDetails.description || "");
         }
       } finally {
         setLoading(false);
@@ -93,7 +104,13 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
         console.error("Error updating property:", error);
         toast.error("Failed to update property");
       } else {
-        setProperty({ ...property!, name, description });
+        if (property) {
+          setProperty({ 
+            ...property, 
+            name, 
+            description 
+          });
+        }
         toast.success("Property updated successfully");
         setEditing(false);
         onSuccess();

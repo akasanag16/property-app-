@@ -130,20 +130,8 @@ export function EnhancedPropertyCard({
 
       {showDetailsModal && (
         <PropertyDetailsModal
-          property={{
-            id,
-            name,
-            address,
-            details: {
-              type,
-              bedrooms,
-              bathrooms,
-              area,
-              rent
-            },
-            image_url: imageUrl
-          }}
-          onClose={() => setShowDetailsModal(false)}
+          propertyId={id}
+          onSuccess={() => setShowDetailsModal(false)}
         />
       )}
     </>
