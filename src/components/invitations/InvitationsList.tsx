@@ -6,9 +6,11 @@ import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
+export type InvitationListType = "tenant" | "service_provider";
+
 type InvitationsListProps = {
   propertyId: string;
-  invitationType: "tenant" | "service_provider";
+  invitationType: InvitationListType;
   refreshKey?: number;
   onError?: () => void;
 };

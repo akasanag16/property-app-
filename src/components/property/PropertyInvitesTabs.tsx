@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InviteForm } from "@/components/invitations/InviteForm";
 import { ServiceProviderInviteForm } from "@/components/invitations/ServiceProviderInviteForm";
-import { InvitationsList } from "@/components/invitations/InvitationsList";
+import { InvitationsList, InvitationListType } from "@/components/invitations/InvitationsList";
 
 type PropertyInvitesTabsProps = {
   propertyId: string;

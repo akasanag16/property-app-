@@ -10,15 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Edit, Loader2, ChevronLeft } from "lucide-react";
+import { Edit, Loader2 } from "lucide-react";
 import { Property } from "@/types/property";
-import { PropertyInvitesTabs } from "./PropertyInvitesTabs";
 import { convertDetailsToPropertyDetails } from "@/hooks/properties/propertyUtils";
+import { PropertyDetailsView } from "./PropertyDetailsView";
+import { PropertyInvitationsView } from "./PropertyInvitationsView";
 
 interface PropertyDetailsModalProps {
   propertyId: string;
@@ -133,113 +131,45 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {loading ? (
-              "Loading..."
-            ) : editing ? (
-              "Edit Property"
-            ) : (
-              property?.name || "Property Details"
-            )}
-          </DialogTitle>
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <DialogDescription>
-              {editing ? "Update property details." : property?.description || "View property details."}
-            </DialogDescription>
-          )}
-        </DialogHeader>
-        
-        {activeView === 'details' && (
-          <>
-            {loading ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    type="text"
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={!editing}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Description
-                  </Label>
-                  <Input
-                    type="text"
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={!editing}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              {editing ? (
-                <>
-                  <Button type="button" variant="secondary" onClick={() => setEditing(false)} disabled={loading}>
-                    Cancel
-                  </Button>
-                  <Button type="button" onClick={handleSave} disabled={loading}>
-                    {loading ? (
-                      <>
-                        Saving <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      </>
-                    ) : (
-                      "Save Changes"
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="secondary" onClick={handleInvite} disabled={loading}>
-                    Manage Invitations
-                  </Button>
-                  <Button type="button" onClick={handleEdit} disabled={loading}>
-                    Edit Property
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </>
-        )}
-
-        {activeView === 'invitations' && (
+        {activeView === 'details' ? (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0" 
-                  onClick={() => setActiveView('details')}
-                >
-                  <ChevronLeft size={18} />
-                </Button>
-                Manage Invitations for {property?.name || "Property"}
+              <DialogTitle>
+                {loading ? (
+                  "Loading..."
+                ) : editing ? (
+                  "Edit Property"
+                ) : (
+                  property?.name || "Property Details"
+                )}
               </DialogTitle>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <DialogDescription>
+                  {editing ? "Update property details." : property?.description || "View property details."}
+                </DialogDescription>
+              )}
             </DialogHeader>
-
-            <PropertyInvitesTabs 
-              propertyId={property?.id || ""}
-              onClose={() => setActiveView('details')}
+            
+            <PropertyDetailsView
+              loading={loading}
+              property={property}
+              onEditToggle={() => editing ? setEditing(false) : handleEdit()}
+              onSave={handleSave}
+              onInviteClick={handleInvite}
+              editing={editing}
+              name={name}
+              setName={setName}
+              description={description}
+              setDescription={setDescription}
             />
           </>
+        ) : (
+          <PropertyInvitationsView 
+            property={property}
+            onBack={() => setActiveView('details')}
+          />
         )}
       </DialogContent>
     </Dialog>
