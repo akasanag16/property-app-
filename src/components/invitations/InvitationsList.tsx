@@ -10,12 +10,12 @@ export type InvitationListType = "tenant" | "service_provider";
 
 type InvitationsListProps = {
   propertyId: string;
-  invitationType: InvitationListType;
+  type: InvitationListType;
   refreshKey?: number;
   onError?: () => void;
 };
 
-export function InvitationsList({ propertyId, invitationType, refreshKey = 0, onError }: InvitationsListProps) {
+export function InvitationsList({ propertyId, type, refreshKey = 0, onError }: InvitationsListProps) {
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -23,7 +23,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
 
   useEffect(() => {
     fetchInvitations();
-  }, [propertyId, invitationType, refreshKey]);
+  }, [propertyId, type, refreshKey]);
 
   const fetchInvitations = async () => {
     try {
@@ -32,7 +32,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
 
       const { data, error: fetchError } = await supabase.rpc('get_property_invitations', {
         p_property_id: propertyId,
-        p_type: invitationType
+        p_type: type
       });
 
       if (fetchError) throw fetchError;
@@ -40,7 +40,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
       // Type assertion to ensure we handle the data correctly
       setInvitations(data as any[] || []);
     } catch (err) {
-      console.error(`Error fetching ${invitationType} invitations:`, err);
+      console.error(`Error fetching ${type} invitations:`, err);
       setError(true);
       if (onError) onError();
     } finally {
@@ -55,7 +55,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
       // First, update the invitation expiry in the database
       const { error: updateError } = await supabase.rpc('update_invitation_expiry', {
         p_invitation_id: id,
-        p_invitation_type: invitationType
+        p_invitation_type: type
       });
 
       if (updateError) throw updateError;
@@ -65,7 +65,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
       const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: id,
-          invitation_type: invitationType,
+          invitation_type: type,
           action: 'resend',
           base_url: baseUrl
         },
@@ -96,7 +96,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
       <div className="text-center py-4 space-y-2">
         <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
         <p className="text-sm text-gray-600">
-          Unable to load {invitationType === "tenant" ? "tenant" : "service provider"} invitations.
+          Unable to load {type === "tenant" ? "tenant" : "service provider"} invitations.
         </p>
         <Button 
           variant="outline" 
@@ -113,7 +113,7 @@ export function InvitationsList({ propertyId, invitationType, refreshKey = 0, on
   if (invitations.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500">
-        No {invitationType === "tenant" ? "tenant" : "service provider"} invitations yet.
+        No {type === "tenant" ? "tenant" : "service provider"} invitations yet.
       </div>
     );
   }
