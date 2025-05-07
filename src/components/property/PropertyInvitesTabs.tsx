@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InviteForm } from "@/components/invitations/InviteForm";
 import { ServiceProviderInviteForm } from "@/components/invitations/ServiceProviderInviteForm";
-import { InvitationsList, InvitationListType } from "@/components/invitations/InvitationsList";
+import { InvitationsList } from "@/components/invitations/InvitationsList";
 
 type PropertyInvitesTabsProps = {
   propertyId: string;
@@ -43,7 +43,7 @@ export function PropertyInvitesTabs({ propertyId, onClose }: PropertyInvitesTabs
             <h3 className="text-lg font-semibold mb-4">Pending Invitations</h3>
             <InvitationsList 
               propertyId={propertyId}
-              invitationType="tenant"
+              type="tenant"
               refreshKey={refreshTenantKey}
             />
           </div>
@@ -63,7 +63,7 @@ export function PropertyInvitesTabs({ propertyId, onClose }: PropertyInvitesTabs
             <h3 className="text-lg font-semibold mb-4">Pending Service Provider Invitations</h3>
             <InvitationsList 
               propertyId={propertyId}
-              invitationType="service_provider"
+              type="service_provider"
               refreshKey={refreshServiceProviderKey}
             />
           </div>
