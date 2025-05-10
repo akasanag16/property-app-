@@ -35,41 +35,49 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
   const [activeView, setActiveView] = useState<ActiveView>('details');
 
   useEffect(() => {
-    if (!propertyId) return;
+    if (!propertyId || !open) return;
 
     const fetchProperty = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', propertyId)
-          .single();
-
-        if (error) {
-          console.error("Error fetching property:", error);
+        // Use the safe_get_owner_properties RPC function to avoid infinite recursion
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .rpc('safe_get_owner_properties', { owner_id_param: user?.id })
+          
+        if (propertiesError) {
+          console.error("Error fetching properties:", propertiesError);
           toast.error("Failed to load property details");
-        } else if (data) {
+          setLoading(false);
+          return;
+        }
+        
+        // Find the specific property by ID from the returned data
+        const propertyData = propertiesData?.find(p => p.id === propertyId);
+        
+        if (propertyData) {
           const propertyWithDetails: Property = {
-            id: data.id,
-            name: data.name,
-            address: data.address,
-            details: convertDetailsToPropertyDetails(data.details),
-            owner_id: data.owner_id,
+            id: propertyData.id,
+            name: propertyData.name,
+            address: propertyData.address,
+            details: convertDetailsToPropertyDetails(propertyData.details),
+            owner_id: propertyData.owner_id,
             image_url: null
           };
           setProperty(propertyWithDetails);
           setName(propertyWithDetails.name);
+        } else {
+          toast.error("Property not found");
         }
+      } catch (err) {
+        console.error("Error in fetchProperty:", err);
+        toast.error("An error occurred while loading property details");
       } finally {
         setLoading(false);
       }
     };
 
-    if (open) {
-      fetchProperty();
-    }
-  }, [open, propertyId]);
+    fetchProperty();
+  }, [open, propertyId, user?.id]);
 
   const handleOpen = () => {
     setOpen(true);
@@ -88,6 +96,8 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
   };
 
   const handleSave = async () => {
+    if (!propertyId || !property) return;
+    
     setLoading(true);
     try {
       const { error } = await supabase
@@ -99,16 +109,17 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
         console.error("Error updating property:", error);
         toast.error("Failed to update property");
       } else {
-        if (property) {
-          setProperty({ 
-            ...property, 
-            name
-          });
-        }
+        setProperty({ 
+          ...property, 
+          name
+        });
         toast.success("Property updated successfully");
         setEditing(false);
         onSuccess();
       }
+    } catch (err) {
+      console.error("Error in handleSave:", err);
+      toast.error("An error occurred while saving property details");
     } finally {
       setLoading(false);
     }

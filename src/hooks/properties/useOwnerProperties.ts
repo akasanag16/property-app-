@@ -12,7 +12,7 @@ export async function fetchOwnerProperties(userId: string): Promise<Property[]> 
       return [];
     }
 
-    // Use our new security definer function to avoid infinite recursion
+    // Use the security definer function to avoid infinite recursion
     const { data: propertiesData, error: propertiesError } = await supabase
       .rpc('safe_get_owner_properties', { owner_id_param: userId });
     
@@ -27,12 +27,12 @@ export async function fetchOwnerProperties(userId: string): Promise<Property[]> 
       id: prop.id,
       name: prop.name,
       address: prop.address,
-      details: convertDetailsToPropertyDetails(prop.details)
+      details: convertDetailsToPropertyDetails(prop.details),
+      owner_id: prop.owner_id,
+      image_url: null
     }));
   } catch (error) {
     console.error('Error in fetchOwnerProperties:', error);
-    
-    // If all else fails, try edge function as a fallback
     return [];
   }
 }
