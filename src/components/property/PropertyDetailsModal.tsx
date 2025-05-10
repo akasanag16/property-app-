@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,9 +50,8 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           console.error("Error fetching property:", error);
           toast.error("Failed to load property details");
         } else if (data) {
-          // The description might not exist in the database - use type assertion with optional property
-          const propertyData = data as any;
-          const propertyDescription = propertyData.description || "";
+          // Since description is not in the database schema, provide a default empty string
+          const propertyDescription = "";
           
           const propertyWithDetails: Property = {
             id: data.id,
@@ -99,7 +97,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
     try {
       const { error } = await supabase
         .from('properties')
-        .update({ name, description })
+        .update({ name })
         .eq('id', propertyId);
 
       if (error) {
@@ -151,7 +149,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <DialogDescription>
-                  {editing ? "Update property details." : property?.description || "View property details."}
+                  {editing ? "Update property details." : "View property details."}
                 </DialogDescription>
               )}
             </DialogHeader>
