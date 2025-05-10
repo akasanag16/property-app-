@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +31,6 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const { user } = useAuth();
   const [activeView, setActiveView] = useState<ActiveView>('details');
 
@@ -50,21 +50,16 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           console.error("Error fetching property:", error);
           toast.error("Failed to load property details");
         } else if (data) {
-          // Since description is not in the database schema, provide a default empty string
-          const propertyDescription = "";
-          
           const propertyWithDetails: Property = {
             id: data.id,
             name: data.name,
             address: data.address,
-            description: propertyDescription,
             details: convertDetailsToPropertyDetails(data.details),
             owner_id: data.owner_id,
             image_url: null
           };
           setProperty(propertyWithDetails);
           setName(propertyWithDetails.name);
-          setDescription(propertyDescription);
         }
       } finally {
         setLoading(false);
@@ -107,8 +102,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
         if (property) {
           setProperty({ 
             ...property, 
-            name, 
-            description 
+            name
           });
         }
         toast.success("Property updated successfully");
@@ -163,8 +157,6 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
               editing={editing}
               name={name}
               setName={setName}
-              description={description}
-              setDescription={setDescription}
             />
           </>
         ) : (
