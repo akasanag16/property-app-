@@ -51,8 +51,9 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           console.error("Error fetching property:", error);
           toast.error("Failed to load property details");
         } else if (data) {
-          // Handle the case where description might not exist in the database
-          const propertyDescription = data.description || "";
+          // The description might not exist in the database - use type assertion with optional property
+          const propertyData = data as any;
+          const propertyDescription = propertyData.description || "";
           
           const propertyWithDetails: Property = {
             id: data.id,
