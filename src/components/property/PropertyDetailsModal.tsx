@@ -51,18 +51,21 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           console.error("Error fetching property:", error);
           toast.error("Failed to load property details");
         } else if (data) {
+          // Handle the case where description might not exist in the database
+          const propertyDescription = data.description || "";
+          
           const propertyWithDetails: Property = {
             id: data.id,
             name: data.name,
             address: data.address,
-            description: data.description || "",
+            description: propertyDescription,
             details: convertDetailsToPropertyDetails(data.details),
             owner_id: data.owner_id,
             image_url: null
           };
           setProperty(propertyWithDetails);
           setName(propertyWithDetails.name);
-          setDescription(propertyWithDetails.description || "");
+          setDescription(propertyDescription);
         }
       } finally {
         setLoading(false);
