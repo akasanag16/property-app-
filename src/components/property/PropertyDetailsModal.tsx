@@ -132,7 +132,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="w-full">
           <Edit className="h-4 w-4 mr-2" />
           View Details
         </Button>
@@ -141,7 +141,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
         {activeView === 'details' ? (
           <>
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {loading ? (
                   "Loading..."
                 ) : editing ? (

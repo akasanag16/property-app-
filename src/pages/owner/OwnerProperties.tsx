@@ -31,7 +31,7 @@ export default function OwnerProperties() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <PropertiesHeader 
           onAddProperty={() => setShowAddPropertyForm(true)}
           onRefresh={handleRefresh}
@@ -39,16 +39,14 @@ export default function OwnerProperties() {
           showFilters={showFilters}
         />
 
-        <p className="text-gray-600">
-          View and manage your properties here. Changes are updated in real-time.
-        </p>
-
         {showFilters && (
-          <PropertyFilter 
-            onFilterChange={handleFilterChange}
-            minRent={0}
-            maxRent={5000}
-          />
+          <div className="bg-white p-6 rounded-xl border shadow-sm">
+            <PropertyFilter 
+              onFilterChange={handleFilterChange}
+              minRent={0}
+              maxRent={5000}
+            />
+          </div>
         )}
 
         <PropertiesList 

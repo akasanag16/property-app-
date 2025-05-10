@@ -43,83 +43,86 @@ export function EnhancedPropertyCard({
   const [isHovered, setIsHovered] = useState(false);
   
   return (
-    <>
-      <Card 
-        className={cn("overflow-hidden transition-all duration-300 hover:shadow-lg", 
-          isHovered ? "scale-[1.02]" : "", 
-          className
-        )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="relative h-48 overflow-hidden">
-          {imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt={name} 
-              className="w-full h-full object-cover transition-transform duration-300"
-              style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <Home className="h-12 w-12 text-gray-400" />
-            </div>
-          )}
-        </div>
-        
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl">{name}</CardTitle>
-          <CardDescription className="text-sm line-clamp-1">{address}</CardDescription>
-        </CardHeader>
-        
-        <CardContent className="pb-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            {type && (
-              <div className="flex items-center text-gray-600">
-                <Home className="h-4 w-4 mr-1" />
-                <span className="capitalize">{type}</span>
-              </div>
-            )}
-            
-            {rent !== undefined && (
-              <div className="flex items-center text-gray-600">
-                <DollarSign className="h-4 w-4 mr-1" />
-                <span>${rent}/month</span>
-              </div>
-            )}
-            
-            {bedrooms !== undefined && (
-              <div className="flex items-center text-gray-600">
-                <Bed className="h-4 w-4 mr-1" />
-                <span>{bedrooms} {bedrooms === 1 ? 'bed' : 'beds'}</span>
-              </div>
-            )}
-            
-            {bathrooms !== undefined && (
-              <div className="flex items-center text-gray-600">
-                <Bath className="h-4 w-4 mr-1" />
-                <span>{bathrooms} {bathrooms === 1 ? 'bath' : 'baths'}</span>
-              </div>
-            )}
-            
-            {area !== undefined && (
-              <div className="flex items-center text-gray-600">
-                <SquareDot className="h-4 w-4 mr-1" />
-                <span>{area} sq ft</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        
-        <CardFooter>
-          <PropertyDetailsModal
-            propertyId={id}
-            onSuccess={() => {
-              if (onClick) onClick();
-            }}
+    <Card 
+      className={cn(
+        "overflow-hidden transition-all duration-300 hover:shadow-lg", 
+        isHovered ? "scale-[1.02]" : "", 
+        className
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative h-48 overflow-hidden bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
+        {imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={name} 
+            className="w-full h-full object-cover transition-transform duration-300"
+            style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
           />
-        </CardFooter>
-      </Card>
-    </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Home className="h-16 w-16 text-indigo-300" />
+          </div>
+        )}
+        {rent && (
+          <div className="absolute top-0 right-0 bg-indigo-600 text-white px-3 py-1 m-2 rounded-md font-medium">
+            ${rent}/month
+          </div>
+        )}
+      </div>
+      
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl font-semibold">{name}</CardTitle>
+        <CardDescription className="text-sm line-clamp-1">{address}</CardDescription>
+      </CardHeader>
+      
+      <CardContent className="pb-2 grid grid-cols-2 gap-3">
+        {type && (
+          <div className="flex items-center text-gray-600">
+            <div className="rounded-full bg-indigo-100 p-1.5 mr-2">
+              <Home className="h-3.5 w-3.5 text-indigo-600" />
+            </div>
+            <span className="capitalize text-sm">{type}</span>
+          </div>
+        )}
+        
+        {bedrooms !== undefined && (
+          <div className="flex items-center text-gray-600">
+            <div className="rounded-full bg-indigo-100 p-1.5 mr-2">
+              <Bed className="h-3.5 w-3.5 text-indigo-600" />
+            </div>
+            <span className="text-sm">{bedrooms} {bedrooms === 1 ? 'bed' : 'beds'}</span>
+          </div>
+        )}
+        
+        {bathrooms !== undefined && (
+          <div className="flex items-center text-gray-600">
+            <div className="rounded-full bg-indigo-100 p-1.5 mr-2">
+              <Bath className="h-3.5 w-3.5 text-indigo-600" />
+            </div>
+            <span className="text-sm">{bathrooms} {bathrooms === 1 ? 'bath' : 'baths'}</span>
+          </div>
+        )}
+        
+        {area !== undefined && (
+          <div className="flex items-center text-gray-600">
+            <div className="rounded-full bg-indigo-100 p-1.5 mr-2">
+              <SquareDot className="h-3.5 w-3.5 text-indigo-600" />
+            </div>
+            <span className="text-sm">{area} sq ft</span>
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="pt-0">
+        <PropertyDetailsModal
+          propertyId={id}
+          onSuccess={() => {
+            if (onClick) onClick();
+          }}
+        />
+      </CardFooter>
+    </Card>
   );
 }

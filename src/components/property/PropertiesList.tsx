@@ -14,22 +14,30 @@ export function PropertiesList({ loading, properties, onAddProperty }: Propertie
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (properties.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg border">
-        <h2 className="text-xl font-semibold mb-2">No Properties Found</h2>
-        <p className="text-gray-500 mb-4">
-          Please add properties from the dashboard
-        </p>
-        <Button onClick={onAddProperty}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Property
-        </Button>
+      <div className="text-center py-16 bg-white rounded-xl border shadow-sm">
+        <div className="p-6 max-w-md mx-auto space-y-6">
+          <div className="h-20 w-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
+            <Plus className="h-10 w-10 text-indigo-600" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-800">No Properties Found</h2>
+          <p className="text-gray-500">
+            Start managing your properties by adding your first property
+          </p>
+          <Button 
+            onClick={onAddProperty}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Property
+          </Button>
+        </div>
       </div>
     );
   }
