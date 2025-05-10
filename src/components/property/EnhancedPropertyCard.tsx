@@ -41,12 +41,6 @@ export function EnhancedPropertyCard({
   className
 }: PropertyCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  
-  const handleViewDetails = () => {
-    setShowDetailsModal(true);
-    if (onClick) onClick();
-  };
   
   return (
     <>
@@ -118,22 +112,14 @@ export function EnhancedPropertyCard({
         </CardContent>
         
         <CardFooter>
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleViewDetails}
-          >
-            View Details
-          </Button>
+          <PropertyDetailsModal
+            propertyId={id}
+            onSuccess={() => {
+              if (onClick) onClick();
+            }}
+          />
         </CardFooter>
       </Card>
-
-      {showDetailsModal && (
-        <PropertyDetailsModal
-          propertyId={id}
-          onSuccess={() => setShowDetailsModal(false)}
-        />
-      )}
     </>
   );
 }
