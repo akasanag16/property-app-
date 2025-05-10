@@ -11,7 +11,7 @@ export type Property = {
   id: string;
   name: string;
   address: string;
-  description?: string;
+  description?: string; // Added description property as optional
   details?: PropertyDetails;
   image_url?: string | null;
   owner_id?: string;
