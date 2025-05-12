@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Home, Bed, Bath, Square, DollarSign, Map, Users, Tool } from "lucide-react";
+import { Loader2, Home, Bed, Bath, Square, DollarSign, Map, Users, Wrench } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Property } from "@/types/property";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,7 +66,7 @@ export function PropertyDetailsView({
                     <span>Tenants</span>
                   </TabsTrigger>
                   <TabsTrigger value="services" className="flex items-center gap-2">
-                    <Tool className="h-4 w-4" />
+                    <Wrench className="h-4 w-4" />
                     <span>Services</span>
                   </TabsTrigger>
                 </TabsList>
