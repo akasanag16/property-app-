@@ -11,7 +11,7 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
       return [];
     }
     
-    // Use our new security definer function to avoid infinite recursion
+    // Use our security definer function to avoid infinite recursion
     const { data: requestsData, error: requestsError } = await supabase
       .rpc('safe_get_service_provider_maintenance_requests', { provider_id_param: providerId });
     
@@ -29,8 +29,8 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
     const formattedRequests: MaintenanceRequest[] = requestsData.map(request => {
       // Get tenant information
       const tenant = request.tenant_id ? {
-        first_name: request.tenant_first_name,
-        last_name: request.tenant_last_name
+        first_name: request.tenant_first_name || 'Unknown',
+        last_name: request.tenant_last_name || 'Tenant'
       } : null;
       
       return {

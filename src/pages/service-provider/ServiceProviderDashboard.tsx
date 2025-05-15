@@ -30,34 +30,10 @@ export default function ServiceProviderDashboard() {
 
       console.log("Fetching properties for service provider:", user.id);
 
-      // Get property IDs first using our new secure function
-      const { data: propertyIds, error: idsError } = await supabase
-        .rpc('get_service_provider_properties_by_id', { provider_id_param: user.id });
-        
-      if (idsError) {
-        console.error("Error fetching property IDs:", idsError);
-        setError(idsError.message);
-        throw idsError;
-      }
-      
-      if (!propertyIds || (Array.isArray(propertyIds) && propertyIds.length === 0)) {
-        setProperties([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Then get the actual property data
-      const propertyIdsArray = propertyIds as string[];
+      // Use our secure function pattern to avoid infinite recursion
       const { data: propertiesData, error: propertiesError } = await supabase
-        .from('properties')
-        .select(`
-          id,
-          name,
-          address,
-          details
-        `)
-        .in('id', propertyIdsArray);
-      
+        .rpc('safe_get_service_provider_properties', { provider_id_param: user.id });
+        
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);
         setError(propertiesError.message);

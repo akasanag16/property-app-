@@ -47,24 +47,19 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('maintenance-request', {
-        body: {
-          title: form.title,
-          description: form.description,
-          property_id: form.propertyId,
-          tenant_id: user?.id || '',
-          status: 'pending'
-        }
-      });
+      // Use a direct and safe approach to create the maintenance request
+      const { data, error } = await supabase
+        .rpc('create_maintenance_request', {
+          title_param: form.title,
+          description_param: form.description,
+          property_id_param: form.propertyId,
+          tenant_id_param: user?.id || '',
+          status_param: 'pending'
+        });
 
       if (error) {
-        console.error("Error from maintenance-request function:", error);
+        console.error("Error creating maintenance request:", error);
         throw new Error(`Failed to submit request: ${error.message || "Unknown error"}`);
-      }
-      
-      if (!data || !data.success) {
-        console.error("Invalid response from maintenance-request function:", data);
-        throw new Error("Failed to submit request: Unexpected response from server");
       }
       
       toast.success("Maintenance request submitted successfully");
