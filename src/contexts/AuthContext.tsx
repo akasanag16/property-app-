@@ -25,6 +25,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { userRole } = useUserRole(user);
 
+  // Debug auth state
+  React.useEffect(() => {
+    console.log("AuthProvider: Auth state updated", { 
+      session: session ? "exists" : "null", 
+      user: user ? user.email : "null", 
+      userRole,
+      loading
+    });
+  }, [session, user, userRole, loading]);
+
   return (
     <AuthContext.Provider value={{ session, user, userRole, loading, signOut }}>
       {children}

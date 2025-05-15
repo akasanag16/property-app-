@@ -64,6 +64,7 @@ export async function signIn({
   console.log("Attempting to sign in with:", { email });
   
   try {
+    // Use the persistSession option to make sure the session is stored properly
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -84,5 +85,8 @@ export async function signIn({
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (error) {
+    console.error("Sign out error:", error);
+    throw error;
+  }
 }

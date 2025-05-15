@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +27,6 @@ export function LoginForm({
     setLoading(true);
     setError(null);
 
-    const toastId = toast.loading("Signing in...");
-
     try {
       // Use supabase directly to get more detailed error reporting
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -46,23 +44,42 @@ export function LoginForm({
           setError(authError.message);
         }
         
-        toast.error("Authentication failed", { id: toastId });
+        toast({
+          variant: "destructive",
+          title: "Authentication failed",
+          description: "Please check your credentials and try again"
+        });
         return;
       }
 
       if (data.session) {
         console.log("Login successful, redirecting to dashboard");
-        toast.success("Signed in successfully", { id: toastId });
-        navigate("/dashboard");
+        toast({
+          title: "Success",
+          description: "Signed in successfully"
+        });
+        
+        // Wait a moment before redirecting to ensure session is properly set
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
       } else {
         console.error("No session returned despite successful login");
         setError("Authentication succeeded but no session was created. Please try again.");
-        toast.error("Authentication issue", { id: toastId });
+        toast({
+          variant: "destructive",
+          title: "Authentication issue",
+          description: "Please try again"
+        });
       }
     } catch (error) {
       console.error("Unexpected auth error:", error);
       setError(error instanceof Error ? error.message : "Authentication failed");
-      toast.error(error instanceof Error ? error.message : "Authentication failed", { id: toastId });
+      toast({
+        variant: "destructive",
+        title: "Authentication failed",
+        description: error instanceof Error ? error.message : "Please try again"
+      });
     } finally {
       setLoading(false);
     }

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { parseRecoveryTokenFromURL } from "@/utils/authUtils";
 
 export const useAuthSession = () => {
@@ -22,7 +22,9 @@ export const useAuthSession = () => {
           return;
         }
         
+        // Get the current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("Initial session check:", currentSession ? "Session found" : "No session");
         
         if (currentSession?.user) {
           setSession(currentSession);
@@ -38,7 +40,7 @@ export const useAuthSession = () => {
     // First, set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth state changed:", event, currentSession);
+        console.log("Auth state changed:", event, currentSession ? "Session exists" : "No session");
         
         if (currentSession?.user) {
           setSession(currentSession);
@@ -63,10 +65,17 @@ export const useAuthSession = () => {
       setSession(null);
       setUser(null);
       navigate("/auth");
-      toast.success("Signed out successfully");
+      toast({
+        title: "Success",
+        description: "Signed out successfully"
+      });
     } catch (error) {
       console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to sign out"
+      });
     }
   };
 
