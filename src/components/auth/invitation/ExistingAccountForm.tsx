@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { UserRole } from "@/lib/auth";
 
 interface ExistingAccountFormProps {
@@ -89,10 +88,7 @@ export function ExistingAccountForm({
         throw new Error(data?.error || "Failed to link to property. Please try again.");
       }
       
-      toast({
-        title: "Success",
-        description: "Successfully linked to property!"
-      });
+      toast.success("Successfully linked to property!");
       
       // Navigate to the appropriate dashboard based on role
       setTimeout(() => {

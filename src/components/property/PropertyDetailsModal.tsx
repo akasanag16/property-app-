@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -46,11 +45,7 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           
         if (propertiesError) {
           console.error("Error fetching properties:", propertiesError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load property details"
-          });
+          toast.error("Failed to load property details");
           setLoading(false);
           return;
         }
@@ -70,19 +65,11 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
           setProperty(propertyWithDetails);
           setName(propertyWithDetails.name);
         } else {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Property not found"
-          });
+          toast.error("Property not found");
         }
       } catch (err) {
         console.error("Error in fetchProperty:", err);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "An error occurred while loading property details"
-        });
+        toast.error("An error occurred while loading property details");
       } finally {
         setLoading(false);
       }
@@ -119,30 +106,19 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
 
       if (error) {
         console.error("Error updating property:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update property"
-        });
+        toast.error("Failed to update property");
       } else {
         setProperty({ 
           ...property, 
           name
         });
-        toast({
-          title: "Success",
-          description: "Property updated successfully"
-        });
+        toast.success("Property updated successfully");
         setEditing(false);
         onSuccess();
       }
     } catch (err) {
       console.error("Error in handleSave:", err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An error occurred while saving property details"
-      });
+      toast.error("An error occurred while saving property details");
     } finally {
       setLoading(false);
     }

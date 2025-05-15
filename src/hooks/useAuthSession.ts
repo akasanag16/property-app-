@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { parseRecoveryTokenFromURL } from "@/utils/authUtils";
 
 export const useAuthSession = () => {
@@ -65,17 +65,10 @@ export const useAuthSession = () => {
       setSession(null);
       setUser(null);
       navigate("/auth");
-      toast({
-        title: "Success",
-        description: "Signed out successfully"
-      });
+      toast.success("Signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to sign out"
-      });
+      toast.error("Failed to sign out");
     }
   };
 

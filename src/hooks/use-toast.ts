@@ -1,5 +1,6 @@
 
-import { Toast as SonnerToast, toast as sonnerToast, Toaster as SonnerToaster } from "sonner";
+import * as React from "react";
+import { toast as sonnerToast, Toaster as SonnerToaster } from "sonner";
 import {
   type ToastActionElement,
   type ToastProps,
@@ -139,7 +140,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ ...props }: Toast) {
+function baseToast({ ...props }: Toast) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -183,47 +184,50 @@ function useToast() {
 
   return {
     ...state,
-    toast,
+    toast: baseToast,
     dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   };
 }
 
-// Extended toast with helper methods for sonner integration
-const enhancedToast = {
-  success: (message: string) => {
-    toast({
-      title: "Success",
-      description: message,
-      variant: "default"
-    });
-    sonnerToast.success(message);
-  },
-  error: (message: string) => {
-    toast({
-      title: "Error",
-      description: message,
-      variant: "destructive"
-    });
-    sonnerToast.error(message);
-  },
-  warning: (message: string) => {
-    toast({
-      title: "Warning",
-      description: message,
-      variant: "default"
-    });
-    sonnerToast.warning(message);
-  },
-  info: (message: string) => {
-    toast({
-      title: "Info",
-      description: message
-    });
-    sonnerToast.info(message);
-  },
-  // Forward any other toast calls to the shadcn/ui toast
-  ...toast
+// Fix the toast implementation to be callable directly and also have helper methods
+const toast = (props: Toast) => {
+  return baseToast(props);
 };
 
-import * as React from "react";
-export { useToast, enhancedToast as toast };
+// Add methods to the toast function
+toast.success = (message: string) => {
+  baseToast({
+    title: "Success",
+    description: message,
+    variant: "default"
+  });
+  sonnerToast.success(message);
+};
+
+toast.error = (message: string) => {
+  baseToast({
+    title: "Error",
+    description: message,
+    variant: "destructive"
+  });
+  sonnerToast.error(message);
+};
+
+toast.warning = (message: string) => {
+  baseToast({
+    title: "Warning",
+    description: message,
+    variant: "default"
+  });
+  sonnerToast.warning(message);
+};
+
+toast.info = (message: string) => {
+  baseToast({
+    title: "Info",
+    description: message
+  });
+  sonnerToast.info(message);
+};
+
+export { useToast, toast };
