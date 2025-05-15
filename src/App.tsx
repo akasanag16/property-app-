@@ -32,16 +32,15 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public routes */}
+            {/* Public routes - These don't require authentication */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/confirm" element={<EmailConfirm />} />
             <Route path="/invitation/accept" element={<AcceptInvitation />} />
-            
-            {/* Add the new route that matches the URL format being sent */}
             <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
             
+            {/* Important: The unauthorized page must be accessible without authentication */}
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Protected routes (any authenticated user) */}

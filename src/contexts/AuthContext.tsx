@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { UserRole } from "@/lib/auth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -25,8 +25,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { userRole } = useUserRole(user);
 
+  // Store user role in sessionStorage for access outside the auth context
+  useEffect(() => {
+    if (userRole) {
+      try {
+        sessionStorage.setItem('userRole', userRole);
+      } catch (error) {
+        console.error("Could not store role in sessionStorage:", error);
+      }
+    } else {
+      try {
+        sessionStorage.removeItem('userRole');
+      } catch (error) {
+        console.error("Could not remove role from sessionStorage:", error);
+      }
+    }
+  }, [userRole]);
+
   // Debug auth state
-  React.useEffect(() => {
+  useEffect(() => {
     console.log("AuthProvider: Auth state updated", { 
       session: session ? "exists" : "null", 
       user: user ? user.email : "null", 
