@@ -31,16 +31,31 @@ export async function linkExistingUser(requestData: any) {
         .eq('email', email)
         .maybeSingle();
       
-      if (userByEmailError || !userByEmail) {
-        console.error('Error finding user by email:', userByEmailError || "User not found");
+      if (userByEmailError) {
+        console.error('Error finding user by email:', userByEmailError);
+        return createErrorResponse("Database error while finding user account", 500);
+      }
+      
+      if (!userByEmail) {
+        console.log('User not found by email in profiles table, checking auth.users directly');
         
-        // If user not found by email, try querying auth.users directly through auth.admin
-        const { data, error } = await supabaseClient.auth.admin.listUsers();
-        const foundUser = data?.users.find(user => user.email === email);
+        // If user not found by email in profiles, try querying auth.users directly
+        const { data, error } = await supabaseClient.auth.admin.listUsers({
+          filter: {
+            email: email
+          }
+        });
         
-        if (error || !foundUser) {
-          console.error('Error finding user through admin API:', error || "User not found");
+        if (error) {
+          console.error('Error finding user through admin API:', error);
           return createErrorResponse("Unable to find user account with this email", 400);
+        }
+        
+        const foundUser = data?.users?.find(user => user.email?.toLowerCase() === email.toLowerCase());
+        
+        if (!foundUser) {
+          console.error('User not found in auth.users');
+          return createErrorResponse("No account exists with this email. Please create a new account instead.", 400);
         }
         
         userIdToUse = foundUser.id;
@@ -83,13 +98,35 @@ export async function linkExistingUser(requestData: any) {
       }
     }
     
+    if (!userIdToUse) {
+      return createErrorResponse("Could not determine user ID for linking", 400);
+    }
+    
     console.log(`Found existing user with ID: ${userIdToUse}`);
     
     // Begin transaction
     const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
     const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
     
-    // 1. Mark invitation as used
+    // 1. First check if the invitation exists and is valid
+    const { data: invitation, error: inviteCheckError } = await supabaseClient
+      .from(tableName)
+      .select('*')
+      .eq('link_token', token)
+      .eq('email', email)
+      .lt('expires_at', 'now()')
+      .maybeSingle();
+      
+    if (inviteCheckError) {
+      console.error('Error checking invitation:', inviteCheckError);
+      throw inviteCheckError;
+    }
+    
+    if (!invitation) {
+      return createErrorResponse("Invitation not found or has expired. Please request a new invitation.", 400);
+    }
+    
+    // 2. Mark invitation as used
     const { error: inviteError } = await supabaseClient
       .from(tableName)
       .update({ 
@@ -106,17 +143,7 @@ export async function linkExistingUser(requestData: any) {
       throw inviteError;
     }
     
-    // 2. Create property link if it doesn't exist
-    const linkData = {
-      property_id: propertyId,
-    };
-    
-    if (role === 'tenant') {
-      linkData.tenant_id = userIdToUse;
-    } else {
-      linkData.service_provider_id = userIdToUse;
-    }
-    
+    // 3. Create property link if it doesn't exist
     // First check if link already exists
     const { data: existingLink, error: existingLinkError } = await supabaseClient
       .from(linkTableName)
@@ -132,6 +159,16 @@ export async function linkExistingUser(requestData: any) {
     
     // Only create the link if it doesn't already exist
     if (!existingLink) {
+      const linkData: any = {
+        property_id: propertyId,
+      };
+      
+      if (role === 'tenant') {
+        linkData.tenant_id = userIdToUse;
+      } else {
+        linkData.service_provider_id = userIdToUse;
+      }
+      
       const { error: linkError } = await supabaseClient
         .from(linkTableName)
         .insert(linkData);
@@ -153,6 +190,6 @@ export async function linkExistingUser(requestData: any) {
     });
   } catch (error: any) {
     console.error('Error linking existing user:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error.message || "Unknown error occurred during account linking");
   }
 }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { UserRole } from "@/lib/auth";
 
 interface ExistingAccountFormProps {
@@ -89,7 +89,10 @@ export function ExistingAccountForm({
         throw new Error(data?.error || "Failed to link to property. Please try again.");
       }
       
-      toast.success("Successfully linked to property!");
+      toast({
+        title: "Success",
+        description: "Successfully linked to property!"
+      });
       
       // Navigate to the appropriate dashboard based on role
       setTimeout(() => {
