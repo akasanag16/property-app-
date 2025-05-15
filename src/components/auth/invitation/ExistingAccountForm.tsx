@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +39,7 @@ export function ExistingAccountForm({
     e.preventDefault();
     
     if (!existingPassword || existingPassword.length < 6) {
-      setError("Please enter your password");
+      setError("Please enter your password (minimum 6 characters)");
       return;
     }
     
@@ -46,11 +47,12 @@ export function ExistingAccountForm({
     setError("");
     
     try {
-      console.log("Linking existing account with email:", email);
-      console.log("For property:", propertyId);
-      console.log("With role:", role);
-
-      // First, sign in the user to verify credentials
+      console.log("Trying to link existing account with email:", email);
+      
+      // First, sign out any current user to ensure we're starting fresh
+      await supabase.auth.signOut();
+      
+      // Attempt to sign in with the provided credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password: existingPassword
@@ -58,11 +60,11 @@ export function ExistingAccountForm({
       
       if (signInError) {
         console.error("Sign in error:", signInError);
-        throw new Error(signInError.message || "Invalid login credentials");
+        throw new Error("Invalid login credentials. Please check your password and try again.");
       }
       
       if (!signInData?.user) {
-        throw new Error("Failed to authenticate");
+        throw new Error("Failed to authenticate. Please try again.");
       }
       
       console.log("User authenticated successfully:", signInData.user.id);
@@ -79,15 +81,12 @@ export function ExistingAccountForm({
         }
       });
       
-      if (functionError) {
-        console.error("Function error:", functionError);
-        throw new Error(functionError.message || "Error linking to property");
+      if (functionError || !data?.success) {
+        console.error("Function error:", functionError || data?.error);
+        throw new Error(data?.error || functionError?.message || "Error linking to property. Please try again.");
       }
       
-      if (!data?.success) {
-        throw new Error(data?.error || "Failed to link to property. Please try again.");
-      }
-      
+      // Show success message
       toast.success("Successfully linked to property!");
       
       // Navigate to the appropriate dashboard based on role
@@ -128,6 +127,7 @@ export function ExistingAccountForm({
           type="password"
           value={existingPassword}
           onChange={(e) => setExistingPassword(e.target.value)}
+          placeholder="Enter your password"
           required
         />
       </div>

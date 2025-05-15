@@ -28,7 +28,7 @@ export async function linkExistingUser(requestData: any) {
       const { data: userByEmail, error: userByEmailError } = await supabaseClient
         .from('profiles')
         .select('id')
-        .eq('email', email)
+        .eq('email', email.toLowerCase())
         .maybeSingle();
       
       if (userByEmailError) {
@@ -42,7 +42,7 @@ export async function linkExistingUser(requestData: any) {
         // If user not found by email in profiles, try querying auth.users directly
         const { data, error } = await supabaseClient.auth.admin.listUsers({
           filter: {
-            email: email
+            email: email.toLowerCase()
           }
         });
         
@@ -73,7 +73,7 @@ export async function linkExistingUser(requestData: any) {
             .from('profiles')
             .insert({
               id: userIdToUse,
-              email: email,
+              email: email.toLowerCase(),
               role: role
             });
             
@@ -85,7 +85,7 @@ export async function linkExistingUser(requestData: any) {
           // Update the profile with the email
           const { error: profileUpdateError } = await supabaseClient
             .from('profiles')
-            .update({ email: email })
+            .update({ email: email.toLowerCase() })
             .eq('id', userIdToUse);
             
           if (profileUpdateError) {
@@ -114,7 +114,7 @@ export async function linkExistingUser(requestData: any) {
       .select('*')
       .eq('link_token', token)
       .eq('email', email)
-      .lt('expires_at', 'now()')
+      .gt('expires_at', 'now()')
       .maybeSingle();
       
     if (inviteCheckError) {
