@@ -46,20 +46,36 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     
     // Fetch tenant-property links with join to properties
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .from('tenant_property_link')
-      .select(`
-        tenant_id,
-        property_id,
-        properties (
-          id,
-          name
-        )
-      `)
-      .in('property_id', propertyIds);
+      .rpc('get_tenant_property_links_for_properties', { property_ids: propertyIds });
       
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
-      throw tenantLinksError;
+      
+      // Fallback to direct query if the RPC function fails
+      console.log("Trying direct query fallback for tenant links");
+      const { data: directLinks, error: directLinksError } = await supabase
+        .from('tenant_property_link')
+        .select(`
+          tenant_id,
+          property_id,
+          properties (
+            id,
+            name
+          )
+        `)
+        .in('property_id', propertyIds);
+        
+      if (directLinksError) {
+        console.error("Error with direct tenant links query:", directLinksError);
+        throw directLinksError;
+      }
+      
+      if (!directLinks || !Array.isArray(directLinks) || directLinks.length === 0) {
+        console.log("No tenant links found with direct query");
+        return [];
+      }
+      
+      tenantLinks = directLinks;
     }
     
     if (!tenantLinks || !Array.isArray(tenantLinks) || tenantLinks.length === 0) {
@@ -72,11 +88,11 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     const tenantToPropertyMap = new Map<string, { id: string; name: string }>();
     
     tenantLinks.forEach(link => {
-      if (link && link.tenant_id && link.properties) {
+      if (link && link.tenant_id) {
         tenantIds.push(link.tenant_id);
         tenantToPropertyMap.set(link.tenant_id, {
           id: link.property_id,
-          name: (link.properties as any).name || "Unknown Property"
+          name: link.property_name || (link.properties && (link.properties as any).name) || "Unknown Property"
         });
       }
     });

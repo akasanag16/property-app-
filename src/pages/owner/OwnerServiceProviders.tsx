@@ -1,8 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -86,8 +88,113 @@ const serviceTypes = [
   }
 ];
 
+// Type for service providers
+interface ServiceProvider {
+  id: string;
+  name: string;
+  email?: string;
+  properties: string[];
+}
+
 export default function OwnerServiceProviders() {
+  const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch assigned service providers
+  useEffect(() => {
+    const fetchServiceProviders = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching service providers for owner:", user.id);
+        
+        // First get owner properties
+        const { data: properties, error: propertiesError } = await supabase
+          .rpc('safe_get_owner_properties', { owner_id_param: user.id });
+          
+        if (propertiesError) {
+          console.error("Error fetching owner properties:", propertiesError);
+          throw propertiesError;
+        }
+        
+        if (!properties || properties.length === 0) {
+          console.log("No properties found for owner");
+          setServiceProviders([]);
+          return;
+        }
+        
+        const propertyIds = properties.map(p => p.id);
+        console.log("Owner property IDs:", propertyIds);
+        
+        // Get service provider links for these properties
+        const { data: links, error: linksError } = await supabase
+          .from('service_provider_property_link')
+          .select('service_provider_id, property_id')
+          .in('property_id', propertyIds);
+          
+        if (linksError) {
+          console.error("Error fetching service provider links:", linksError);
+          throw linksError;
+        }
+        
+        if (!links || links.length === 0) {
+          console.log("No service providers assigned to properties");
+          setServiceProviders([]);
+          return;
+        }
+        
+        // Get unique service provider IDs
+        const providerIds = [...new Set(links.map(link => link.service_provider_id))];
+        console.log("Service provider IDs:", providerIds);
+        
+        // Get profiles for these service providers
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', providerIds);
+          
+        if (profilesError) {
+          console.error("Error fetching service provider profiles:", profilesError);
+          throw profilesError;
+        }
+        
+        // Create mapping of property ID to name
+        const propertyMap = new Map();
+        properties.forEach(p => propertyMap.set(p.id, p.name));
+        
+        // Create service provider objects with their assigned properties
+        const providers = profiles?.map(profile => {
+          const providerLinks = links.filter(link => link.service_provider_id === profile.id);
+          const providerProperties = providerLinks.map(link => 
+            propertyMap.get(link.property_id) || "Unknown Property"
+          );
+          
+          return {
+            id: profile.id,
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Unknown Name",
+            email: profile.email,
+            properties: providerProperties
+          };
+        }) || [];
+        
+        console.log("Service providers with properties:", providers);
+        setServiceProviders(providers);
+        
+      } catch (err: any) {
+        console.error("Error in service provider fetching process:", err);
+        setError(err.message || "Failed to load service providers");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchServiceProviders();
+  }, [user?.id, refreshKey]);
   
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -123,6 +230,43 @@ export default function OwnerServiceProviders() {
           Browse and manage service providers for your properties. These services can be offered to your tenants.
         </p>
 
+        {/* Assigned Service Providers Section */}
+        {(serviceProviders.length > 0 || loading) && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Assigned Service Providers</h2>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {serviceProviders.map((provider) => (
+                  <Card key={provider.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{provider.name}</CardTitle>
+                      <CardDescription>{provider.email || "No email available"}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm font-medium mb-1">Assigned Properties:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                        {provider.properties.length > 0 ? 
+                          provider.properties.map((property, index) => (
+                            <li key={index}>{property}</li>
+                          ))
+                          : 
+                          <li className="text-gray-500">No properties assigned</li>
+                        }
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Available Service Types Section */}
+        <h2 className="text-xl font-semibold mt-8 mb-4">Available Service Types</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {serviceTypes.map((service) => (
             <Card key={service.id} className="overflow-hidden transition-all duration-300 hover:shadow-md">

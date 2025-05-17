@@ -4,7 +4,8 @@ import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Tenant } from "@/types/tenant";
 import { toast } from "sonner";
-import { fetchTenantsForProperties, checkProfileEmailColumn } from "./tenantDataUtils";
+import { fetchTenantsForProperties } from "./tenantDataUtils";
+import { checkProfileEmailColumn } from "./tenantDataUtils";
 
 // Fallback to sample data if needed for development/testing
 import { sampleTenants } from "@/data/sampleTenants";
@@ -37,7 +38,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
           toast.warning("Database update required: Email column is missing");
         }
         
-        // Use the safer RPC function to get properties
+        // Use the security definer function to get properties
         const { data: propertyData, error: propertiesError } = await supabase
           .rpc('safe_get_owner_properties', { owner_id_param: user.id });
         
@@ -48,6 +49,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
         }
         
         const ownerPropertyIds = propertyData?.map(prop => prop.id) || [];
+        console.log("Owner property IDs:", ownerPropertyIds);
         
         if (!ownerPropertyIds || ownerPropertyIds.length === 0) {
           console.log("No properties found for owner");
@@ -57,11 +59,14 @@ export function useTenantData(user: User | null, refreshKey: number) {
         }
         
         try {
+          // Use the non-recursive fetchTenantsForProperties function
           const allTenants = await fetchTenantsForProperties(ownerPropertyIds);
+          console.log("Fetched tenants:", allTenants);
           
           if (allTenants.length === 0) {
             // Only use sample data if we're in development
             if (process.env.NODE_ENV === 'development') {
+              console.log("Using sample tenant data in dev mode");
               setTenants(sampleTenants);
             } else {
               setTenants([]);
@@ -69,7 +74,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
           } else {
             setTenants(allTenants);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error in tenant fetching process:", err);
           setError("Failed to load tenants data.");
           
@@ -80,7 +85,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
           }
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching tenants:", error);
         setError("Failed to load tenants. Please try again.");
         

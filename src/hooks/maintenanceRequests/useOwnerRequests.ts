@@ -19,7 +19,9 @@ export function useOwnerRequests(userId: string | undefined, refreshKey = 0) {
     try {
       setLoading(true);
       setError(null);
+      console.log("Fetching owner maintenance requests for user:", userId);
       const data = await getOwnerRequests(userId);
+      console.log("Owner maintenance requests fetched:", data);
       setRequests(data);
     } catch (err: any) {
       console.error("Error fetching owner maintenance requests:", err);
