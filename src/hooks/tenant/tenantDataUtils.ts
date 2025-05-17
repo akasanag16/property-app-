@@ -44,8 +44,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     
     console.log("Fetching tenants for properties:", propertyIds);
     
-    // Instead of using the RPC function that's causing type errors,
-    // we'll use direct queries with proper typings
+    // Use direct queries with proper typings instead of RPC
     const { data: tenantLinks, error: tenantLinksError } = await supabase
       .from('tenant_property_link')
       .select(`
