@@ -47,15 +47,18 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      // Use a direct and safe approach to create the maintenance request
+      // Use direct insert instead of RPC function
       const { data, error } = await supabase
-        .rpc('create_maintenance_request', {
-          title_param: form.title,
-          description_param: form.description,
-          property_id_param: form.propertyId,
-          tenant_id_param: user?.id || '',
-          status_param: 'pending'
-        });
+        .from('maintenance_requests')
+        .insert({
+          title: form.title,
+          description: form.description,
+          property_id: form.propertyId,
+          tenant_id: user?.id || '',
+          status: 'pending'
+        })
+        .select('id')
+        .single();
 
       if (error) {
         console.error("Error creating maintenance request:", error);
