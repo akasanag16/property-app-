@@ -44,39 +44,52 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     
     console.log("Fetching tenants for properties:", propertyIds);
     
-    // Use direct queries with proper typings instead of RPC
-    const { data: tenantLinks, error: tenantLinksError } = await supabase
+    // Use direct queries with proper typings instead of RPC to avoid recursion
+    // First, get all tenant links directly
+    const { data: links, error: linksError } = await supabase
       .from('tenant_property_link')
-      .select(`
-        tenant_id,
-        property_id,
-        properties (
-          id,
-          name
-        )
-      `)
+      .select('tenant_id, property_id')
       .in('property_id', propertyIds);
       
-    if (tenantLinksError) {
-      console.error("Error fetching tenant links:", tenantLinksError);
-      throw tenantLinksError;
+    if (linksError) {
+      console.error("Error fetching tenant links:", linksError);
+      throw linksError;
     }
     
-    if (!tenantLinks || !Array.isArray(tenantLinks) || tenantLinks.length === 0) {
+    if (!links || links.length === 0) {
       console.log("No tenant links found for the provided property IDs");
       return [];
     }
     
-    // Extract tenant IDs and create a property map for each tenant
-    const tenantIds: string[] = [];
-    const tenantToPropertyMap = new Map<string, { id: string; name: string }>();
+    // Extract tenant IDs
+    const tenantIds = links.map(link => link.tenant_id);
     
-    tenantLinks.forEach(link => {
+    // Get property names in a separate query to avoid recursion
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id, name')
+      .in('id', propertyIds);
+      
+    if (propertiesError) {
+      console.error("Error fetching property names:", propertiesError);
+      throw propertiesError;
+    }
+    
+    // Create a map of property IDs to property names
+    const propertyMap = new Map();
+    if (properties && properties.length > 0) {
+      properties.forEach(property => {
+        propertyMap.set(property.id, property.name);
+      });
+    }
+    
+    // Create a map of tenant IDs to their property info
+    const tenantToPropertyMap = new Map();
+    links.forEach(link => {
       if (link && link.tenant_id) {
-        tenantIds.push(link.tenant_id);
         tenantToPropertyMap.set(link.tenant_id, {
           id: link.property_id,
-          name: link.properties ? link.properties.name : "Unknown Property"
+          name: propertyMap.get(link.property_id) || "Unknown Property"
         });
       }
     });

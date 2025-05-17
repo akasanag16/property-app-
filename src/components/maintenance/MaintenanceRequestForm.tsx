@@ -47,22 +47,24 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
 
     setSubmitting(true);
     try {
-      // Use direct insert instead of RPC function
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .insert({
+      // Use edge function instead of direct insert to avoid recursion issues
+      const { data, error } = await supabase.functions.invoke('maintenance-request', {
+        body: {
           title: form.title,
           description: form.description,
           property_id: form.propertyId,
-          tenant_id: user?.id || '',
+          tenant_id: user?.id,
           status: 'pending'
-        })
-        .select('id')
-        .single();
+        }
+      });
 
       if (error) {
         console.error("Error creating maintenance request:", error);
         throw new Error(`Failed to submit request: ${error.message || "Unknown error"}`);
+      }
+      
+      if (!data || !data.success) {
+        throw new Error("Failed to create maintenance request: No response from server");
       }
       
       toast.success("Maintenance request submitted successfully");

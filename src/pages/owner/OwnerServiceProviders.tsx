@@ -17,8 +17,10 @@ import {
   Wrench,
   HomeIcon,
   Shirt,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
+import { ErrorAlert } from "@/components/ui/alert-error";
 
 // Sample service types
 const serviceTypes = [
@@ -119,7 +121,8 @@ export default function OwnerServiceProviders() {
           
         if (propertiesError) {
           console.error("Error fetching owner properties:", propertiesError);
-          throw propertiesError;
+          setError("Failed to fetch your properties. Please try again.");
+          return;
         }
         
         if (!properties || properties.length === 0) {
@@ -131,7 +134,7 @@ export default function OwnerServiceProviders() {
         const propertyIds = properties.map(p => p.id);
         console.log("Owner property IDs:", propertyIds);
         
-        // Get service provider links for these properties
+        // Get service provider links - using direct query to avoid recursion issues
         const { data: links, error: linksError } = await supabase
           .from('service_provider_property_link')
           .select('service_provider_id, property_id')
@@ -139,7 +142,8 @@ export default function OwnerServiceProviders() {
           
         if (linksError) {
           console.error("Error fetching service provider links:", linksError);
-          throw linksError;
+          setError("Failed to fetch service provider associations. Please try again.");
+          return;
         }
         
         if (!links || links.length === 0) {
@@ -160,7 +164,14 @@ export default function OwnerServiceProviders() {
           
         if (profilesError) {
           console.error("Error fetching service provider profiles:", profilesError);
-          throw profilesError;
+          setError("Failed to fetch service provider details. Please try again.");
+          return;
+        }
+        
+        if (!profiles || profiles.length === 0) {
+          console.log("No service provider profiles found");
+          setServiceProviders([]);
+          return;
         }
         
         // Create mapping of property ID to name
@@ -168,7 +179,7 @@ export default function OwnerServiceProviders() {
         properties.forEach(p => propertyMap.set(p.id, p.name));
         
         // Create service provider objects with their assigned properties
-        const providers = profiles?.map(profile => {
+        const providers = profiles.map(profile => {
           const providerLinks = links.filter(link => link.service_provider_id === profile.id);
           const providerProperties = providerLinks.map(link => 
             propertyMap.get(link.property_id) || "Unknown Property"
@@ -180,7 +191,7 @@ export default function OwnerServiceProviders() {
             email: profile.email,
             properties: providerProperties
           };
-        }) || [];
+        });
         
         console.log("Service providers with properties:", providers);
         setServiceProviders(providers);
@@ -198,7 +209,7 @@ export default function OwnerServiceProviders() {
   
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
-    toast.success("Service provider list refreshed");
+    toast.success("Refreshing service provider list...");
   };
 
   const handleViewProviders = (serviceName: string) => {
@@ -221,8 +232,8 @@ export default function OwnerServiceProviders() {
             size="sm"
             onClick={handleRefresh}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
         
@@ -230,40 +241,50 @@ export default function OwnerServiceProviders() {
           Browse and manage service providers for your properties. These services can be offered to your tenants.
         </p>
 
-        {/* Assigned Service Providers Section */}
-        {(serviceProviders.length > 0 || loading) && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Assigned Service Providers</h2>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {serviceProviders.map((provider) => (
-                  <Card key={provider.id} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{provider.name}</CardTitle>
-                      <CardDescription>{provider.email || "No email available"}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm font-medium mb-1">Assigned Properties:</p>
-                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                        {provider.properties.length > 0 ? 
-                          provider.properties.map((property, index) => (
-                            <li key={index}>{property}</li>
-                          ))
-                          : 
-                          <li className="text-gray-500">No properties assigned</li>
-                        }
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+        {error && (
+          <ErrorAlert message={error} onRetry={handleRefresh} />
         )}
+
+        {/* Assigned Service Providers Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Assigned Service Providers</h2>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : serviceProviders.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {serviceProviders.map((provider) => (
+                <Card key={provider.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">{provider.name}</CardTitle>
+                    <CardDescription>{provider.email || "No email available"}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium mb-1">Assigned Properties:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                      {provider.properties.length > 0 ? 
+                        provider.properties.map((property, index) => (
+                          <li key={index}>{property}</li>
+                        ))
+                        : 
+                        <li className="text-gray-500">No properties assigned</li>
+                      }
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center p-6 bg-gray-50 rounded-lg border">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-700">No Service Providers Assigned</h3>
+              <p className="text-gray-500 mt-1">
+                You haven't assigned any service providers to your properties yet.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Available Service Types Section */}
         <h2 className="text-xl font-semibold mt-8 mb-4">Available Service Types</h2>
