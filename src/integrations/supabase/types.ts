@@ -495,6 +495,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      check_tenant_property_access: {
+        Args: { tenant_id_param: string; property_id_param: string }
+        Returns: boolean
+      }
       commit_transaction: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -505,6 +509,16 @@ export type Database = {
           p_email: string
           p_link_token: string
           p_type: string
+        }
+        Returns: string
+      }
+      create_maintenance_request: {
+        Args: {
+          title_param: string
+          description_param: string
+          property_id_param: string
+          tenant_id_param: string
+          status_param?: string
         }
         Returns: string
       }

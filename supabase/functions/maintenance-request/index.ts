@@ -50,27 +50,48 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Insert the maintenance request directly
-    const { data, error } = await supabaseClient
-      .from('maintenance_requests')
-      .insert({
-        title,
-        description,
-        property_id,
-        tenant_id,
-        status
-      })
-      .select('id')
-      .single()
+    // First verify tenant has access to this property using our security function
+    const { data: hasAccess, error: accessCheckError } = await supabaseClient
+      .rpc('check_tenant_property_access', {
+        tenant_id_param: tenant_id,
+        property_id_param: property_id
+      });
     
-    if (error) {
-      console.error('Error inserting maintenance request:', error);
-      throw error;
+    if (accessCheckError) {
+      console.error('Error checking property access:', accessCheckError);
+      throw new Error(`Access verification failed: ${accessCheckError.message}`);
+    }
+    
+    if (!hasAccess) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Tenant does not have access to this property'
+        }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    // Use the secure RPC function to create the maintenance request
+    const { data: requestId, error: insertError } = await supabaseClient
+      .rpc('create_maintenance_request', {
+        title_param: title,
+        description_param: description,
+        property_id_param: property_id,
+        tenant_id_param: tenant_id,
+        status_param: status
+      });
+    
+    if (insertError) {
+      console.error('Error creating maintenance request:', insertError);
+      throw insertError;
     }
     
     // Return success with the new request ID
     return new Response(
-      JSON.stringify({ success: true, id: data.id }),
+      JSON.stringify({ success: true, id: requestId }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

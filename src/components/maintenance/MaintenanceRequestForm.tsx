@@ -45,15 +45,29 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
       return;
     }
 
+    if (!user?.id) {
+      const errorMsg = "You must be logged in to submit a maintenance request";
+      toast.error(errorMsg);
+      if (onError) onError(errorMsg);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Use edge function instead of direct insert to avoid recursion issues
+      console.log("Submitting maintenance request:", {
+        title: form.title,
+        description: form.description,
+        property_id: form.propertyId,
+        tenant_id: user.id
+      });
+      
+      // Use edge function to avoid recursion issues
       const { data, error } = await supabase.functions.invoke('maintenance-request', {
         body: {
           title: form.title,
           description: form.description,
           property_id: form.propertyId,
-          tenant_id: user?.id,
+          tenant_id: user.id,
           status: 'pending'
         }
       });
