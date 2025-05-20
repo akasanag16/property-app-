@@ -9,25 +9,53 @@ export const useAuthSession = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("Auth state changed: INITIAL_SESSION", session ? "Session exists" : "No session");
+    console.log("Auth session hook initializing...");
 
-    // First set up the auth state change listener
+    // Get initial session
+    const initSession = async () => {
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting initial session:", error);
+          return;
+        }
+        
+        if (currentSession) {
+          console.log("Initial session found");
+          setSession(currentSession);
+          setUser(currentSession.user);
+        } else {
+          console.log("No initial session found");
+          setSession(null);
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Unexpected error during session initialization:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Initialize session
+    initSession();
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        }
       }
     );
 
-    // Then check for an existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log("Initial session check:", currentSession ? "Session exists" : "No session");
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    });
-
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
@@ -36,9 +64,10 @@ export const useAuthSession = () => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      console.log("User signed out");
+      console.log("User signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
+      throw error;
     }
   };
 

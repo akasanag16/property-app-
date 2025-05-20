@@ -29,17 +29,25 @@ export const useUserRole = (user: User | null) => {
 
       if (error) {
         console.error("Error fetching profile:", error);
+        // Fall back to 'tenant' role if we can't determine the role
+        console.log("Falling back to default role: tenant");
+        setUserRole('tenant');
         return;
       }
 
-      if (data) {
+      if (data?.role) {
         console.log("User role fetched from profiles:", data.role);
         setUserRole(data.role as UserRole);
       } else {
-        console.warn("No profile found for user:", userId);
+        console.warn("No role found for user:", userId);
+        // Fall back to 'tenant' role if we can't determine the role
+        console.log("Falling back to default role: tenant");
+        setUserRole('tenant');
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
+      // Fall back to 'tenant' role if we can't determine the role
+      setUserRole('tenant');
     } finally {
       setFetching(false);
     }

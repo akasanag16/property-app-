@@ -35,18 +35,30 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
     setForm({ ...form, [name]: value });
   };
 
+  const validateForm = () => {
+    const errors = [];
+    if (!form.title.trim()) errors.push("Title is required");
+    if (!form.description.trim()) errors.push("Description is required");
+    if (!form.propertyId) errors.push("Property selection is required");
+    
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!form.title || !form.description || !form.propertyId) {
-      const errorMsg = "Please fill in all fields";
+    // Validate authentication
+    if (!user?.id) {
+      const errorMsg = "You must be logged in to submit a maintenance request";
       toast.error(errorMsg);
       if (onError) onError(errorMsg);
       return;
     }
 
-    if (!user?.id) {
-      const errorMsg = "You must be logged in to submit a maintenance request";
+    // Validate form
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      const errorMsg = validationErrors.join(", ");
       toast.error(errorMsg);
       if (onError) onError(errorMsg);
       return;
@@ -61,27 +73,44 @@ export function MaintenanceRequestForm({ properties, onRequestCreated, onError }
         tenant_id: user.id
       });
       
+      // Get auth token for the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        throw new Error("Authentication token not available");
+      }
+      
       // Use edge function to avoid recursion issues
-      const { data, error } = await supabase.functions.invoke('maintenance-request', {
+      const response = await supabase.functions.invoke('maintenance-request', {
         body: {
           title: form.title,
           description: form.description,
           property_id: form.propertyId,
           tenant_id: user.id,
           status: 'pending'
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
         }
       });
-
-      if (error) {
-        console.error("Error creating maintenance request:", error);
-        throw new Error(`Failed to submit request: ${error.message || "Unknown error"}`);
+      
+      if (response.error) {
+        console.error("API error:", response.error);
+        throw new Error(`Failed to submit request: ${response.error.message || "API error"}`);
       }
+      
+      const data = response.data;
       
       if (!data || !data.success) {
-        throw new Error("Failed to create maintenance request: No response from server");
+        const errorDetails = data?.error || "Unknown error";
+        throw new Error(`Failed to create maintenance request: ${errorDetails}`);
       }
       
+      console.log("Maintenance request created successfully:", data);
       toast.success("Maintenance request submitted successfully");
+      
+      // Reset form
       setForm({
         title: "",
         description: "",

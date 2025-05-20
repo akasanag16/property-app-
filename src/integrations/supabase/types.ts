@@ -618,6 +618,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      safe_check_tenant_property_access: {
+        Args: { tenant_id_param: string; property_id_param: string }
+        Returns: boolean
+      }
       safe_get_owner_maintenance_requests: {
         Args: { owner_id_param: string }
         Returns: {
@@ -693,6 +697,10 @@ export type Database = {
           address: string
           details: Json
         }[]
+      }
+      safe_is_owner_of_property: {
+        Args: { user_id_param: string; property_id_param: string }
+        Returns: boolean
       }
       update_invitation_expiry: {
         Args: { p_invitation_id: string; p_invitation_type: string }
