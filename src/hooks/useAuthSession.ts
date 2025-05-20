@@ -1,58 +1,32 @@
 
 import { useState, useEffect } from 'react';
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
-import { parseRecoveryTokenFromURL } from "@/utils/authUtils";
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAuthSession = () => {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Check if we have a recovery token in the URL
-        const isRecovery = await parseRecoveryTokenFromURL();
-        if (isRecovery) {
-          setLoading(false);
-          return;
-        }
-        
-        // Get the current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log("Initial session check:", currentSession ? "Session found" : "No session");
-        
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log("Auth state changed: INITIAL_SESSION", session ? "Session exists" : "No session");
 
-    // First, set up the auth state change listener
+    // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log("Auth state changed:", event, currentSession ? "Session exists" : "No session");
-        
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-        } else {
-          setSession(null);
-          setUser(null);
-        }
+      (event, newSession) => {
+        console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
       }
     );
 
-    initializeAuth();
+    // Then check for an existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession ? "Session exists" : "No session");
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -62,23 +36,16 @@ export const useAuthSession = () => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      navigate("/auth");
-      toast.success("Signed out successfully");
+      console.log("User signed out");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
     }
   };
 
   return {
-    session,
-    setSession,
     user,
-    setUser,
+    session,
     loading,
-    setLoading,
     signOut
   };
 };
