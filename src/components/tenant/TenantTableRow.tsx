@@ -19,7 +19,7 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
       <TableCell>{tenant.property?.name || "Unknown Property"}</TableCell>
       <TableCell>
         {tenant.email ? (
-          <span className="text-xs">{tenant.email}</span>
+          <span className="text-xs break-all">{tenant.email}</span>
         ) : (
           <Badge variant="warning" className="text-xs">No email</Badge>
         )}

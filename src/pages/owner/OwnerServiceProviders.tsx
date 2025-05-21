@@ -108,7 +108,10 @@ export default function OwnerServiceProviders() {
   // Fetch assigned service providers
   useEffect(() => {
     const fetchServiceProviders = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.log("No user ID available, skipping service provider fetch");
+        return;
+      }
       
       try {
         setLoading(true);
@@ -131,10 +134,10 @@ export default function OwnerServiceProviders() {
           return;
         }
         
-        const propertyIds = properties.map(p => p.id);
-        console.log("Owner property IDs:", propertyIds);
+        const propertyIds = properties.map((p: any) => p.id);
+        console.log(`Owner has ${propertyIds.length} properties:`, propertyIds);
         
-        // Get service provider links - using direct query to avoid recursion issues
+        // Get service provider links - using direct query
         const { data: links, error: linksError } = await supabase
           .from('service_provider_property_link')
           .select('service_provider_id, property_id')
@@ -152,9 +155,11 @@ export default function OwnerServiceProviders() {
           return;
         }
         
+        console.log(`Found ${links.length} service provider links`);
+        
         // Get unique service provider IDs
         const providerIds = [...new Set(links.map(link => link.service_provider_id))];
-        console.log("Service provider IDs:", providerIds);
+        console.log(`Found ${providerIds.length} unique service providers:`, providerIds);
         
         // Get profiles for these service providers
         const { data: profiles, error: profilesError } = await supabase
@@ -169,14 +174,27 @@ export default function OwnerServiceProviders() {
         }
         
         if (!profiles || profiles.length === 0) {
-          console.log("No service provider profiles found");
+          console.log("No service provider profiles found for IDs:", providerIds);
+          // Check if these users exist in auth but not in profiles
+          const { data: authCheck, error: authError } = await supabase
+            .rpc('check_users_exist', { user_ids: providerIds });
+            
+          if (authError) {
+            console.error("Error checking for users in auth:", authError);
+          } else if (authCheck && authCheck.length > 0) {
+            console.log("Found users in auth but not in profiles:", authCheck);
+            toast.warning("Some service providers have incomplete profiles");
+          }
+          
           setServiceProviders([]);
           return;
         }
         
+        console.log(`Found ${profiles.length} service provider profiles`);
+        
         // Create mapping of property ID to name
-        const propertyMap = new Map();
-        properties.forEach(p => propertyMap.set(p.id, p.name));
+        const propertyMap = new Map<string, string>();
+        properties.forEach((p: any) => propertyMap.set(p.id, p.name));
         
         // Create service provider objects with their assigned properties
         const providers = profiles.map(profile => {
@@ -193,7 +211,7 @@ export default function OwnerServiceProviders() {
           };
         });
         
-        console.log("Service providers with properties:", providers);
+        console.log(`Successfully processed ${providers.length} service providers`);
         setServiceProviders(providers);
         
       } catch (err: any) {

@@ -29,6 +29,8 @@ export function useTenantData(user: User | null, refreshKey: number) {
           return;
         }
 
+        console.log("Starting tenant data fetch for owner:", user.id);
+
         // First check if email column exists
         const hasEmailColumn = await checkProfileEmailColumn();
         setEmailColumnMissing(!hasEmailColumn);
@@ -44,12 +46,12 @@ export function useTenantData(user: User | null, refreshKey: number) {
         
         if (propertiesError) {
           console.error("Error fetching owner properties:", propertiesError);
-          setError("Failed to retrieve properties. Please try again.");
+          setError("Failed to retrieve your properties. Please try again.");
           throw propertiesError;
         }
         
-        const ownerPropertyIds = propertyData?.map(prop => prop.id) || [];
-        console.log("Owner property IDs:", ownerPropertyIds);
+        const ownerPropertyIds = propertyData?.map((prop: any) => prop.id) || [];
+        console.log(`Owner has ${ownerPropertyIds.length} properties:`, ownerPropertyIds);
         
         if (!ownerPropertyIds || ownerPropertyIds.length === 0) {
           console.log("No properties found for owner");
@@ -59,14 +61,14 @@ export function useTenantData(user: User | null, refreshKey: number) {
         }
         
         try {
-          // Use the non-recursive fetchTenantsForProperties function
+          // Fetch tenant data using our improved function
           const allTenants = await fetchTenantsForProperties(ownerPropertyIds);
-          console.log("Fetched tenants:", allTenants);
+          console.log(`Fetched ${allTenants.length} tenants for the properties`);
           
           if (allTenants.length === 0) {
-            // Only use sample data if we're in development
+            // Only use sample data in development
             if (process.env.NODE_ENV === 'development') {
-              console.log("Using sample tenant data in dev mode");
+              console.log("Using sample tenant data in dev mode (no real tenants found)");
               setTenants(sampleTenants);
             } else {
               setTenants([]);
@@ -76,7 +78,7 @@ export function useTenantData(user: User | null, refreshKey: number) {
           }
         } catch (err: any) {
           console.error("Error in tenant fetching process:", err);
-          setError("Failed to load tenants data.");
+          setError("Failed to load tenants data. The server returned an error.");
           
           // Only fallback to sample data in development mode
           if (process.env.NODE_ENV === 'development') {
