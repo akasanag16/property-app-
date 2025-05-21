@@ -25,10 +25,18 @@ export const useUserRole = (user: User | null) => {
         .from("profiles")
         .select("role")
         .eq("id", userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle case where profile might not exist yet
 
       if (error) {
         console.error("Error fetching profile:", error);
+        // Check for session storage fallback
+        const storedRole = sessionStorage.getItem('userRole');
+        if (storedRole) {
+          console.log("Using role from session storage:", storedRole);
+          setUserRole(storedRole as UserRole);
+          return;
+        }
+        
         // Fall back to 'tenant' role if we can't determine the role
         console.log("Falling back to default role: tenant");
         setUserRole('tenant');
@@ -38,16 +46,37 @@ export const useUserRole = (user: User | null) => {
       if (data?.role) {
         console.log("User role fetched from profiles:", data.role);
         setUserRole(data.role as UserRole);
+        // Store in session storage as a fallback
+        try {
+          sessionStorage.setItem('userRole', data.role);
+        } catch (e) {
+          console.warn("Failed to store role in session storage:", e);
+        }
       } else {
         console.warn("No role found for user:", userId);
+        // Check for session storage fallback
+        const storedRole = sessionStorage.getItem('userRole');
+        if (storedRole) {
+          console.log("Using role from session storage:", storedRole);
+          setUserRole(storedRole as UserRole);
+          return;
+        }
+        
         // Fall back to 'tenant' role if we can't determine the role
         console.log("Falling back to default role: tenant");
         setUserRole('tenant');
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
-      // Fall back to 'tenant' role if we can't determine the role
-      setUserRole('tenant');
+      // Check for session storage fallback
+      const storedRole = sessionStorage.getItem('userRole');
+      if (storedRole) {
+        console.log("Using role from session storage:", storedRole);
+        setUserRole(storedRole as UserRole);
+      } else {
+        // Fall back to 'tenant' role if we can't determine the role
+        setUserRole('tenant');
+      }
     } finally {
       setFetching(false);
     }
@@ -58,6 +87,12 @@ export const useUserRole = (user: User | null) => {
       fetchUserRole(user.id);
     } else {
       setUserRole(null);
+      // Clear role from session storage when user is not available
+      try {
+        sessionStorage.removeItem('userRole');
+      } catch (e) {
+        console.warn("Failed to clear role from session storage:", e);
+      }
     }
   }, [user?.id]);
 

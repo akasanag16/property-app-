@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut
   } = useAuthSession();
   
-  const { userRole } = useUserRole(user);
+  const { userRole, fetching: roleLoading } = useUserRole(user);
 
   // Store user role in sessionStorage for access outside the auth context
   useEffect(() => {
@@ -35,12 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       try {
-        sessionStorage.removeItem('userRole');
+        // Only remove if not loading - this prevents clearing during load state
+        if (!roleLoading) {
+          sessionStorage.removeItem('userRole');
+        }
       } catch (error) {
         console.error("Could not remove role from sessionStorage:", error);
       }
     }
-  }, [userRole]);
+  }, [userRole, roleLoading]);
 
   // Debug auth state
   useEffect(() => {
@@ -48,12 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session: session ? "exists" : "null", 
       user: user ? user.email : "null", 
       userRole,
-      loading
+      loading: loading || roleLoading
     });
-  }, [session, user, userRole, loading]);
+  }, [session, user, userRole, loading, roleLoading]);
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, loading, signOut }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      userRole, 
+      loading: loading || roleLoading, 
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );

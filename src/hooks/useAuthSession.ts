@@ -11,7 +11,25 @@ export const useAuthSession = () => {
   useEffect(() => {
     console.log("Auth session hook initializing...");
 
-    // Get initial session
+    // Set up auth state listener first to prevent missing events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else if (event === 'USER_UPDATED') {
+          // Handle user metadata updates
+          setUser(newSession?.user ?? null);
+        }
+      }
+    );
+
+    // Then get initial session
     const initSession = async () => {
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -22,7 +40,7 @@ export const useAuthSession = () => {
         }
         
         if (currentSession) {
-          console.log("Initial session found");
+          console.log("Initial session found:", currentSession.user.email);
           setSession(currentSession);
           setUser(currentSession.user);
         } else {
@@ -40,21 +58,6 @@ export const useAuthSession = () => {
     // Initialize session
     initSession();
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-        }
-      }
-    );
-
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();

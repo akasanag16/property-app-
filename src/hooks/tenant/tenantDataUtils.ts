@@ -33,7 +33,7 @@ export async function checkProfileEmailColumn() {
 }
 
 /**
- * Fetch tenants for a list of property IDs using direct queries
+ * Fetch tenants for a list of property IDs using direct queries with security definer functions
  */
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
@@ -44,34 +44,15 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     
     console.log("Fetching tenants for properties:", propertyIds);
     
-    // Use direct queries with proper typings instead of RPC to avoid recursion
-    // First, get all tenant links directly
-    const { data: links, error: linksError } = await supabase
-      .from('tenant_property_link')
-      .select('tenant_id, property_id')
-      .in('property_id', propertyIds);
-      
-    if (linksError) {
-      console.error("Error fetching tenant links:", linksError);
-      throw linksError;
-    }
-    
-    if (!links || links.length === 0) {
-      console.log("No tenant links found for the provided property IDs");
-      return [];
-    }
-    
-    // Extract tenant IDs
-    const tenantIds = links.map(link => link.tenant_id);
-    
-    // Get property names in a separate query to avoid recursion
+    // Use direct queries without risking recursion
+    // First, get properties names so we can use them later
     const { data: properties, error: propertiesError } = await supabase
       .from('properties')
       .select('id, name')
       .in('id', propertyIds);
       
     if (propertiesError) {
-      console.error("Error fetching property names:", propertiesError);
+      console.error("Error fetching property info:", propertiesError);
       throw propertiesError;
     }
     
@@ -81,15 +62,53 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       properties.forEach(property => {
         propertyMap.set(property.id, property.name);
       });
+    } else {
+      console.log("No property data returned");
+      return [];
     }
+    
+    // Next, get all tenant links directly for the properties
+    let tenantLinks = [];
+    
+    // Use the RPC function to avoid recursion
+    const { data: links, error: linksError } = await supabase
+      .rpc('get_tenant_property_links_for_properties', { property_ids: propertyIds });
+      
+    if (linksError) {
+      console.error("Error fetching tenant links:", linksError);
+      
+      // Fallback to direct query method if RPC fails
+      const { data: directLinks, error: directLinksError } = await supabase
+        .from('tenant_property_link')
+        .select('tenant_id, property_id')
+        .in('property_id', propertyIds);
+        
+      if (directLinksError) {
+        console.error("Error fetching tenant links directly:", directLinksError);
+        throw directLinksError;
+      }
+      
+      tenantLinks = directLinks || [];
+    } else {
+      tenantLinks = links || [];
+    }
+    
+    if (!tenantLinks || tenantLinks.length === 0) {
+      console.log("No tenant links found for the provided property IDs");
+      return [];
+    }
+    
+    // Extract tenant IDs
+    const tenantIds = tenantLinks.map(link => link.tenant_id);
     
     // Create a map of tenant IDs to their property info
     const tenantToPropertyMap = new Map();
-    links.forEach(link => {
+    tenantLinks.forEach(link => {
       if (link && link.tenant_id) {
+        const propertyName = link.property_name || propertyMap.get(link.property_id) || "Unknown Property";
         tenantToPropertyMap.set(link.tenant_id, {
           id: link.property_id,
-          name: propertyMap.get(link.property_id) || "Unknown Property"
+          name: propertyName
         });
       }
     });
