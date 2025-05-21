@@ -176,15 +176,23 @@ export default function OwnerServiceProviders() {
         if (!profiles || profiles.length === 0) {
           console.log("No service provider profiles found for IDs:", providerIds);
           // Check if these users exist in auth but not in profiles
-          const { data: authCheck, error: authError } = await supabase
-            .rpc('check_users_exist', { user_ids: providerIds });
-            
-          if (authError) {
-            console.error("Error checking for users in auth:", authError);
-          } else if (authCheck && authCheck.length > 0) {
-            console.log("Found users in auth but not in profiles:", authCheck);
-            toast.warning("Some service providers have incomplete profiles");
-          }
+          // We'll use a direct query instead of the RPC function since it's not recognized
+          const { data: authCheck, error: authError } = await supabase.from('auth')
+            .select('id, exists_in_auth')
+            .then(({ data, error }) => {
+              // Handle response
+              if (error) {
+                console.error("Error checking for users in auth:", error);
+                return { data: null, error };
+              }
+              
+              if (data && Array.isArray(data) && data.length > 0) {
+                console.log("Found users in auth but not in profiles:", data);
+                toast.warning("Some service providers have incomplete profiles");
+              }
+              
+              return { data, error };
+            });
           
           setServiceProviders([]);
           return;
