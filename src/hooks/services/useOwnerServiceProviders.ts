@@ -65,7 +65,7 @@ export const fetchOwnerServiceProviders = async (ownerId: string) => {
   try {
     console.log("Fetching service providers for owner:", ownerId);
     
-    // First get owner properties
+    // Use the security definer function to get owner properties
     const { data: properties, error: propertiesError } = await supabase
       .rpc('safe_get_owner_properties', { owner_id_param: ownerId });
       
@@ -82,26 +82,22 @@ export const fetchOwnerServiceProviders = async (ownerId: string) => {
     const propertyIds = properties.map((p: any) => p.id);
     console.log(`Owner has ${propertyIds.length} properties:`, propertyIds);
     
-    // Get service provider links - using direct query
-    const { data: links, error: linksError } = await supabase
-      .from('service_provider_property_link')
-      .select('service_provider_id, property_id')
-      .in('property_id', propertyIds);
-      
-    if (linksError) {
-      console.error("Error fetching service provider links:", linksError);
-      return { providers: [], error: "Failed to fetch service provider associations. Please try again." };
+    // Use our new secure function to get service provider data without recursion
+    const { data: spData, error: spError } = await supabase
+      .rpc('safe_get_owner_service_providers', { owner_id_param: ownerId });
+    
+    if (spError) {
+      console.error("Error fetching service provider data:", spError);
+      return { providers: [], error: "Failed to fetch service provider data. Please try again." };
     }
     
-    if (!links || links.length === 0) {
+    if (!spData || spData.length === 0) {
       console.log("No service providers assigned to properties");
       return { providers: [], error: null };
     }
     
-    console.log(`Found ${links.length} service provider links`);
-    
     // Get unique service provider IDs
-    const providerIds = [...new Set(links.map(link => link.service_provider_id))];
+    const providerIds = [...new Set(spData.map((item: any) => item.service_provider_id))];
     console.log(`Found ${providerIds.length} unique service providers:`, providerIds);
     
     // Get profiles for these service providers
@@ -115,42 +111,37 @@ export const fetchOwnerServiceProviders = async (ownerId: string) => {
       return { providers: [], error: "Failed to fetch service provider details. Please try again." };
     }
     
-    if (!profiles || profiles.length === 0) {
-      console.log("No service provider profiles found for IDs:", providerIds);
-      // Instead of calling an RPC function that doesn't exist yet, we'll check for missing profiles directly
-      
-      // We'll check if there are any IDs in providerIds that aren't in the profiles
-      const foundProfileIds = profiles ? profiles.map(p => p.id) : [];
-      const missingProfileIds = providerIds.filter(id => !foundProfileIds.includes(id));
-      
-      if (missingProfileIds.length > 0) {
-        console.log("Found users without proper profiles:", missingProfileIds);
-        toast.warning("Some service providers have incomplete profiles");
-      }
-      
-      return { providers: [], error: null };
-    }
-    
-    console.log(`Found ${profiles.length} service provider profiles`);
-    
-    // Create mapping of property ID to name
+    // Create mapping of property ID to name from the spData
     const propertyMap = new Map<string, string>();
-    properties.forEach((p: any) => propertyMap.set(p.id, p.name));
+    spData.forEach((item: any) => propertyMap.set(item.property_id, item.property_name));
     
     // Create service provider objects with their assigned properties
-    const providers = profiles.map(profile => {
-      const providerLinks = links.filter(link => link.service_provider_id === profile.id);
-      const providerProperties = providerLinks.map(link => 
-        propertyMap.get(link.property_id) || "Unknown Property"
-      );
-      
-      return {
-        id: profile.id,
-        name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Unknown Name",
-        email: profile.email,
-        properties: providerProperties
-      };
-    });
+    const providers: ServiceProvider[] = [];
+    
+    if (profiles && profiles.length > 0) {
+      profiles.forEach(profile => {
+        // Find all property links for this service provider
+        const providerProperties = spData
+          .filter((item: any) => item.service_provider_id === profile.id)
+          .map((item: any) => item.property_name || "Unknown Property");
+        
+        providers.push({
+          id: profile.id,
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Unknown Name",
+          email: profile.email,
+          properties: providerProperties
+        });
+      });
+    }
+    
+    // Check for missing profiles
+    const foundProfileIds = profiles ? profiles.map(p => p.id) : [];
+    const missingProfileIds = providerIds.filter(id => !foundProfileIds.includes(id));
+    
+    if (missingProfileIds.length > 0) {
+      console.log("Found users without proper profiles:", missingProfileIds);
+      toast.warning("Some service providers have incomplete profiles");
+    }
     
     console.log(`Successfully processed ${providers.length} service providers`);
     return { providers, error: null };

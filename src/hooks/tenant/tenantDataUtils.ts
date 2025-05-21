@@ -1,107 +1,70 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Tenant } from "@/types/tenant";
+import { toast } from "sonner";
 
-/**
- * Check if the email column exists in the profiles table
- */
+// Check if email column exists in profiles table
 export async function checkProfileEmailColumn() {
   try {
-    // Try to select the email column from any profile
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email')
+      .select('email')
       .limit(1);
       
     if (error) {
-      console.warn('Error checking for email column:', error.message);
-      // Check if the error message indicates the column doesn't exist
-      if (error.message.includes("column \"email\" does not exist") ||
-          error.message.includes("does not exist in the current schema")) {
-        return false;
-      }
-      // For other errors, assume column might exist but there's another issue
+      console.error("Error checking email column:", error);
       return false;
     }
     
-    // If we got here without errors, the column exists
+    // If we can run this query successfully, email column exists
     return true;
   } catch (error) {
-    console.error('Error checking email column:', error);
+    console.error("Error checking email column:", error);
     return false;
   }
 }
 
-/**
- * Fetch tenants for a list of property IDs using direct queries without recursive calls
- */
+// Fetch tenants for the given properties
 export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
   try {
-    if (!propertyIds || propertyIds.length === 0) {
-      console.log("No property IDs provided to fetchTenantsForProperties");
+    console.log(`Fetching tenants for properties: ${propertyIds}`);
+    
+    // First, get the current user's id for owner data fetching
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error("No authenticated user");
+      throw new Error("Authentication required to fetch tenants");
+    }
+    
+    // Use the safe RPC function to get tenant data without recursion
+    const { data: tenantLinks, error: tenantLinksError } = await supabase
+      .rpc('safe_get_owner_tenants', { owner_id_param: user.id });
+    
+    if (tenantLinksError) {
+      console.error("Error fetching tenant links:", tenantLinksError);
+      throw tenantLinksError;
+    }
+    
+    if (!tenantLinks || tenantLinks.length === 0) {
+      console.log("No tenant links found for these properties");
       return [];
     }
     
-    console.log("Fetching tenants for properties:", propertyIds);
+    // Extract unique tenant IDs
+    const tenantIds = [...new Set(tenantLinks.map((link: any) => link.tenant_id))];
+    console.log(`Found ${tenantIds.length} unique tenants`);
     
-    // Step 1: Get all properties data in one query
-    const { data: properties, error: propertiesError } = await supabase
-      .from('properties')
-      .select('id, name')
-      .in('id', propertyIds);
-      
-    if (propertiesError) {
-      console.error("Error fetching property info:", propertiesError);
-      throw propertiesError;
-    }
-    
-    // Create a property ID to name mapping
-    const propertyMap = new Map<string, string>();
-    if (properties && properties.length > 0) {
-      properties.forEach(property => {
-        propertyMap.set(property.id, property.name);
+    // Create property map
+    const propertyMap = new Map();
+    tenantLinks.forEach((link: any) => {
+      propertyMap.set(link.tenant_id, {
+        id: link.property_id,
+        name: link.property_name
       });
-      console.log(`Found ${properties.length} properties`);
-    } else {
-      console.log("No property data returned");
-      return [];
-    }
-    
-    // Step 2: Get tenant links using a direct query
-    const { data: links, error: linksError } = await supabase
-      .from('tenant_property_link')
-      .select('tenant_id, property_id')
-      .in('property_id', propertyIds);
-      
-    if (linksError) {
-      console.error("Error fetching tenant links:", linksError);
-      throw linksError;
-    }
-    
-    if (!links || links.length === 0) {
-      console.log("No tenant links found for the provided property IDs");
-      return [];
-    }
-    
-    console.log(`Found ${links.length} tenant-property links`);
-    
-    // Extract tenant IDs
-    const tenantIds = links.map(link => link.tenant_id);
-    console.log(`Found ${tenantIds.length} unique tenant IDs`);
-    
-    // Create a mapping of tenant IDs to their property info
-    const tenantToPropertyMap = new Map<string, { id: string; name: string }>();
-    links.forEach(link => {
-      if (link && link.tenant_id) {
-        const propertyName = propertyMap.get(link.property_id) || "Unknown Property";
-        tenantToPropertyMap.set(link.tenant_id, {
-          id: link.property_id,
-          name: propertyName
-        });
-      }
     });
     
-    // Step 3: Fetch profile data for all tenants
+    // Fetch tenant profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, email')
@@ -112,96 +75,61 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       throw profilesError;
     }
     
-    if (!profiles || profiles.length === 0) {
-      console.log("No profiles found for the tenant IDs");
-      // Check if we can get more info about the missing profiles
-      console.log("Tenant IDs with no profiles:", tenantIds);
-      return [];
-    }
-    
-    console.log(`Found ${profiles.length} tenant profiles`);
-    
-    // Step 4: Fetch payment data for these tenants
+    // Fetch latest payments for each tenant
     const { data: payments, error: paymentsError } = await supabase
       .from('tenant_payments')
-      .select('tenant_id, due_date, amount, status, paid_date')
+      .select('tenant_id, amount, due_date, paid_date, status')
       .in('tenant_id', tenantIds)
       .order('due_date', { ascending: false });
       
     if (paymentsError) {
       console.error("Error fetching tenant payments:", paymentsError);
-      console.log("Continuing without payments data");
-      // Continue without payments data - not critical
+      // Continue without payments data
     }
     
-    // Create a mapping of tenant IDs to their payments
-    const tenantPaymentsMap = new Map<string, any[]>();
-    if (payments && Array.isArray(payments)) {
-      payments.forEach(payment => {
-        if (!tenantPaymentsMap.has(payment.tenant_id)) {
-          tenantPaymentsMap.set(payment.tenant_id, []);
+    // Build payment map (latest payment per tenant)
+    const paymentMap = new Map();
+    if (payments) {
+      payments.forEach((payment: any) => {
+        if (!paymentMap.has(payment.tenant_id)) {
+          paymentMap.set(payment.tenant_id, payment);
         }
-        tenantPaymentsMap.get(payment.tenant_id)!.push(payment);
       });
-      console.log(`Found payment data for ${tenantPaymentsMap.size} tenants`);
-    } else {
-      console.log("No payment data found");
     }
     
-    // Process the data to create tenant objects
-    const tenants: Tenant[] = profiles.map(profile => {
-      // Get property from the map
-      const property = tenantToPropertyMap.get(profile.id);
-      
-      // Find payments for this tenant
-      const tenantPayments = tenantPaymentsMap.get(profile.id) || [];
-      
-      // Get the most recent past payment (for "last payment")
-      const lastPayment = tenantPayments
-        .filter(p => new Date(p.due_date) <= new Date())
-        .sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
-      
-      // Get the next upcoming payment
-      const nextPayment = tenantPayments
-        .filter(p => new Date(p.due_date) >= new Date())
-        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
-      
-      // Calculate days until next payment
-      const daysUntilNext = nextPayment 
-        ? Math.ceil((new Date(nextPayment.due_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
-        : null;
-      
-      // Map the payment status
-      let paymentStatus: 'paid' | 'pending' | 'overdue' = 'pending';
-      if (lastPayment) {
-        if (lastPayment.status === 'paid') paymentStatus = 'paid';
-        else if (lastPayment.status === 'overdue') paymentStatus = 'overdue';
-        else paymentStatus = 'pending';
-      }
-      
-      // Build the tenant object
-      return {
-        id: profile.id,
-        first_name: profile.first_name || "Unknown",
-        last_name: profile.last_name || "Unknown",
-        email: profile.email || "",
-        property: property || { id: "", name: "Unknown Property" },
-        last_payment: lastPayment ? {
-          date: lastPayment.due_date,
-          status: paymentStatus,
-          amount: lastPayment.amount
-        } : undefined,
-        next_payment: nextPayment ? {
-          date: nextPayment.due_date,
-          amount: nextPayment.amount,
-          due_in_days: daysUntilNext
-        } : undefined
-      };
-    });
+    // Create tenant objects
+    const tenants: Tenant[] = [];
+    if (profiles) {
+      profiles.forEach(profile => {
+        const propertyInfo = propertyMap.get(profile.id);
+        const paymentInfo = paymentMap.get(profile.id);
+        
+        tenants.push({
+          id: profile.id,
+          first_name: profile.first_name || "Unknown",
+          last_name: profile.last_name || "",
+          email: profile.email || null,
+          property: propertyInfo ? {
+            id: propertyInfo.id,
+            name: propertyInfo.name
+          } : null,
+          last_payment: paymentInfo ? {
+            date: paymentInfo.paid_date,
+            amount: paymentInfo.amount,
+            status: paymentInfo.status
+          } : null,
+          next_payment: paymentInfo ? {
+            date: paymentInfo.due_date,
+            amount: paymentInfo.amount
+          } : null
+        });
+      });
+    }
     
     console.log(`Successfully processed ${tenants.length} tenants`);
     return tenants;
-  } catch (error) {
+    
+  } catch (error: any) {
     console.error("Error in tenant data processing:", error);
     throw error;
   }
