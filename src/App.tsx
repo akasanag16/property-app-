@@ -22,62 +22,72 @@ import OwnerServiceProviders from "./pages/owner/OwnerServiceProviders";
 import OwnerMaintenance from "./pages/owner/OwnerMaintenance";
 import OwnerProperties from "./pages/owner/OwnerProperties";
 
-const queryClient = new QueryClient();
+// Create the query client outside the component to prevent unnecessary recreations
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            {/* Public routes - These don't require authentication */}
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/auth/confirm" element={<EmailConfirm />} />
-            <Route path="/invitation/accept" element={<AcceptInvitation />} />
-            <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
-            
-            {/* Important: The unauthorized page must be accessible without authentication */}
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            
-            {/* Protected routes (any authenticated user) */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
-            
-            {/* Owner-specific routes */}
-            <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
-              <Route path="/owner-dashboard" element={<OwnerDashboard />} />
-              <Route path="/owner/properties" element={<OwnerProperties />} />
-              <Route path="/owner/tenants" element={<OwnerTenants />} />
-              <Route path="/owner/service-providers" element={<OwnerServiceProviders />} />
-              <Route path="/owner/maintenance" element={<OwnerMaintenance />} />
-            </Route>
-            
-            {/* Tenant-specific routes */}
-            <Route element={<ProtectedRoute allowedRoles={["tenant"]} />}>
-              <Route path="/tenant-dashboard" element={<TenantDashboard />} />
-              <Route path="/tenant/properties" element={<TenantDashboard />} />
-              <Route path="/tenant/maintenance" element={<TenantDashboard />} />
-            </Route>
-            
-            {/* Service provider-specific routes */}
-            <Route element={<ProtectedRoute allowedRoles={["service_provider"]} />}>
-              <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
-              <Route path="/service-provider/properties" element={<ServiceProviderDashboard />} />
-              <Route path="/service-provider/maintenance" element={<ServiceProviderDashboard />} />
-            </Route>
-            
-            {/* Not found route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public routes - These don't require authentication */}
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/confirm" element={<EmailConfirm />} />
+              <Route path="/invitation/accept" element={<AcceptInvitation />} />
+              <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
+              
+              {/* Important: The unauthorized page must be accessible without authentication */}
+              <Route path="/unauthorized" element={<Unauthorized />} />
+              
+              {/* Protected routes (any authenticated user) */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+              </Route>
+              
+              {/* Owner-specific routes */}
+              <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
+                <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+                <Route path="/owner/properties" element={<OwnerProperties />} />
+                <Route path="/owner/tenants" element={<OwnerTenants />} />
+                <Route path="/owner/service-providers" element={<OwnerServiceProviders />} />
+                <Route path="/owner/maintenance" element={<OwnerMaintenance />} />
+              </Route>
+              
+              {/* Tenant-specific routes */}
+              <Route element={<ProtectedRoute allowedRoles={["tenant"]} />}>
+                <Route path="/tenant-dashboard" element={<TenantDashboard />} />
+                <Route path="/tenant/properties" element={<TenantDashboard />} />
+                <Route path="/tenant/maintenance" element={<TenantDashboard />} />
+              </Route>
+              
+              {/* Service provider-specific routes */}
+              <Route element={<ProtectedRoute allowedRoles={["service_provider"]} />}>
+                <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
+                <Route path="/service-provider/properties" element={<ServiceProviderDashboard />} />
+                <Route path="/service-provider/maintenance" element={<ServiceProviderDashboard />} />
+              </Route>
+              
+              {/* Not found route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
         </AuthProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+};
 
 export default App;

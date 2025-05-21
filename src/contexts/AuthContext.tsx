@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const {
     session,
     user,
-    loading,
+    loading: sessionLoading,
     signOut
   } = useAuthSession();
   
@@ -61,21 +61,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session: session ? "exists" : "null", 
       user: user ? user.email : "null", 
       userRole,
-      loading: loading || roleLoading
+      loading: sessionLoading || roleLoading
     });
     
     // Mark context as initialized once the first auth check is complete
-    if (!loading && !roleLoading && !isInitialized) {
+    if (!sessionLoading && !roleLoading && !isInitialized) {
       setIsInitialized(true);
     }
-  }, [session, user, userRole, loading, roleLoading, isInitialized]);
+  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized]);
+
+  // The loading state should be true if sessionLoading or roleLoading is true
+  const loading = sessionLoading || roleLoading || !isInitialized;
 
   // Provide context value
   const contextValue: AuthContextType = {
     session, 
     user, 
     userRole, 
-    loading: loading || roleLoading || !isInitialized,
+    loading,
     signOut
   };
 
