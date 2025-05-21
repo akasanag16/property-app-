@@ -36,6 +36,7 @@ export const useAuthSession = () => {
         
         if (error) {
           console.error("Error getting initial session:", error);
+          setLoading(false);
           return;
         }
         

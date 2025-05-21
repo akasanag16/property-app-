@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
 
-  // If still loading auth state, show nothing (or a spinner)
+  // If still loading auth state, show a loading spinner
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -21,11 +21,13 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
 
   // Redirect to auth page if not logged in
   if (!user) {
+    console.log("User not authenticated, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
   // If roles are specified, check if user has required role
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+    console.log("User doesn't have required role, redirecting to unauthorized");
     return <Navigate to="/unauthorized" replace />;
   }
 

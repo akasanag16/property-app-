@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { UserRole } from "@/lib/auth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -13,7 +13,16 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create a default value for the context to avoid the need for null checks
+const defaultContextValue: AuthContextType = {
+  session: null,
+  user: null,
+  userRole: null,
+  loading: true,
+  signOut: async () => { console.error("AuthContext not initialized"); }
+};
+
+const AuthContext = createContext<AuthContextType>(defaultContextValue);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const {
@@ -24,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   } = useAuthSession();
   
   const { userRole, fetching: roleLoading } = useUserRole(user);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Store user role in sessionStorage for access outside the auth context
   useEffect(() => {
@@ -53,16 +63,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userRole,
       loading: loading || roleLoading
     });
-  }, [session, user, userRole, loading, roleLoading]);
+    
+    // Mark context as initialized once the first auth check is complete
+    if (!loading && !roleLoading && !isInitialized) {
+      setIsInitialized(true);
+    }
+  }, [session, user, userRole, loading, roleLoading, isInitialized]);
+
+  // Provide context value
+  const contextValue: AuthContextType = {
+    session, 
+    user, 
+    userRole, 
+    loading: loading || roleLoading || !isInitialized,
+    signOut
+  };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      userRole, 
-      loading: loading || roleLoading, 
-      signOut 
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -70,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
