@@ -117,16 +117,14 @@ export const fetchOwnerServiceProviders = async (ownerId: string) => {
     
     if (!profiles || profiles.length === 0) {
       console.log("No service provider profiles found for IDs:", providerIds);
-      // Instead of directly querying auth, use an RPC function or check for missing profiles
-      const { data: missingProfiles, error: missingError } = await supabase
-        .rpc('check_missing_profiles', { user_ids: providerIds })
-        .catch(error => {
-          console.error("Error checking for missing profiles:", error);
-          return { data: null, error };
-        });
+      // Instead of calling an RPC function that doesn't exist yet, we'll check for missing profiles directly
       
-      if (missingProfiles && Array.isArray(missingProfiles) && missingProfiles.length > 0) {
-        console.log("Found users without proper profiles:", missingProfiles);
+      // We'll check if there are any IDs in providerIds that aren't in the profiles
+      const foundProfileIds = profiles ? profiles.map(p => p.id) : [];
+      const missingProfileIds = providerIds.filter(id => !foundProfileIds.includes(id));
+      
+      if (missingProfileIds.length > 0) {
+        console.log("Found users without proper profiles:", missingProfileIds);
         toast.warning("Some service providers have incomplete profiles");
       }
       
