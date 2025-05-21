@@ -2,7 +2,7 @@
 // Follow this setup guide to integrate the Deno runtime and Supabase functions in your project:
 // https://docs.supabase.com/guides/functions/getting-started
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

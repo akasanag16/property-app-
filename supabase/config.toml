@@ -31,4 +31,3 @@ verify_jwt = true
 
 [functions.handle-invitation]
 verify_jwt = true
-

@@ -70,28 +70,23 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     // Next, get all tenant links directly for the properties
     let tenantLinks = [];
     
-    // Use the RPC function to avoid recursion
+    // Use direct query since the RPC function may not exist in the types yet
     const { data: links, error: linksError } = await supabase
-      .rpc('get_tenant_property_links_for_properties', { property_ids: propertyIds });
+      .from('tenant_property_link')
+      .select('tenant_id, property_id, properties!inner(name)')
+      .in('property_id', propertyIds);
       
     if (linksError) {
       console.error("Error fetching tenant links:", linksError);
-      
-      // Fallback to direct query method if RPC fails
-      const { data: directLinks, error: directLinksError } = await supabase
-        .from('tenant_property_link')
-        .select('tenant_id, property_id')
-        .in('property_id', propertyIds);
-        
-      if (directLinksError) {
-        console.error("Error fetching tenant links directly:", directLinksError);
-        throw directLinksError;
-      }
-      
-      tenantLinks = directLinks || [];
-    } else {
-      tenantLinks = links || [];
+      throw linksError;
     }
+    
+    // Transform the links to the format we expect
+    tenantLinks = links ? links.map(link => ({
+      tenant_id: link.tenant_id,
+      property_id: link.property_id,
+      property_name: link.properties.name
+    })) : [];
     
     if (!tenantLinks || tenantLinks.length === 0) {
       console.log("No tenant links found for the provided property IDs");
