@@ -16,62 +16,47 @@ export const usePropertyServiceProviders = (propertyId: string | undefined) => {
         return;
       }
       
-      console.log("Fetching service providers for property:", propertyId);
-      
       try {
         setLoading(true);
         setError(null);
         
-        // Use direct queries instead of the complex joins which might be causing issues
-        // First, get service provider links for this property
-        const { data: spLinks, error: spLinksError } = await supabase
-          .from('service_provider_property_link')
-          .select('service_provider_id')
-          .eq('property_id', propertyId);
+        console.log("Fetching service providers for property:", propertyId);
         
-        if (spLinksError) {
-          console.error("Error fetching service provider links:", spLinksError);
+        // Use the safe RPC function to fetch service providers for this property
+        const { data: providers, error: providersError } = await supabase
+          .rpc('safe_get_property_service_providers', { 
+            property_id_param: propertyId 
+          });
+        
+        if (providersError) {
+          console.error("Error fetching service providers:", providersError);
           setError("Failed to fetch service provider data. Please try again.");
-          return;
-        }
-        
-        if (!spLinks || spLinks.length === 0) {
-          console.log("No service providers assigned to this property");
           setServiceProviders([]);
           return;
         }
         
-        // Get unique service provider IDs
-        const providerIds = [...new Set(spLinks.map(link => link.service_provider_id))];
-        console.log("Found provider IDs:", providerIds);
+        console.log("Fetched service providers:", providers);
         
-        // Get profiles for these service providers
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email')
-          .in('id', providerIds);
-          
-        if (profilesError) {
-          console.error("Error fetching service provider profiles:", profilesError);
-          setError("Failed to fetch service provider details. Please try again.");
+        if (!providers || providers.length === 0) {
+          console.log("No service providers found for this property");
+          setServiceProviders([]);
           return;
         }
         
-        console.log("Fetched provider profiles:", profiles);
-        
         // Format service provider data
-        const providers: ServiceProvider[] = profiles ? profiles.map(profile => ({
-          id: profile.id,
-          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "Unknown Name",
-          email: profile.email,
+        const formattedProviders: ServiceProvider[] = providers.map(provider => ({
+          id: provider.id,
+          name: `${provider.first_name || ''} ${provider.last_name || ''}`.trim() || "Unknown Name",
+          email: provider.email,
           properties: [propertyId] // We only care about this property in this context
-        })) : [];
+        }));
         
-        setServiceProviders(providers);
+        setServiceProviders(formattedProviders);
         
       } catch (err: any) {
         console.error("Error in service provider fetching process:", err);
         setError(err.message || "Failed to load service providers");
+        setServiceProviders([]);
       } finally {
         setLoading(false);
       }

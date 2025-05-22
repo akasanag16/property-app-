@@ -650,6 +650,15 @@ export type Database = {
           owner_id: string
         }[]
       }
+      safe_get_property_service_providers: {
+        Args: { property_id_param: string }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          email: string
+        }[]
+      }
       safe_get_service_provider_maintenance_requests: {
         Args: { provider_id_param: string }
         Returns: {

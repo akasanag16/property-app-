@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePropertyServiceProviders } from "@/hooks/services/usePropertyServiceProviders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ServiceProvider } from "@/hooks/services/useOwnerServiceProviders";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorAlert } from "@/components/ui/alert-error";
+import { toast } from "sonner";
 
 type ServiceProviderSelectionModalProps = {
   isOpen: boolean;
@@ -23,18 +24,21 @@ export function ServiceProviderSelectionModal({
   const { serviceProviders, loading, error } = usePropertyServiceProviders(propertyId);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
+  // Reset selected provider when modal opens or property changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedProvider(null);
+    }
+  }, [isOpen, propertyId]);
+
   const handleSelect = () => {
     if (selectedProvider) {
       console.log("Selected service provider:", selectedProvider);
       onSelect(selectedProvider);
+    } else {
+      toast.error("Please select a service provider");
     }
   };
-
-  // Debug log
-  console.log("Modal property ID:", propertyId);
-  console.log("Service providers:", serviceProviders);
-  console.log("Loading state:", loading);
-  console.log("Error state:", error);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

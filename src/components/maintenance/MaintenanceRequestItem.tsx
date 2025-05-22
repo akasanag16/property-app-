@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { MaintenanceStatusBadge } from './MaintenanceStatusBadge';
 import { MaintenanceRequest } from '@/types/maintenance';
 import { formatDistanceToNow } from 'date-fns';
 import { ServiceProviderSelectionModal } from '../owner/maintenance/ServiceProviderSelectionModal';
+import { toast } from "sonner";
 
 type MaintenanceRequestItemProps = {
   request: MaintenanceRequest;
@@ -30,7 +32,12 @@ export function MaintenanceRequestItem({
 
   const handleAcceptRequest = () => {
     if (userRole === "owner") {
-      // For owner role, log the property ID and then open the service provider selection modal
+      // For owner role, verify we have a valid property ID before opening the modal
+      if (!request.property?.id) {
+        console.error("Missing property ID for request:", request.id);
+        toast.error("Cannot process request: missing property information");
+        return;
+      }
       console.log("Opening service provider modal for property:", request.property.id);
       setShowServiceProviderModal(true);
     } else {
@@ -159,7 +166,7 @@ export function MaintenanceRequestItem({
           <div>
             <h3 className="font-semibold text-lg">{request.title}</h3>
             <p className="text-sm text-gray-500">
-              {request.property.name} • {timeAgo}
+              {request.property?.name || "Unknown Property"} • {timeAgo}
             </p>
           </div>
           <MaintenanceStatusBadge status={request.status} />
