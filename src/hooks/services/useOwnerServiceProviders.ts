@@ -50,11 +50,11 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         setLoading(true);
         setError(null);
         
-        // Using a custom function call with proper type checking
+        // Using a direct SQL query instead of RPC function
         const { data, error: fetchError } = await supabase
-          .rpc('get_owner_service_providers_with_details', { 
-            owner_id_param: ownerId 
-          }) as { data: ServiceProviderDetails[] | null, error: Error | null };
+          .from('get_owner_service_providers_with_details')
+          .select('*')
+          .eq('owner_id_param', ownerId);
         
         if (fetchError) {
           console.error("Error fetching service providers:", fetchError);

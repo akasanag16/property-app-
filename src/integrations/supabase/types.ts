@@ -563,6 +563,17 @@ export type Database = {
         Args: { owner_id_param: string }
         Returns: string[]
       }
+      get_owner_service_providers_with_details: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          email: string
+          property_id: string
+          property_name: string
+        }[]
+      }
       get_property_invitations: {
         Args: { p_property_id: string; p_type: string }
         Returns: Json[]
