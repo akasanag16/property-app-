@@ -22,6 +22,8 @@ interface TenantPageContentProps {
   invitationsError?: string | null;
   resendingId?: string | null;
   handleResendInvitation?: (id: string) => Promise<void>;
+  showStats?: boolean;
+  showInvitations?: boolean;
 }
 
 export function TenantPageContent({
@@ -36,6 +38,8 @@ export function TenantPageContent({
   invitationsError = null,
   resendingId = null,
   handleResendInvitation = async () => {},
+  showStats = false,
+  showInvitations = false,
 }: TenantPageContentProps) {
   return (
     <div className="space-y-6">
@@ -61,23 +65,25 @@ export function TenantPageContent({
         />
       )}
 
-      {/* Tenant Stats Section */}
-      {!error && tenants.length > 0 && (
+      {/* Tenant Stats Section - Optional */}
+      {showStats && !error && tenants.length > 0 && (
         <TenantStats tenants={tenants} />
       )}
 
-      {/* Tenant Invitations Section */}
-      <div className="mb-6">
-        <OwnerInvitationsList
-          invitations={tenantInvitations}
-          loading={invitationsLoading}
-          error={invitationsError}
-          resendingId={resendingId}
-          title="Pending Tenant Invitations"
-          emptyMessage="No pending tenant invitations"
-          onResend={handleResendInvitation}
-        />
-      </div>
+      {/* Tenant Invitations Section - Optional */}
+      {showInvitations && (
+        <div className="mb-6">
+          <OwnerInvitationsList
+            invitations={tenantInvitations}
+            loading={invitationsLoading}
+            error={invitationsError}
+            resendingId={resendingId}
+            title="Pending Tenant Invitations"
+            emptyMessage="No pending tenant invitations"
+            onResend={handleResendInvitation}
+          />
+        </div>
+      )}
 
       {/* Tenant Table Section */}
       {error ? (

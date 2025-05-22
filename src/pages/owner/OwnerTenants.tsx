@@ -36,6 +36,8 @@ export default function OwnerTenants() {
           invitationsError={invitationsError}
           resendingId={resendingId}
           handleResendInvitation={handleResendInvitation}
+          showStats={false}
+          showInvitations={false}
         />
       </div>
     </DashboardLayout>
