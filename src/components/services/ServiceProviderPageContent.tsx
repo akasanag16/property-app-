@@ -18,8 +18,8 @@ interface ServiceProviderPageContentProps {
   invitationsLoading: boolean;
   invitationsError: string | null;
   resendingId: string | null;
-  // Changed return type to match the actual function implementation
-  handleResendInvitation: (id: string) => void;
+  // Update the type to match what OwnerInvitationsList expects: Promise<void>
+  handleResendInvitation: (id: string) => Promise<void>;
 }
 
 export function ServiceProviderPageContent({
