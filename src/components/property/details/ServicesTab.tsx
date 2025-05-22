@@ -1,12 +1,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
+import { Property } from "@/types/property";
 
 interface ServicesTabProps {
+  property: Property | null;
   onInviteClick: () => void;
 }
 
-export function ServicesTab({ onInviteClick }: ServicesTabProps) {
+export function ServicesTab({ property, onInviteClick }: ServicesTabProps) {
   return (
     <div className="py-8 text-center">
       <div className="flex flex-col items-center justify-center gap-4">

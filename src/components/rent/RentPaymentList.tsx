@@ -110,7 +110,7 @@ export function RentPaymentList({ propertyId }: RentPaymentListProps) {
                     onClick={() => handleMarkAsPaid(instance.id)}
                     disabled={processingId === instance.id}
                   >
-                    {processingId === instance.id ? <LoadingSpinner size="xs" /> : <Check className="h-4 w-4" />}
+                    {processingId === instance.id ? <LoadingSpinner className="h-3 w-3" /> : <Check className="h-4 w-4" />}
                     Mark Paid
                   </Button>
                 ) : (
@@ -121,7 +121,7 @@ export function RentPaymentList({ propertyId }: RentPaymentListProps) {
                     onClick={() => handleMarkAsPending(instance.id)}
                     disabled={processingId === instance.id}
                   >
-                    {processingId === instance.id ? <LoadingSpinner size="xs" /> : <X className="h-4 w-4" />}
+                    {processingId === instance.id ? <LoadingSpinner className="h-3 w-3" /> : <X className="h-4 w-4" />}
                     Undo
                   </Button>
                 )}

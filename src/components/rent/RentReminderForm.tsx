@@ -128,7 +128,8 @@ export function RentReminderForm({ propertyId, propertyName, onSuccess }: RentRe
             className="w-full" 
             disabled={isCreating}
           >
-            {isCreating ? <LoadingSpinner size="sm" /> : 'Save Rent Reminder'}
+            {isCreating ? <LoadingSpinner className="mr-2 h-4 w-4" /> : null}
+            {isCreating ? 'Saving...' : 'Save Rent Reminder'}
           </Button>
         </form>
       </CardContent>

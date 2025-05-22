@@ -1,12 +1,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
+import { Property } from "@/types/property";
 
 interface TenantsTabProps {
+  property: Property | null;
   onInviteClick: () => void;
 }
 
-export function TenantsTab({ onInviteClick }: TenantsTabProps) {
+export function TenantsTab({ property, onInviteClick }: TenantsTabProps) {
   return (
     <div className="py-8 text-center">
       <div className="flex flex-col items-center justify-center gap-4">
