@@ -1,3 +1,5 @@
+
+import React, { useMemo, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +11,11 @@ import { EmptyServiceProviderState } from "@/components/services/EmptyServicePro
 import { useOwnerServiceProviders } from "@/hooks/services/useOwnerServiceProviders";
 import { serviceTypes } from "@/data/serviceTypes";
 import { OwnerInvitationsList } from "@/components/invitations/OwnerInvitationsList";
+import { Suspense, lazy } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load non-critical components
+const ServiceTypesSection = lazy(() => import('@/components/services/ServiceTypesSection'));
 
 export default function OwnerServiceProviders() {
   const { user } = useAuth();
@@ -24,15 +31,39 @@ export default function OwnerServiceProviders() {
     handleResendInvitation
   } = useOwnerServiceProviders(user?.id);
 
-  const handleViewProviders = (serviceName: string) => {
+  // Memoize handlers to prevent recreation on each render
+  const handleViewProviders = useCallback((serviceName: string) => {
     toast.info(`Viewing ${serviceName} providers`);
     // In a real app, this would navigate to a detailed list of providers for this service
-  };
+  }, []);
 
-  const handleAddToProperty = (serviceName: string) => {
+  const handleAddToProperty = useCallback((serviceName: string) => {
     toast.success(`${serviceName} added to your properties`);
     // In a real app, this would open a modal to select which properties to add this service to
-  };
+  }, []);
+
+  // Memoize the service provider cards list to prevent unnecessary recalculation
+  const serviceProviderCards = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+    
+    if (serviceProviders.length === 0) {
+      return <EmptyServiceProviderState />;
+    }
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {serviceProviders.map((provider) => (
+          <ServiceProviderCard key={provider.id} provider={provider} />
+        ))}
+      </div>
+    );
+  }, [serviceProviders, loading]);
 
   return (
     <DashboardLayout>
@@ -63,33 +94,17 @@ export default function OwnerServiceProviders() {
         {/* Assigned Service Providers Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Assigned Service Providers</h2>
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          ) : serviceProviders.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {serviceProviders.map((provider) => (
-                <ServiceProviderCard key={provider.id} provider={provider} />
-              ))}
-            </div>
-          ) : (
-            <EmptyServiceProviderState />
-          )}
+          {serviceProviderCards}
         </div>
 
-        {/* Available Service Types Section */}
-        <h2 className="text-xl font-semibold mt-8 mb-4">Available Service Types</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {serviceTypes.map((service) => (
-            <ServiceTypeCard 
-              key={service.id}
-              service={service}
-              onViewProviders={handleViewProviders}
-              onAddToProperty={handleAddToProperty}
-            />
-          ))}
-        </div>
+        {/* Available Service Types Section - Lazy loaded */}
+        <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+          <ServiceTypesSection 
+            serviceTypes={serviceTypes}
+            onViewProviders={handleViewProviders}
+            onAddToProperty={handleAddToProperty}
+          />
+        </Suspense>
       </div>
     </DashboardLayout>
   );

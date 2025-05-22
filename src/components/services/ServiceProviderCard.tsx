@@ -1,4 +1,5 @@
 
+import React, { memo } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ServiceProvider } from "@/hooks/services/useOwnerServiceProviders";
 
@@ -6,7 +7,7 @@ interface ServiceProviderCardProps {
   provider: ServiceProvider;
 }
 
-export function ServiceProviderCard({ provider }: ServiceProviderCardProps) {
+export const ServiceProviderCard = memo(function ServiceProviderCard({ provider }: ServiceProviderCardProps) {
   return (
     <Card key={provider.id} className="overflow-hidden">
       <CardHeader className="pb-2">
@@ -27,4 +28,4 @@ export function ServiceProviderCard({ provider }: ServiceProviderCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
