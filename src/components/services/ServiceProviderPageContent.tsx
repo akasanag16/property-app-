@@ -18,6 +18,7 @@ interface ServiceProviderPageContentProps {
   invitationsLoading: boolean;
   invitationsError: string | null;
   resendingId: string | null;
+  // Changed return type to match the actual function implementation
   handleResendInvitation: (id: string) => void;
 }
 
