@@ -9,6 +9,7 @@ import { EmptyPropertyState } from "@/components/property/EmptyPropertyState";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { useProperties } from "@/hooks/useProperties";
+import { useTenantData } from "@/hooks/tenant/useTenantData";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,11 +20,18 @@ export default function OwnerDashboard() {
   const { user } = useAuth();
   const { properties, loading, handleRefresh, error } = useProperties(user?.id);
   const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
-
-  // Count properties that likely have tenants (using details.type as a proxy)
-  const occupiedPropertiesCount = properties.filter(p => 
-    p.details?.type === 'apartment' || p.details?.type === 'house'
-  ).length;
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Get tenant data for the dashboard
+  const { tenants, loading: tenantsLoading } = useTenantData(user, refreshKey);
+  
+  // Calculate total income from tenant payments
+  const totalIncome = tenants.reduce((sum, tenant) => {
+    if (tenant.last_payment?.amount) {
+      return sum + tenant.last_payment.amount;
+    }
+    return sum;
+  }, 0);
 
   // Notify user when realtime is active
   useEffect(() => {
@@ -52,18 +60,25 @@ export default function OwnerDashboard() {
     show: { opacity: 1, y: 0 }
   };
 
+  const handleMainRefresh = () => {
+    handleRefresh();
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <DashboardHeader 
           email={user?.email}
-          onRefresh={handleRefresh}
+          onRefresh={handleMainRefresh}
           onAddProperty={() => setShowAddPropertyForm(true)}
         />
 
         <DashboardStats 
           properties={properties} 
-          occupiedCount={occupiedPropertiesCount} 
+          loading={loading || tenantsLoading}
+          tenantCount={tenants.length} 
+          totalIncome={totalIncome}
         />
 
         {error && (
