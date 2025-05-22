@@ -37,6 +37,46 @@ export function useOwnerMaintenanceRequests() {
       setIsUpdating(true);
       console.log(`Updating request ${requestId} to ${newStatus}${serviceProviderId ? ` with provider ${serviceProviderId}` : ''}`);
       
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // First, verify that the current user owns the property associated with this request
+      // by using our security definer function
+      const { data: requestData, error: requestError } = await supabase
+        .from('maintenance_requests')
+        .select('property_id')
+        .eq('id', requestId)
+        .single();
+        
+      if (requestError) {
+        console.error("Error fetching request data:", requestError);
+        throw new Error(`Failed to verify request ownership: ${requestError.message}`);
+      }
+      
+      if (!requestData || !requestData.property_id) {
+        throw new Error("Invalid request data");
+      }
+      
+      const propertyId = requestData.property_id;
+      
+      // Check if the user is the owner of this property using our security definer function
+      const { data: ownershipCheck, error: ownershipError } = await supabase
+        .rpc('safe_is_owner_of_property', { 
+          user_id_param: user.id, 
+          property_id_param: propertyId 
+        });
+      
+      if (ownershipError) {
+        console.error("Error checking ownership:", ownershipError);
+        throw new Error(`Failed to verify property ownership: ${ownershipError.message}`);
+      }
+      
+      if (!ownershipCheck) {
+        throw new Error("You don't have permission to update this request");
+      }
+      
+      // Prepare the update data
       const updateData: { 
         status: "accepted" | "completed"; 
         assigned_service_provider_id?: string;
@@ -49,7 +89,8 @@ export function useOwnerMaintenanceRequests() {
         updateData.assigned_service_provider_id = serviceProviderId;
       }
       
-      // Update the request in the database
+      // Update the request in the database using a direct update
+      // This update will now work because we've verified ownership separately
       const { error: updateError } = await supabase
         .from('maintenance_requests')
         .update(updateData)
@@ -57,8 +98,7 @@ export function useOwnerMaintenanceRequests() {
         
       if (updateError) {
         console.error("Error updating request:", updateError);
-        toast.error(`Failed to update request: ${updateError.message}`);
-        return;
+        throw new Error(`Failed to update request: ${updateError.message}`);
       }
       
       // Create notification for the assigned service provider if applicable

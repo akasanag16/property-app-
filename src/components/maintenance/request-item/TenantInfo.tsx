@@ -6,6 +6,7 @@ type TenantInfoProps = {
     first_name: string;
     last_name: string;
     email?: string;
+    phone?: string;
   } | null;
 };
 
@@ -23,6 +24,13 @@ export function TenantInfo({ tenant }: TenantInfoProps) {
         <p className="text-xs text-gray-500">
           <a href={`mailto:${tenant.email}`} className="hover:underline">
             {tenant.email}
+          </a>
+        </p>
+      )}
+      {tenant.phone && (
+        <p className="text-xs text-gray-500">
+          <a href={`tel:${tenant.phone}`} className="hover:underline">
+            {tenant.phone}
           </a>
         </p>
       )}

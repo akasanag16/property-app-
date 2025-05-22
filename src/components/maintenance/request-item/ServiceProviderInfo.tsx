@@ -6,6 +6,7 @@ type ServiceProviderInfoProps = {
     first_name: string;
     last_name: string;
     email?: string;
+    phone?: string;
   } | null;
 };
 
@@ -24,6 +25,13 @@ export function ServiceProviderInfo({ serviceProvider }: ServiceProviderInfoProp
         <p className="text-xs text-gray-500">
           <a href={`mailto:${serviceProvider.email}`} className="hover:underline">
             {serviceProvider.email}
+          </a>
+        </p>
+      )}
+      {serviceProvider.phone && (
+        <p className="text-xs text-gray-500">
+          <a href={`tel:${serviceProvider.phone}`} className="hover:underline">
+            {serviceProvider.phone}
           </a>
         </p>
       )}
