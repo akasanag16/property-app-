@@ -19,7 +19,7 @@ interface PropertyRentSetupSectionProps {
 
 export function PropertyRentSetupSection({ rentReminders, isLoading }: PropertyRentSetupSectionProps) {
   const { user } = useAuth();
-  const { properties, isLoading: propertiesLoading } = useProperties(user?.id, "owner");
+  const { properties, loading: propertiesLoading } = useProperties(user?.id);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
