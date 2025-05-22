@@ -20,13 +20,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+      <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
         {/* Mobile header */}
         <div className="md:hidden bg-white p-4 flex justify-between items-center border-b shadow-sm">
-          <button onClick={toggleSidebar} className="p-2">
+          <button onClick={toggleSidebar} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
             <Menu className="h-6 w-6" />
           </button>
-          <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Property Maintenance</div>
+          <div className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Property Maintenance</div>
           <NotificationBell />
         </div>
 
@@ -40,8 +40,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
 
         {/* Main content */}
-        <div className="flex-1 transition-all duration-300 bg-gradient-to-b from-indigo-50/30 to-white">
-          <div className="p-4 md:p-6">
+        <div className="flex-1 transition-all duration-300 bg-gradient-to-b from-gray-50 to-white">
+          <div className="p-4 md:p-8 max-w-7xl mx-auto">
             <div className="hidden md:flex justify-end mb-4">
               <NotificationBell />
             </div>

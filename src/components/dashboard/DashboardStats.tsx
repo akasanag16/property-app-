@@ -25,55 +25,58 @@ export function DashboardStats({
   const hasServiceProviders = serviceProvidersCount > 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Total Properties</span>
-            <Building className="h-5 w-5 text-gray-500" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <CardContent className="flex items-center p-6">
+          <div className="flex items-center justify-center bg-blue-100 h-12 w-12 rounded-full mr-4">
+            <Building className="h-6 w-6 text-blue-600" />
           </div>
-          <div className="text-3xl font-bold">
-            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={propertyCount} />}
-          </div>
-          {hasProperties && (
-            <div className="text-sm text-gray-500">
-              All properties are currently active
+          <div>
+            <p className="text-sm font-medium text-gray-500">Total Properties</p>
+            <div className="text-2xl font-bold text-gray-800">
+              {loading ? (
+                <span className="inline-block w-12 h-6 bg-gray-200 animate-pulse rounded"></span>
+              ) : (
+                <AnimatedCounter value={propertyCount} />
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Total Tenants</span>
-            <Users className="h-5 w-5 text-gray-500" />
+      <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-purple-50 to-pink-50">
+        <CardContent className="flex items-center p-6">
+          <div className="flex items-center justify-center bg-purple-100 h-12 w-12 rounded-full mr-4">
+            <Users className="h-6 w-6 text-purple-600" />
           </div>
-          <div className="text-3xl font-bold">
-            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={tenantCount} />}
-          </div>
-          {hasTenants && (
-            <div className="text-sm text-gray-500">
-              All tenants are active
+          <div>
+            <p className="text-sm font-medium text-gray-500">Total Tenants</p>
+            <div className="text-2xl font-bold text-gray-800">
+              {loading ? (
+                <span className="inline-block w-12 h-6 bg-gray-200 animate-pulse rounded"></span>
+              ) : (
+                <AnimatedCounter value={tenantCount} />
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Total Service Providers</span>
-            <Wrench className="h-5 w-5 text-gray-500" />
+      <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-emerald-50 to-teal-50">
+        <CardContent className="flex items-center p-6">
+          <div className="flex items-center justify-center bg-emerald-100 h-12 w-12 rounded-full mr-4">
+            <Wrench className="h-6 w-6 text-emerald-600" />
           </div>
-          <div className="text-3xl font-bold">
-            {loading ? <span className="loading loading-dots loading-md"></span> : <AnimatedCounter value={serviceProvidersCount} />}
-          </div>
-          {hasServiceProviders && (
-            <div className="text-sm text-gray-500">
-              All service providers are active
+          <div>
+            <p className="text-sm font-medium text-gray-500">Service Providers</p>
+            <div className="text-2xl font-bold text-gray-800">
+              {loading ? (
+                <span className="inline-block w-12 h-6 bg-gray-200 animate-pulse rounded"></span>
+              ) : (
+                <AnimatedCounter value={serviceProvidersCount} />
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

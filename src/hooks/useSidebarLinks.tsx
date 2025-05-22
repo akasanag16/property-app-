@@ -6,7 +6,12 @@ import {
   Users, 
   Wrench, 
   Briefcase,
-  DollarSign
+  DollarSign,
+  Settings,
+  BarChart,
+  MessageSquare,
+  FileText,
+  Bell
 } from "lucide-react";
 import { UserRole } from "@/lib/auth";
 
@@ -14,6 +19,7 @@ export interface NavItem {
   href: string;
   label: string;
   icon: ReactNode;
+  badge?: number;
 }
 
 export const useSidebarLinks = (userRole: UserRole | null): NavItem[] => {
@@ -26,21 +32,31 @@ export const useSidebarLinks = (userRole: UserRole | null): NavItem[] => {
         { href: "/owner/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
         { href: "/owner/tenants", label: "Tenants", icon: <Users className="h-5 w-5" /> },
         { href: "/owner/service-providers", label: "Service Providers", icon: <Briefcase className="h-5 w-5" /> },
-        { href: "/owner/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
-        { href: "/owner/rent", label: "Rent Management", icon: <DollarSign className="h-5 w-5" /> }
+        { href: "/owner/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" />, badge: 3 },
+        { href: "/owner/rent", label: "Rent Management", icon: <DollarSign className="h-5 w-5" /> },
+        { href: "/owner/reports", label: "Reports", icon: <BarChart className="h-5 w-5" /> },
+        { href: "/owner/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" />, badge: 2 },
+        { href: "/owner/documents", label: "Documents", icon: <FileText className="h-5 w-5" /> },
+        { href: "/owner/notifications", label: "Notifications", icon: <Bell className="h-5 w-5" /> },
+        { href: "/owner/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> }
       ];
     case "tenant":
       return [
         { href: "/tenant-dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
         { href: "/tenant/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
         { href: "/tenant/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
-        { href: "/tenant/rent", label: "Rent Payments", icon: <DollarSign className="h-5 w-5" /> }
+        { href: "/tenant/rent", label: "Rent Payments", icon: <DollarSign className="h-5 w-5" /> },
+        { href: "/tenant/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
+        { href: "/tenant/documents", label: "Documents", icon: <FileText className="h-5 w-5" /> },
+        { href: "/tenant/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> }
       ];
     case "service_provider":
       return [
         { href: "/service-provider-dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
         { href: "/service-provider/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
-        { href: "/service-provider/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> }
+        { href: "/service-provider/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
+        { href: "/service-provider/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
+        { href: "/service-provider/settings", label: "Settings", icon: <Settings className="h-5 w-5" /> }
       ];
     default:
       return [];
