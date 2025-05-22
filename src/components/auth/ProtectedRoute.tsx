@@ -1,13 +1,15 @@
 
-import { Navigate, Outlet } from "react-router-dom";
+import { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/lib/auth";
 
 interface ProtectedRouteProps {
   allowedRoles?: UserRole[];
+  children: ReactNode;
 }
 
-export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
 
   console.log("ProtectedRoute: Checking auth", { 
@@ -41,5 +43,5 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
 
   // If all checks pass, render the protected content
   console.log("Auth checks passed, rendering protected content");
-  return <Outlet />;
+  return <>{children}</>;
 }

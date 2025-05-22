@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
@@ -32,22 +33,62 @@ const App = () => {
           <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
           
           {/* Protected routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
           
           {/* Owner routes */}
-          <Route path="/owner-dashboard" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerDashboard /></ProtectedRoute>} />
-          <Route path="/owner/properties" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerProperties /></ProtectedRoute>} />
-          <Route path="/owner/tenants" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerTenants /></ProtectedRoute>} />
-          <Route path="/owner/service-providers" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerServiceProviders /></ProtectedRoute>} />
-          <Route path="/owner/maintenance" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerMaintenance /></ProtectedRoute>} />
-          <Route path="/owner/rent" element={<ProtectedRoute allowedRoles={["owner"]}><OwnerRent /></ProtectedRoute>} />
+          <Route path="/owner-dashboard" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/properties" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerProperties />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/tenants" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerTenants />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/service-providers" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerServiceProviders />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/maintenance" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerMaintenance />
+            </ProtectedRoute>
+          } />
+          <Route path="/owner/rent" element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerRent />
+            </ProtectedRoute>
+          } />
           
           {/* Tenant routes */}
-          <Route path="/tenant-dashboard" element={<ProtectedRoute allowedRoles={["tenant"]}><TenantDashboard /></ProtectedRoute>} />
+          <Route path="/tenant-dashboard" element={
+            <ProtectedRoute allowedRoles={["tenant"]}>
+              <TenantDashboard />
+            </ProtectedRoute>
+          } />
           
           {/* Service Provider routes */}
-          <Route path="/service-provider-dashboard" element={<ProtectedRoute allowedRoles={["service_provider"]}><ServiceProviderDashboard /></ProtectedRoute>} />
-          <Route path="/service-provider/properties/:id/maintenance" element={<ProtectedRoute allowedRoles={["service_provider"]}><PropertyMaintenanceRequests /></ProtectedRoute>} />
+          <Route path="/service-provider-dashboard" element={
+            <ProtectedRoute allowedRoles={["service_provider"]}>
+              <ServiceProviderDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/service-provider/properties/:id/maintenance" element={
+            <ProtectedRoute allowedRoles={["service_provider"]}>
+              <PropertyMaintenanceRequests />
+            </ProtectedRoute>
+          } />
           
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="*" element={<NotFound />} />
