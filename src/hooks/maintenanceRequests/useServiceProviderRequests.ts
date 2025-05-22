@@ -28,9 +28,11 @@ export function useServiceProviderRequests(
       
       if (propertyId) {
         // Fetch requests for a specific property
+        console.log(`Fetching maintenance requests for provider ${userId} and property ${propertyId}`);
         data = await getPropertyMaintenanceRequestsForProvider(userId, propertyId);
       } else {
         // Fetch all requests
+        console.log(`Fetching all maintenance requests for provider ${userId}`);
         data = await getServiceProviderRequests(userId);
       }
       
