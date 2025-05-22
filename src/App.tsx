@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import TenantDashboard from "./pages/tenant/TenantDashboard";
 import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
+import PropertyMaintenanceRequests from "./pages/service-provider/PropertyMaintenanceRequests";
 import Unauthorized from "./pages/Unauthorized";
 import OwnerTenants from "./pages/owner/OwnerTenants";
 import OwnerServiceProviders from "./pages/owner/OwnerServiceProviders";
@@ -78,6 +79,7 @@ const App = () => {
                 <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
                 <Route path="/service-provider/properties" element={<ServiceProviderDashboard />} />
                 <Route path="/service-provider/maintenance" element={<ServiceProviderDashboard />} />
+                <Route path="/service-provider/property/:propertyId/maintenance" element={<PropertyMaintenanceRequests />} />
               </Route>
               
               {/* Not found route */}

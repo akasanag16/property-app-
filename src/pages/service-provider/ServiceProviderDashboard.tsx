@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { ErrorAlert } from "@/components/ui/alert-error";
+import { Link } from "react-router-dom";
 import type { Property, PropertyDetails } from "@/types/property";
 
 export default function ServiceProviderDashboard() {
@@ -132,12 +133,12 @@ export default function ServiceProviderDashboard() {
                 <div key={property.id} className="bg-white p-6 rounded-lg shadow">
                   <h2 className="text-xl font-semibold mb-2">{property.name}</h2>
                   <p className="text-gray-500 mb-4">{property.address}</p>
-                  <button 
-                    onClick={() => setActiveTab("maintenance-requests")}
+                  <Link 
+                    to={`/service-provider/property/${property.id}/maintenance`}
                     className="text-primary hover:text-primary/80 text-sm font-medium"
                   >
                     View maintenance requests
-                  </button>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -146,7 +147,7 @@ export default function ServiceProviderDashboard() {
         
         <TabsContent value="maintenance-requests" className="pt-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Assigned Maintenance Requests</h2>
+            <h2 className="text-xl font-semibold mb-4">All Maintenance Requests</h2>
             <MaintenanceRequestsList 
               userRole="service_provider" 
               refreshKey={refreshKey} 

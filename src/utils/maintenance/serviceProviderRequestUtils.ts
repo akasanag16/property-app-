@@ -55,3 +55,31 @@ export async function getServiceProviderRequests(providerId: string): Promise<Ma
     throw error;
   }
 }
+
+export async function getPropertyMaintenanceRequestsForProvider(
+  providerId: string,
+  propertyId: string
+): Promise<MaintenanceRequest[]> {
+  try {
+    console.log(`Fetching maintenance requests for provider ${providerId} and property ${propertyId}`);
+    
+    if (!providerId || !propertyId) {
+      console.warn("Missing provider ID or property ID");
+      return [];
+    }
+    
+    // First get all maintenance requests for the service provider
+    const allRequests = await getServiceProviderRequests(providerId);
+    
+    // Then filter them by property ID
+    const propertyRequests = allRequests.filter(request => 
+      request.property && request.property.id === propertyId
+    );
+    
+    console.log(`Found ${propertyRequests.length} maintenance requests for property`);
+    return propertyRequests;
+  } catch (error) {
+    console.error("Error in getPropertyMaintenanceRequestsForProvider:", error);
+    throw error;
+  }
+}

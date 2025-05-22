@@ -13,17 +13,19 @@ import { useAuth } from "@/contexts/AuthContext";
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
   onError?: (message: string) => void;
+  propertyId?: string;
 };
 
 export function MaintenanceRequestsList({ 
   userRole, 
   refreshKey = 0,
   onRefreshNeeded,
-  onError
+  onError,
+  propertyId
 }: ExtendedMaintenanceRequestsListProps) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey);
+  const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey, propertyId);
   const { user } = useAuth();
 
   // Update local refresh key when parent refresh key changes

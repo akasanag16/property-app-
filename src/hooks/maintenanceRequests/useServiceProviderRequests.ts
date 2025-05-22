@@ -1,10 +1,14 @@
 
 import { useState, useEffect } from "react";
 import { MaintenanceRequest } from "@/types/maintenance";
-import { getServiceProviderRequests } from "@/utils/maintenance/serviceProviderRequestUtils";
+import { getServiceProviderRequests, getPropertyMaintenanceRequestsForProvider } from "@/utils/maintenance/serviceProviderRequestUtils";
 import { toast } from "sonner";
 
-export function useServiceProviderRequests(userId: string | undefined, refreshKey = 0) {
+export function useServiceProviderRequests(
+  userId: string | undefined, 
+  refreshKey = 0,
+  propertyId?: string
+) {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -19,7 +23,17 @@ export function useServiceProviderRequests(userId: string | undefined, refreshKe
     try {
       setLoading(true);
       setError(null);
-      const data = await getServiceProviderRequests(userId);
+      
+      let data: MaintenanceRequest[];
+      
+      if (propertyId) {
+        // Fetch requests for a specific property
+        data = await getPropertyMaintenanceRequestsForProvider(userId, propertyId);
+      } else {
+        // Fetch all requests
+        data = await getServiceProviderRequests(userId);
+      }
+      
       setRequests(data);
     } catch (err: any) {
       console.error("Error fetching service provider maintenance requests:", err);
@@ -32,7 +46,7 @@ export function useServiceProviderRequests(userId: string | undefined, refreshKe
 
   useEffect(() => {
     fetchRequests();
-  }, [userId, refreshKey]);
+  }, [userId, propertyId, refreshKey]);
 
   return { requests, loading, error, refetch: fetchRequests };
 }

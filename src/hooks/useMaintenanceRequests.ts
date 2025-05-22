@@ -7,7 +7,8 @@ import { useOwnerRequests } from "./maintenanceRequests/useOwnerRequests";
 
 export function useMaintenanceRequests(
   userRole: "owner" | "tenant" | "service_provider",
-  refreshKey = 0
+  refreshKey = 0,
+  propertyId?: string
 ) {
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
@@ -45,7 +46,8 @@ export function useMaintenanceRequests(
   const tenantHook = useTenantRequests(userRole === "tenant" ? userId : undefined, refreshKey);
   const serviceProviderHook = useServiceProviderRequests(
     userRole === "service_provider" ? userId : undefined,
-    refreshKey
+    refreshKey,
+    userRole === "service_provider" ? propertyId : undefined
   );
   const ownerHook = useOwnerRequests(userRole === "owner" ? userId : undefined, refreshKey);
 
