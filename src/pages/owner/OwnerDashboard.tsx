@@ -10,6 +10,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { useProperties } from "@/hooks/useProperties";
 import { useTenantData } from "@/hooks/tenant/useTenantData";
+import { useOwnerServiceProviders } from "@/hooks/services/useOwnerServiceProviders";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,13 +26,8 @@ export default function OwnerDashboard() {
   // Get tenant data for the dashboard
   const { tenants, loading: tenantsLoading } = useTenantData(user, refreshKey);
   
-  // Calculate total income from tenant payments
-  const totalIncome = tenants.reduce((sum, tenant) => {
-    if (tenant.last_payment?.amount) {
-      return sum + tenant.last_payment.amount;
-    }
-    return sum;
-  }, 0);
+  // Get service provider data for the dashboard
+  const { serviceProviders, loading: serviceProvidersLoading } = useOwnerServiceProviders(user?.id);
 
   // Notify user when realtime is active
   useEffect(() => {
@@ -70,15 +66,17 @@ export default function OwnerDashboard() {
       <div className="space-y-8">
         <DashboardHeader 
           email={user?.email}
+          firstName={user?.user_metadata?.first_name}
+          lastName={user?.user_metadata?.last_name}
           onRefresh={handleMainRefresh}
           onAddProperty={() => setShowAddPropertyForm(true)}
         />
 
         <DashboardStats 
           properties={properties} 
-          loading={loading || tenantsLoading}
-          tenantCount={tenants.length} 
-          totalIncome={totalIncome}
+          loading={loading || tenantsLoading || serviceProvidersLoading}
+          tenantCount={tenants.length}
+          serviceProvidersCount={serviceProviders.length}
         />
 
         {error && (

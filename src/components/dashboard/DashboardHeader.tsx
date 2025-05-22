@@ -4,11 +4,20 @@ import { Plus, RefreshCw } from "lucide-react";
 
 type DashboardHeaderProps = {
   email?: string;
+  firstName?: string;
+  lastName?: string;
   onRefresh: () => void;
   onAddProperty: () => void;
 };
 
-export function DashboardHeader({ email, onRefresh, onAddProperty }: DashboardHeaderProps) {
+export function DashboardHeader({ email, firstName, lastName, onRefresh, onAddProperty }: DashboardHeaderProps) {
+  // Display name if available, otherwise fall back to email
+  const displayName = firstName && lastName 
+    ? `${firstName} ${lastName}` 
+    : firstName || lastName 
+      ? `${firstName || ''} ${lastName || ''}`.trim() 
+      : email;
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -31,7 +40,7 @@ export function DashboardHeader({ email, onRefresh, onAddProperty }: DashboardHe
         </div>
       </div>
       
-      <p className="text-gray-600 mb-8">Welcome, {email}</p>
+      <p className="text-gray-600 mb-8">Welcome, {displayName}</p>
     </>
   );
 }
