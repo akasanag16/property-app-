@@ -5,9 +5,6 @@ import { Tenant } from "@/types/tenant";
 import { toast } from "sonner";
 import { fetchTenantsForOwner, checkProfileEmailColumn } from "./tenantDataUtils";
 
-// Fallback to sample data if needed for development/testing
-import { sampleTenants } from "@/data/sampleTenants";
-
 export function useTenantData(user: User | null, refreshKey: number) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,40 +39,17 @@ export function useTenantData(user: User | null, refreshKey: number) {
         try {
           const allTenants = await fetchTenantsForOwner(user.id);
           console.log(`Fetched ${allTenants.length} tenants for the owner`);
-          
-          if (allTenants.length === 0) {
-            // Only use sample data in development
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Using sample tenant data in dev mode (no real tenants found)");
-              setTenants(sampleTenants);
-            } else {
-              setTenants([]);
-            }
-          } else {
-            setTenants(allTenants);
-          }
+          setTenants(allTenants);
         } catch (err: any) {
           console.error("Error in tenant fetching process:", err);
           setError(`Failed to load tenants data: ${err.message || "Unknown error"}`);
-          
-          // Only fallback to sample data in development mode
-          if (process.env.NODE_ENV === 'development') {
-            console.log("Using sample tenant data due to fetch error");
-            setTenants(sampleTenants);
-          }
+          setTenants([]);
         }
         
       } catch (error: any) {
         console.error("Error fetching tenants:", error);
         setError(`Failed to load tenants: ${error.message || "Unknown error"}`);
-        
-        // Only fallback to sample data in development mode
-        if (process.env.NODE_ENV === 'development') {
-          toast.error("Failed to load tenants");
-          setTenants(sampleTenants);
-        } else {
-          setTenants([]);
-        }
+        setTenants([]);
       } finally {
         setLoading(false);
       }

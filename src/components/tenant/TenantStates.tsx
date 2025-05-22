@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, UsersRound, PlusCircle } from "lucide-react";
 
 export function TenantLoadingState() {
   return (
@@ -13,11 +13,16 @@ export function TenantLoadingState() {
 
 export function TenantEmptyState() {
   return (
-    <div className="text-center py-12 bg-gray-50 rounded-lg border">
-      <h2 className="text-xl font-semibold mb-2">No Tenants Found</h2>
-      <p className="text-gray-500 mb-4">
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-gray-50 rounded-lg border">
+      <UsersRound className="h-12 w-12 text-gray-400 mb-4" />
+      <h2 className="text-xl font-semibold mb-2 text-gray-800">No Tenants Found</h2>
+      <p className="text-gray-500 mb-6 max-w-md">
         You don't have any tenants yet. Add properties and invite tenants.
       </p>
+      <Button className="flex items-center gap-2">
+        <PlusCircle className="h-4 w-4" />
+        Add Tenant
+      </Button>
     </div>
   );
 }
