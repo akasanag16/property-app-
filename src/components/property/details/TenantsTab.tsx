@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 
 interface TenantsTabProps {
   onInviteClick: () => void;
@@ -8,9 +9,16 @@ interface TenantsTabProps {
 export function TenantsTab({ onInviteClick }: TenantsTabProps) {
   return (
     <div className="py-8 text-center">
-      <h3 className="font-medium text-lg mb-2">Tenant Management</h3>
-      <p className="text-gray-500 mb-4">Manage tenants for this property</p>
-      <Button onClick={onInviteClick}>Manage Tenants</Button>
+      <div className="flex flex-col items-center justify-center gap-4">
+        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Users className="h-8 w-8 text-primary" />
+        </div>
+        <h3 className="font-medium text-lg">Tenant Management</h3>
+        <p className="text-gray-500 max-w-md mb-4">
+          Manage tenants for this property. You can invite new tenants or view current tenant information.
+        </p>
+        <Button onClick={onInviteClick} className="px-6">Manage Tenants</Button>
+      </div>
     </div>
   );
 }

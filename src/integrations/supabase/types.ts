@@ -574,6 +574,21 @@ export type Database = {
           property_name: string
         }[]
       }
+      get_owner_tenants_with_details: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          email: string
+          property_id: string
+          property_name: string
+          last_payment_date: string
+          next_payment_date: string
+          payment_amount: number
+          payment_status: string
+        }[]
+      }
       get_property_invitations: {
         Args: { p_property_id: string; p_type: string }
         Returns: Json[]

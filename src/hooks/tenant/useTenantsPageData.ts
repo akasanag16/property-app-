@@ -28,8 +28,6 @@ export function useTenantsPageData(user: User | null) {
   };
 
   useEffect(() => {
-    // Don't auto-refresh on mount - wait for user interaction
-    
     if (!loading && !invitationsLoading && refreshing) {
       setRefreshing(false);
     }
@@ -42,7 +40,8 @@ export function useTenantsPageData(user: User | null) {
     emailColumnMissing,
     refreshing,
     handleRefresh,
-    tenantInvitations,
+    // Only return pending invitations for the invitations list
+    tenantInvitations: tenantInvitations?.filter(inv => inv.status === 'pending') || [],
     invitationsLoading,
     invitationsError,
     resendingId,

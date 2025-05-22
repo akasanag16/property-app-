@@ -44,7 +44,7 @@ export function TenantTable({ tenants }: TenantTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Property</TableHead>
+                  <TableHead>Properties</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Last Payment</TableHead>
                   <TableHead>Next Due</TableHead>

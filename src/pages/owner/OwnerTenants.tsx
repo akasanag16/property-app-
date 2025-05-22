@@ -23,19 +23,21 @@ export default function OwnerTenants() {
 
   return (
     <DashboardLayout>
-      <TenantPageContent
-        tenants={tenants}
-        loading={loading}
-        error={error}
-        emailColumnMissing={emailColumnMissing}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        tenantInvitations={tenantInvitations}
-        invitationsLoading={invitationsLoading}
-        invitationsError={invitationsError}
-        resendingId={resendingId}
-        handleResendInvitation={handleResendInvitation}
-      />
+      <div className="container px-4 py-6">
+        <TenantPageContent
+          tenants={tenants}
+          loading={loading}
+          error={error}
+          emailColumnMissing={emailColumnMissing}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tenantInvitations={tenantInvitations}
+          invitationsLoading={invitationsLoading}
+          invitationsError={invitationsError}
+          resendingId={resendingId}
+          handleResendInvitation={handleResendInvitation}
+        />
+      </div>
     </DashboardLayout>
   );
 }

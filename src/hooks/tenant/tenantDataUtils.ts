@@ -25,7 +25,7 @@ export async function checkProfileEmailColumn() {
   }
 }
 
-// Fetch tenants for the given owner
+// Fetch tenants for the given owner using our new function
 export async function fetchTenantsForOwner(ownerId: string): Promise<Tenant[]> {
   try {
     console.log(`Fetching tenants for owner: ${ownerId}`);
@@ -34,114 +34,72 @@ export async function fetchTenantsForOwner(ownerId: string): Promise<Tenant[]> {
       console.error("No owner ID provided");
       throw new Error("Authentication required to fetch tenants");
     }
+
+    // Use our new function that returns only actual tenants (with accepted invitations)
+    const { data: tenantsData, error: tenantsError } = await supabase
+      .rpc('get_owner_tenants_with_details', { owner_id_param: ownerId });
     
-    // Use our new security definer function to avoid recursion
-    const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .rpc('safe_get_tenant_property_links', { owner_id_param: ownerId });
-    
-    if (tenantLinksError) {
-      console.error("Error fetching tenant links:", tenantLinksError);
-      throw tenantLinksError;
+    if (tenantsError) {
+      console.error("Error fetching tenants:", tenantsError);
+      throw tenantsError;
     }
     
-    if (!tenantLinks || tenantLinks.length === 0) {
-      console.log("No tenant links found for this owner");
+    if (!tenantsData || tenantsData.length === 0) {
+      console.log("No tenants found for this owner");
       return [];
     }
     
-    // Extract unique tenant IDs
-    const tenantIds = [...new Set(tenantLinks.map((link: any) => link.tenant_id))];
-    console.log(`Found ${tenantIds.length} unique tenants`);
+    console.log(`Found ${tenantsData.length} tenants`);
+
+    // Process and transform the data into our Tenant type
+    const tenantMap = new Map<string, Tenant>();
     
-    // Create property map
-    const propertyMap = new Map<string, string>();
-    tenantLinks.forEach((link: any) => {
-      propertyMap.set(link.property_id, link.property_name);
-    });
-    
-    // Fetch tenant profiles
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, email')
-      .in('id', tenantIds as string[]);
+    tenantsData.forEach((tenantData: any) => {
+      const existingTenant = tenantMap.get(tenantData.id);
       
-    if (profilesError) {
-      console.error("Error fetching tenant profiles:", profilesError);
-      throw profilesError;
-    }
-    
-    // Fetch latest payments for each tenant
-    const { data: payments, error: paymentsError } = await supabase
-      .from('tenant_payments')
-      .select('tenant_id, amount, due_date, paid_date, status')
-      .in('tenant_id', tenantIds as string[])
-      .order('due_date', { ascending: false });
+      // Calculate days until next payment is due
+      let dueInDays = 0;
+      if (tenantData.next_payment_date) {
+        const dueDate = new Date(tenantData.next_payment_date);
+        const today = new Date();
+        dueInDays = differenceInDays(dueDate, today);
+      }
       
-    if (paymentsError) {
-      console.error("Error fetching tenant payments:", paymentsError);
-      // Continue without payments data
-    }
-    
-    // Build payment map (latest payment per tenant)
-    const paymentMap = new Map();
-    if (payments) {
-      payments.forEach((payment: any) => {
-        if (!paymentMap.has(payment.tenant_id)) {
-          paymentMap.set(payment.tenant_id, payment);
+      if (existingTenant) {
+        // Add property to existing tenant if it's not already in their properties array
+        if (!existingTenant.properties.some(prop => prop.id === tenantData.property_id)) {
+          existingTenant.properties.push({
+            id: tenantData.property_id,
+            name: tenantData.property_name || "Unknown Property"
+          });
         }
-      });
-    }
-    
-    // Find tenant's property from links
-    const tenantPropertyMap = new Map();
-    if (tenantLinks) {
-      tenantLinks.forEach((link: any) => {
-        tenantPropertyMap.set(link.tenant_id, {
-          id: link.property_id,
-          name: link.property_name || "Unknown Property"
-        });
-      });
-    }
-    
-    // Create tenant objects
-    const tenants: Tenant[] = [];
-    if (profiles) {
-      profiles.forEach(profile => {
-        // Find tenant's property from our map
-        const propertyInfo = tenantPropertyMap.get(profile.id);
-        
-        const paymentInfo = paymentMap.get(profile.id);
-        
-        // Calculate days until next payment is due
-        let dueInDays = 0;
-        if (paymentInfo && paymentInfo.due_date) {
-          const dueDate = new Date(paymentInfo.due_date);
-          const today = new Date();
-          dueInDays = differenceInDays(dueDate, today);
-        }
-        
-        tenants.push({
-          id: profile.id,
-          first_name: profile.first_name || "Unknown",
-          last_name: profile.last_name || "",
-          email: profile.email || null,
-          property: propertyInfo || null,
-          last_payment: paymentInfo ? {
-            date: paymentInfo.paid_date,
-            amount: paymentInfo.amount,
-            status: paymentInfo.status
+      } else {
+        // Create new tenant entry
+        tenantMap.set(tenantData.id, {
+          id: tenantData.id,
+          first_name: tenantData.first_name || "Unknown",
+          last_name: tenantData.last_name || "",
+          email: tenantData.email || null,
+          properties: [{
+            id: tenantData.property_id,
+            name: tenantData.property_name || "Unknown Property"
+          }],
+          last_payment: tenantData.last_payment_date ? {
+            amount: tenantData.payment_amount,
+            date: tenantData.last_payment_date,
+            status: tenantData.payment_status || 'pending'
           } : null,
-          next_payment: paymentInfo ? {
-            date: paymentInfo.due_date,
-            amount: paymentInfo.amount,
+          next_payment: tenantData.next_payment_date ? {
+            amount: tenantData.payment_amount,
+            date: tenantData.next_payment_date,
             due_in_days: dueInDays
           } : null
         });
-      });
-    }
+      }
+    });
     
-    console.log(`Successfully processed ${tenants.length} tenants`);
-    return tenants;
+    console.log(`Successfully processed ${tenantMap.size} tenants`);
+    return Array.from(tenantMap.values());
     
   } catch (error: any) {
     console.error("Error in tenant data processing:", error);

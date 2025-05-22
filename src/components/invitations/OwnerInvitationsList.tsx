@@ -1,4 +1,3 @@
-
 import React, { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,6 +88,9 @@ export const OwnerInvitationsList = memo(function OwnerInvitationsList({
   emptyMessage,
   onResend,
 }: OwnerInvitationsListProps) {
+  // Filter the invitations to only show pending ones
+  const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
+  
   if (loading) {
     return (
       <Card className="bg-gradient-to-r from-slate-50 to-white">
@@ -114,7 +116,7 @@ export const OwnerInvitationsList = memo(function OwnerInvitationsList({
     );
   }
 
-  if (!invitations || invitations.length === 0) {
+  if (!pendingInvitations || pendingInvitations.length === 0) {
     return (
       <Card className="bg-gradient-to-r from-slate-50 to-white">
         <CardContent className="p-6">
@@ -131,7 +133,7 @@ export const OwnerInvitationsList = memo(function OwnerInvitationsList({
       <CardContent className="p-6">
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <div className="space-y-3">
-          {invitations.map((invitation) => (
+          {pendingInvitations.map((invitation) => (
             <InvitationItem 
               key={invitation.id} 
               invitation={invitation} 

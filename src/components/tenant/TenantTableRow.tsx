@@ -16,7 +16,19 @@ export function TenantTableRow({ tenant }: TenantTableRowProps) {
       <TableCell className="font-medium">
         {tenant.first_name} {tenant.last_name}
       </TableCell>
-      <TableCell>{tenant.property?.name || "Unknown Property"}</TableCell>
+      <TableCell>
+        {tenant.properties.length > 0 ? (
+          <div className="space-y-1">
+            {tenant.properties.map(property => (
+              <div key={property.id} className="text-xs">
+                {property.name}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Badge variant="warning" className="text-xs">No properties</Badge>
+        )}
+      </TableCell>
       <TableCell>
         {tenant.email ? (
           <span className="text-xs break-all">{tenant.email}</span>
