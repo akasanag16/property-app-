@@ -61,20 +61,29 @@ export default function ServiceProviderDashboard() {
       
       setProperties(typedProperties);
 
-      // Fetch maintenance request counts
-      const { data: requestCountData, error: requestCountError } = await supabase
-        .rpc('count_service_provider_maintenance_requests', { provider_id_param: user.id });
+      // Fetch maintenance request counts - use direct query instead of RPC
+      const { data: allRequests, error: requestError } = await supabase
+        .from('maintenance_requests')
+        .select('id')
+        .eq('assigned_service_provider_id', user.id);
 
-      if (!requestCountError && requestCountData) {
-        setRequestsCount(requestCountData[0]?.count || 0);
+      if (!requestError && allRequests) {
+        setRequestsCount(allRequests.length);
+      } else if (requestError) {
+        console.error("Error fetching request count:", requestError);
       }
 
-      // Fetch pending maintenance request counts
-      const { data: pendingCountData, error: pendingCountError } = await supabase
-        .rpc('count_service_provider_pending_requests', { provider_id_param: user.id });
+      // Fetch pending maintenance request counts - use direct query instead of RPC
+      const { data: pendingRequests, error: pendingError } = await supabase
+        .from('maintenance_requests')
+        .select('id')
+        .eq('assigned_service_provider_id', user.id)
+        .in('status', ['pending', 'accepted']);
 
-      if (!pendingCountError && pendingCountData) {
-        setPendingRequestsCount(pendingCountData[0]?.count || 0);
+      if (!pendingError && pendingRequests) {
+        setPendingRequestsCount(pendingRequests.length);
+      } else if (pendingError) {
+        console.error("Error fetching pending request count:", pendingError);
       }
     } catch (error: any) {
       console.error("Error in fetch properties flow:", error);

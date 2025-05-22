@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { GradientCard } from "@/components/ui/gradient-card";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { Link } from "react-router-dom";
-import { ServiceProviderPropertiesSkeleton } from "./ServiceProviderStatsSkeleton";
+import { ServiceProviderPropertiesSkeleton } from "./ServiceProviderPropertiesSkeleton";
 import type { Property } from "@/types/property";
 
 type ServiceProviderPropertiesSectionProps = {
