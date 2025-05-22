@@ -9,9 +9,14 @@ type MaintenanceRequestsListProps = {
     newStatus: "accepted" | "completed", 
     serviceProviderId?: string
   ) => void;
+  isUpdating?: boolean;
 };
 
-export function MaintenanceRequestsList({ requests, onUpdateStatus }: MaintenanceRequestsListProps) {
+export function MaintenanceRequestsList({ 
+  requests, 
+  onUpdateStatus,
+  isUpdating = false
+}: MaintenanceRequestsListProps) {
   if (requests.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg border">
@@ -27,7 +32,8 @@ export function MaintenanceRequestsList({ requests, onUpdateStatus }: Maintenanc
           key={request.id} 
           request={request} 
           userRole="owner"
-          onUpdateStatus={onUpdateStatus} 
+          onUpdateStatus={onUpdateStatus}
+          disabled={isUpdating}
         />
       ))}
     </div>

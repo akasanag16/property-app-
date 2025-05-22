@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function useOwnerMaintenanceRequests() {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Use the existing hook to fetch owner requests
   const { 
@@ -33,6 +34,7 @@ export function useOwnerMaintenanceRequests() {
     serviceProviderId?: string
   ) => {
     try {
+      setIsUpdating(true);
       console.log(`Updating request ${requestId} to ${newStatus}${serviceProviderId ? ` with provider ${serviceProviderId}` : ''}`);
       
       const updateData: { 
@@ -55,7 +57,7 @@ export function useOwnerMaintenanceRequests() {
         
       if (updateError) {
         console.error("Error updating request:", updateError);
-        toast.error("Failed to update request");
+        toast.error(`Failed to update request: ${updateError.message}`);
         return;
       }
       
@@ -90,8 +92,11 @@ export function useOwnerMaintenanceRequests() {
       toast.success(message);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("Error updating request status:", error);
-      toast.error("Failed to update request status");
+      toast.error(`Failed to update request status: ${errorMessage}`);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -102,6 +107,7 @@ export function useOwnerMaintenanceRequests() {
     completedRequests,
     loading,
     error,
+    isUpdating,
     handleRefresh,
     updateStatus
   };

@@ -20,6 +20,7 @@ export default function OwnerMaintenance() {
     completedRequests,
     loading,
     error,
+    isUpdating,
     handleRefresh,
     updateStatus
   } = useOwnerMaintenanceRequests();
@@ -62,9 +63,10 @@ export default function OwnerMaintenance() {
             variant="outline" 
             size="sm"
             onClick={handleRefresh}
+            disabled={isUpdating}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
+            {isUpdating ? 'Updating...' : 'Refresh'}
           </Button>
         </div>
         <p className="text-gray-600">
@@ -97,6 +99,7 @@ export default function OwnerMaintenance() {
             <MaintenanceRequestsList 
               requests={requests}
               onUpdateStatus={updateStatus}
+              isUpdating={isUpdating}
             />
           </TabsContent>
           
@@ -104,6 +107,7 @@ export default function OwnerMaintenance() {
             <MaintenanceRequestsList 
               requests={pendingRequests}
               onUpdateStatus={updateStatus}
+              isUpdating={isUpdating}
             />
           </TabsContent>
           
@@ -111,6 +115,7 @@ export default function OwnerMaintenance() {
             <MaintenanceRequestsList 
               requests={inProgressRequests}
               onUpdateStatus={updateStatus}
+              isUpdating={isUpdating}
             />
           </TabsContent>
           
@@ -118,6 +123,7 @@ export default function OwnerMaintenance() {
             <MaintenanceRequestsList 
               requests={completedRequests}
               onUpdateStatus={updateStatus}
+              isUpdating={isUpdating}
             />
           </TabsContent>
         </Tabs>

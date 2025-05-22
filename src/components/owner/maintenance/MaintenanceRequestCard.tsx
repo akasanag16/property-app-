@@ -6,6 +6,8 @@ import { MaintenanceStatusBadge } from "@/components/maintenance/MaintenanceStat
 import { ServiceProviderSelectionModal } from "./ServiceProviderSelectionModal";
 import { MaintenanceRequest } from "@/types/maintenance";
 import { formatDistanceToNow } from "date-fns";
+import { TenantInfo } from "@/components/maintenance/request-item/TenantInfo";
+import { ServiceProviderInfo } from "@/components/maintenance/request-item/ServiceProviderInfo";
 
 type MaintenanceRequestCardProps = {
   request: MaintenanceRequest;
@@ -15,12 +17,14 @@ type MaintenanceRequestCardProps = {
     newStatus: "accepted" | "completed", 
     serviceProviderId?: string
   ) => void;
+  disabled?: boolean;
 };
 
 export function MaintenanceRequestCard({
   request,
   userRole,
   onUpdateStatus,
+  disabled = false,
 }: MaintenanceRequestCardProps) {
   const [showServiceProviderModal, setShowServiceProviderModal] = useState(false);
 
@@ -44,43 +48,6 @@ export function MaintenanceRequestCard({
     setShowServiceProviderModal(false);
   };
 
-  const renderTenantInfo = () => {
-    if (!request.tenant) return <div>No tenant information</div>;
-    
-    return (
-      <div className="mb-3">
-        <p className="text-sm font-medium">
-          {request.tenant.first_name} {request.tenant.last_name}
-        </p>
-        {request.tenant.email && (
-          <p className="text-xs text-gray-500">{request.tenant.email}</p>
-        )}
-      </div>
-    );
-  };
-
-  const renderServiceProviderInfo = () => {
-    if (!request.assigned_service_provider) {
-      return (
-        <div className="mt-3 text-sm text-gray-500">
-          No service provider assigned yet
-        </div>
-      );
-    }
-    
-    return (
-      <div className="mt-3">
-        <p className="text-sm font-medium">Service Provider:</p>
-        <p className="text-sm">
-          {request.assigned_service_provider.first_name} {request.assigned_service_provider.last_name}
-        </p>
-        {request.assigned_service_provider.email && (
-          <p className="text-xs text-gray-500">{request.assigned_service_provider.email}</p>
-        )}
-      </div>
-    );
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-6">
@@ -96,11 +63,11 @@ export function MaintenanceRequestCard({
 
         {/* Content */}
         <div className="mb-4">
-          {userRole === "owner" && renderTenantInfo()}
+          {userRole === "owner" && <TenantInfo tenant={request.tenant} />}
           <p className="text-sm">{request.description}</p>
           
           {/* Show Service Provider info for owner view */}
-          {userRole === "owner" && renderServiceProviderInfo()}
+          {userRole === "owner" && <ServiceProviderInfo serviceProvider={request.assigned_service_provider} />}
         </div>
       </CardContent>
       
@@ -111,6 +78,7 @@ export function MaintenanceRequestCard({
               onClick={handleAcceptRequest}
               variant="outline"
               size="sm"
+              disabled={disabled}
             >
               Mark In Progress
             </Button>
@@ -121,6 +89,7 @@ export function MaintenanceRequestCard({
               onClick={() => onUpdateStatus(request.id, "completed")}
               variant="outline" 
               size="sm"
+              disabled={disabled}
             >
               Mark Completed
             </Button>
