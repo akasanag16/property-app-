@@ -5,10 +5,18 @@ import { MaintenanceRequestsListProps } from "@/types/maintenance";
 import { useState, useEffect } from "react";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { Button } from "../ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowDownAZ, Calendar, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MaintenanceRequestCard } from "./MaintenanceRequestCard";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
@@ -25,13 +33,48 @@ export function MaintenanceRequestsList({
 }: ExtendedMaintenanceRequestsListProps) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey, propertyId);
+  const { requests: originalRequests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey, propertyId);
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "status" | "priority">("date-desc");
+  const [requests, setRequests] = useState(originalRequests);
   const { user } = useAuth();
 
   // Update local refresh key when parent refresh key changes
   useEffect(() => {
     setLocalRefreshKey(refreshKey);
   }, [refreshKey]);
+
+  // Apply sorting when requests or sort method changes
+  useEffect(() => {
+    if (!originalRequests) return;
+
+    let sortedRequests = [...originalRequests];
+
+    switch (sortBy) {
+      case "date-desc":
+        sortedRequests.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "date-asc":
+        sortedRequests.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "status":
+        // Sort by priority: pending first, then accepted, then completed
+        sortedRequests.sort((a, b) => {
+          const statusWeight = { pending: 0, accepted: 1, completed: 2 };
+          return statusWeight[a.status as keyof typeof statusWeight] - 
+                 statusWeight[b.status as keyof typeof statusWeight];
+        });
+        break;
+      case "priority":
+        // Sort by building name/property name
+        sortedRequests.sort((a, b) => 
+          a.property_name.localeCompare(b.property_name));
+        break;
+    }
+
+    setRequests(sortedRequests);
+  }, [originalRequests, sortBy]);
 
   // Report errors up to parent component if needed
   useEffect(() => {
@@ -152,6 +195,7 @@ export function MaintenanceRequestsList({
   if (!requests || requests.length === 0) {
     return (
       <div className="text-center py-8 bg-gray-50 rounded-lg border">
+        <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-2" />
         <p className="text-gray-500">No maintenance requests found</p>
         <Button variant="ghost" onClick={handleRetry} className="mt-2">
           <RefreshCw className="mr-2 h-4 w-4" />
@@ -163,6 +207,37 @@ export function MaintenanceRequestsList({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <p className="text-sm text-gray-500">{requests.length} requests</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-500">Sort by:</span>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => setSortBy(value as any)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc" className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" /> Newest first
+              </SelectItem>
+              <SelectItem value="date-asc">
+                <Calendar className="mr-2 h-4 w-4" /> Oldest first
+              </SelectItem>
+              <SelectItem value="status">By status</SelectItem>
+              <SelectItem value="priority">
+                <ArrowDownAZ className="mr-2 h-4 w-4" /> Property name
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <Separator />
+
       {requests.map((request) => (
         <MaintenanceRequestCard
           key={request.id}
