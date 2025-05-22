@@ -72,6 +72,7 @@ const App = () => {
                 <Route path="/tenant-dashboard" element={<TenantDashboard />} />
                 <Route path="/tenant/properties" element={<TenantDashboard />} />
                 <Route path="/tenant/maintenance" element={<TenantDashboard />} />
+                <Route path="/tenant/rent" element={<TenantDashboard />} />
               </Route>
               
               {/* Service provider-specific routes */}

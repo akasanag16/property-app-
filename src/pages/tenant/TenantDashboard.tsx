@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { TenantDashboardStats } from "@/components/tenant/dashboard/TenantDashboardStats";
 import { TenantPropertiesSection } from "@/components/tenant/dashboard/TenantPropertiesSection";
 import { TenantMaintenanceSection } from "@/components/tenant/dashboard/TenantMaintenanceSection";
+import { TenantRentSection } from "@/components/tenant/dashboard/TenantRentSection";
 import { useProperties } from "@/hooks/useProperties";
 import { useLocation } from "react-router-dom";
 
@@ -20,6 +21,8 @@ export default function TenantDashboard() {
   const getInitialTab = useCallback(() => {
     if (location.pathname.includes("/tenant/maintenance")) {
       return "maintenance-requests";
+    } else if (location.pathname.includes("/tenant/rent")) {
+      return "rent-payments";
     }
     return "my-properties";
   }, [location.pathname]);
@@ -39,6 +42,10 @@ export default function TenantDashboard() {
     setActiveTab("maintenance-requests");
   };
 
+  const handleRentClick = () => {
+    setActiveTab("rent-payments");
+  };
+
   // Update active tab when the route changes
   useEffect(() => {
     setActiveTab(getInitialTab());
@@ -54,12 +61,17 @@ export default function TenantDashboard() {
         <h1 className="text-2xl font-bold mb-6">Tenant Dashboard</h1>
         <p className="text-gray-600 mb-8">Welcome, {user?.email}</p>
 
-        <TenantDashboardStats properties={properties} loading={loading} />
+        <TenantDashboardStats 
+          properties={properties} 
+          loading={loading}
+          onRentClick={handleRentClick} 
+        />
 
         <Tabs defaultValue={activeTab} className="w-full" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="my-properties">My Properties</TabsTrigger>
             <TabsTrigger value="maintenance-requests">Maintenance Requests</TabsTrigger>
+            <TabsTrigger value="rent-payments">Rent Payments</TabsTrigger>
           </TabsList>
 
           <TabsContent value="my-properties" className="mt-6">
@@ -69,6 +81,7 @@ export default function TenantDashboard() {
               error={error}
               onRetry={handleRefresh}
               onMaintenanceClick={handleMaintenanceClick}
+              onRentClick={handleRentClick}
             />
           </TabsContent>
 
@@ -79,6 +92,10 @@ export default function TenantDashboard() {
               requestRefreshKey={requestRefreshKey}
               loading={loading}
             />
+          </TabsContent>
+          
+          <TabsContent value="rent-payments" className="mt-6">
+            <TenantRentSection user={user} />
           </TabsContent>
         </Tabs>
       </motion.div>
