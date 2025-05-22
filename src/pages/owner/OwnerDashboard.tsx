@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { PropertyCard } from "@/components/property/PropertyCard";
+import { EnhancedPropertyCard } from "@/components/property/EnhancedPropertyCard"; // Changed from PropertyCard to EnhancedPropertyCard
 import { PropertyForm } from "@/components/property/PropertyForm";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyPropertyState } from "@/components/property/EmptyPropertyState";
@@ -118,10 +118,17 @@ export default function OwnerDashboard() {
                 transition={{ delay: index * 0.1 }}
                 className="hover:scale-105 transition-transform duration-300"
               >
-                <PropertyCard
+                <EnhancedPropertyCard
                   id={property.id}
                   name={property.name}
                   address={property.address}
+                  type={property.details?.type}
+                  bedrooms={property.details?.bedrooms}
+                  bathrooms={property.details?.bathrooms}
+                  area={property.details?.area}
+                  rent={property.details?.rent}
+                  imageUrl={property.image_url}
+                  onClick={handleMainRefresh}
                 />
               </motion.div>
             ))}
