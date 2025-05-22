@@ -93,7 +93,7 @@ export function TenantPageContent({
       ) : tenants.length === 0 ? (
         <TenantStates.Empty />
       ) : (
-        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="rounded-lg border shadow-sm overflow-hidden bg-white">
           <TenantTable tenants={tenants} />
         </div>
       )}

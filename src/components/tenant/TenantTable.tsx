@@ -24,46 +24,36 @@ interface TenantTableProps {
 
 export function TenantTable({ tenants, showHeader = false }: TenantTableProps) {
   return (
-    <Card>
-      {showHeader && (
-        <CardHeader>
-          <CardTitle>Tenant Payment Information</CardTitle>
-          <CardDescription>
-            Overview of all tenant payments and due dates
-          </CardDescription>
-        </CardHeader>
+    <>
+      {!tenants || tenants.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No tenant data available. 
+          <div className="mt-2 text-sm">
+            Add tenants to your properties to see their information here.
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Properties</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Last Payment</TableHead>
+                <TableHead>Next Due</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tenants.map((tenant) => (
+                <TenantTableRow key={tenant.id} tenant={tenant} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
-      <CardContent>
-        {!tenants || tenants.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No tenant data available. 
-            <div className="mt-2 text-sm">
-              Add tenants to your properties to see their information here.
-            </div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Properties</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Last Payment</TableHead>
-                  <TableHead>Next Due</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tenants.map((tenant) => (
-                  <TenantTableRow key={tenant.id} tenant={tenant} />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </>
   );
 }
