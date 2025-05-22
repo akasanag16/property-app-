@@ -9,6 +9,9 @@ import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceReq
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { ErrorAlert } from "@/components/ui/alert-error";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PropertyMaintenanceRequests() {
   const { propertyId } = useParams<{ propertyId: string }>();
@@ -77,24 +80,38 @@ export default function PropertyMaintenanceRequests() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
+        <div className="flex items-center space-x-4 mb-6">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             size="sm" 
             onClick={() => navigate('/service-provider-dashboard')}
             className="flex items-center gap-1"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Back to Dashboard
           </Button>
-          
-          <div>
-            <h1 className="text-2xl font-bold">Maintenance Requests</h1>
-            <p className="text-gray-600">
-              {loading ? "Loading..." : `Property: ${propertyName}`}
-            </p>
-          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg shadow">
+          <h1 className="text-2xl font-bold text-indigo-800">
+            {loading ? (
+              <Skeleton className="h-8 w-64" />
+            ) : (
+              `${propertyName} - Maintenance Requests`
+            )}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {loading ? (
+              <Skeleton className="h-4 w-40" />
+            ) : (
+              "View and manage maintenance requests for this property"
+            )}
+          </p>
         </div>
 
         {error && (
@@ -105,17 +122,19 @@ export default function PropertyMaintenanceRequests() {
         )}
 
         {!error && propertyId && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <MaintenanceRequestsList 
-              userRole="service_provider" 
-              refreshKey={refreshKey} 
-              onRefreshNeeded={handleRefresh}
-              onError={handleError}
-              propertyId={propertyId}
-            />
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <MaintenanceRequestsList 
+                userRole="service_provider" 
+                refreshKey={refreshKey} 
+                onRefreshNeeded={handleRefresh}
+                onError={handleError}
+                propertyId={propertyId}
+              />
+            </CardContent>
+          </Card>
         )}
-      </div>
+      </motion.div>
     </DashboardLayout>
   );
 }

@@ -8,7 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Building, Wrench, Clock } from "lucide-react";
+import { GradientCard } from "@/components/ui/gradient-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 import type { Property, PropertyDetails } from "@/types/property";
+import { ServiceProviderStats } from "@/components/service-provider/ServiceProviderStats";
+import { ServiceProviderPropertiesSection } from "@/components/service-provider/ServiceProviderPropertiesSection";
 
 export default function ServiceProviderDashboard() {
   const { user } = useAuth();
@@ -17,6 +23,8 @@ export default function ServiceProviderDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("assigned-properties");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [requestsCount, setRequestsCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   // Fetch service provider's properties using the secure function pattern
   const fetchProperties = async () => {
@@ -52,6 +60,22 @@ export default function ServiceProviderDashboard() {
       }));
       
       setProperties(typedProperties);
+
+      // Fetch maintenance request counts
+      const { data: requestCountData, error: requestCountError } = await supabase
+        .rpc('count_service_provider_maintenance_requests', { provider_id_param: user.id });
+
+      if (!requestCountError && requestCountData) {
+        setRequestsCount(requestCountData[0]?.count || 0);
+      }
+
+      // Fetch pending maintenance request counts
+      const { data: pendingCountData, error: pendingCountError } = await supabase
+        .rpc('count_service_provider_pending_requests', { provider_id_param: user.id });
+
+      if (!pendingCountError && pendingCountData) {
+        setPendingRequestsCount(pendingCountData[0]?.count || 0);
+      }
     } catch (error: any) {
       console.error("Error in fetch properties flow:", error);
       toast.error("Failed to load properties");
@@ -109,53 +133,48 @@ export default function ServiceProviderDashboard() {
 
   return (
     <DashboardLayout>
-      <h1 className="text-2xl font-bold mb-6">Service Provider Dashboard</h1>
-      <p className="text-gray-600 mb-8">Welcome, {user?.email}</p>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="assigned-properties">Assigned Properties</TabsTrigger>
-          <TabsTrigger value="maintenance-requests">Maintenance Requests</TabsTrigger>
-        </TabsList>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-8"
+      >
+        <h1 className="text-2xl font-bold mb-6">Service Provider Dashboard</h1>
+        <p className="text-gray-600 mb-8">Welcome, {user?.email}</p>
         
-        <TabsContent value="assigned-properties" className="pt-6">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          ) : properties.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg border">
-              <p className="text-gray-500">You haven't been assigned to any properties yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {properties.map((property) => (
-                <div key={property.id} className="bg-white p-6 rounded-lg shadow">
-                  <h2 className="text-xl font-semibold mb-2">{property.name}</h2>
-                  <p className="text-gray-500 mb-4">{property.address}</p>
-                  <Link 
-                    to={`/service-provider/property/${property.id}/maintenance`}
-                    className="text-primary hover:text-primary/80 text-sm font-medium"
-                  >
-                    View maintenance requests
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        <ServiceProviderStats 
+          properties={properties.length} 
+          requests={requestsCount} 
+          pendingRequests={pendingRequestsCount}
+          loading={loading}
+        />
         
-        <TabsContent value="maintenance-requests" className="pt-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">All Maintenance Requests</h2>
-            <MaintenanceRequestsList 
-              userRole="service_provider" 
-              refreshKey={refreshKey} 
-              onRefreshNeeded={handleRefresh} 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="assigned-properties">Assigned Properties</TabsTrigger>
+            <TabsTrigger value="maintenance-requests">Maintenance Requests</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="assigned-properties" className="pt-6">
+            <ServiceProviderPropertiesSection
+              properties={properties}
+              loading={loading}
+              error={error}
+              onRetry={handleRefresh}
             />
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="maintenance-requests" className="pt-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4">All Maintenance Requests</h2>
+              <MaintenanceRequestsList 
+                userRole="service_provider" 
+                refreshKey={refreshKey} 
+                onRefreshNeeded={handleRefresh} 
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </motion.div>
     </DashboardLayout>
   );
 }
