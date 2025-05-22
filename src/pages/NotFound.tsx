@@ -11,15 +11,16 @@ export default function NotFound({ note }: NotFoundProps) {
   const navigate = useNavigate();
   const { userRole } = useAuth();
   
-  const goHome = () => {
+  // Determine the appropriate dashboard based on user role
+  const getDashboardPath = () => {
     if (userRole === "owner") {
-      navigate("/owner-dashboard");
+      return "/owner-dashboard";
     } else if (userRole === "tenant") {
-      navigate("/tenant-dashboard");
+      return "/tenant-dashboard";
     } else if (userRole === "service_provider") {
-      navigate("/service-provider-dashboard");
+      return "/service-provider-dashboard";
     } else {
-      navigate("/");
+      return "/";
     }
   };
   
@@ -38,10 +39,10 @@ export default function NotFound({ note }: NotFoundProps) {
         )}
         
         <div className="space-x-4">
-          <Button onClick={goHome}>
+          <Button onClick={() => navigate(getDashboardPath())} className="bg-indigo-600 hover:bg-indigo-700">
             Return to Dashboard
           </Button>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => navigate(-1)} className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
             Go Back
           </Button>
         </div>

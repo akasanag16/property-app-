@@ -58,8 +58,8 @@ serve(async (req) => {
     // Ensure the base_url is properly formatted (remove trailing slash if present)
     const formattedBaseUrl = base_url.endsWith('/') ? base_url.slice(0, -1) : base_url;
     
-    // Create invitation URL - using the path that exists in App.tsx routing
-    const invitationUrl = `${formattedBaseUrl}/invitation/accept?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
+    // Create invitation URL - using the path that matches our route in App.tsx
+    const invitationUrl = `${formattedBaseUrl}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
     
     console.log(`Generated invitation URL: ${invitationUrl}`);
     
