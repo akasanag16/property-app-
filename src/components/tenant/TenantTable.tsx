@@ -19,17 +19,20 @@ import { Tenant } from "@/types/tenant";
 
 interface TenantTableProps {
   tenants: Tenant[];
+  showHeader?: boolean;
 }
 
-export function TenantTable({ tenants }: TenantTableProps) {
+export function TenantTable({ tenants, showHeader = false }: TenantTableProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Tenant Payment Information</CardTitle>
-        <CardDescription>
-          Overview of all tenant payments and due dates
-        </CardDescription>
-      </CardHeader>
+      {showHeader && (
+        <CardHeader>
+          <CardTitle>Tenant Payment Information</CardTitle>
+          <CardDescription>
+            Overview of all tenant payments and due dates
+          </CardDescription>
+        </CardHeader>
+      )}
       <CardContent>
         {!tenants || tenants.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
