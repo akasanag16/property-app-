@@ -2,7 +2,17 @@
 import { animate } from "framer-motion";
 import React, { useEffect, useRef } from "react";
 
-export function AnimatedCounter({ value, from = 0, duration = 1 }: { value: number; from?: number; duration?: number }) {
+export function AnimatedCounter({ 
+  value, 
+  from = 0, 
+  duration = 1,
+  prefix = "" 
+}: { 
+  value: number; 
+  from?: number; 
+  duration?: number;
+  prefix?: string;
+}) {
   const nodeRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -11,12 +21,12 @@ export function AnimatedCounter({ value, from = 0, duration = 1 }: { value: numb
       const controls = animate(from, value, {
         duration,
         onUpdate(value) {
-          node.textContent = Math.round(value).toLocaleString();
+          node.textContent = `${prefix}${Math.round(value).toLocaleString()}`;
         },
       });
       return () => controls.stop();
     }
-  }, [from, value, duration]);
+  }, [from, value, duration, prefix]);
 
   return <span ref={nodeRef} />;
 }
