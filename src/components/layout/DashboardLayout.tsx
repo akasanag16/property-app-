@@ -1,23 +1,10 @@
 
-import { ReactNode, useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { ReactNode, useState } from "react";
+import { Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  LayoutDashboard, 
-  House, 
-  Wrench, 
-  Users, 
-  LogOut, 
-  ChevronLeft, 
-  Menu, 
-  Settings
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sidebar } from "./Sidebar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,76 +12,10 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, userRole, signOut } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { first_name, last_name, email, loading } = useUserProfile(user);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
-  };
-
-  const getNavLinks = () => {
-    switch (userRole) {
-      case "owner":
-        return [
-          { href: "/owner-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/owner/properties", label: "Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/owner/tenants", label: "Tenants", icon: <Users className="h-5 w-5" /> },
-          { href: "/owner/service-providers", label: "Service Providers", icon: <Wrench className="h-5 w-5" /> },
-          { href: "/owner/maintenance", label: "Maintenance", icon: <Settings className="h-5 w-5" /> },
-        ];
-      case "tenant":
-        return [
-          { href: "/tenant-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/tenant/properties", label: "My Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/tenant/maintenance", label: "Maintenance Requests", icon: <Wrench className="h-5 w-5" /> },
-        ];
-      case "service_provider":
-        return [
-          { href: "/service-provider-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/service-provider/properties", label: "Assigned Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/service-provider/maintenance", label: "Maintenance Requests", icon: <Wrench className="h-5 w-5" /> },
-        ];
-      default:
-        return [
-          { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-        ];
-    }
-  };
-
-  const navLinks = getNavLinks();
-
-  // Manually handle navigation
-  const handleNavigation = (path: string) => {
-    navigate(path);
-  };
-
-  // Get the user's display name or initials
-  const getDisplayName = () => {
-    if (first_name && last_name) {
-      return `${first_name} ${last_name}`;
-    } else if (first_name) {
-      return first_name;
-    } else if (last_name) {
-      return last_name;
-    } else {
-      return email;
-    }
-  };
-
-  // Get initials for the avatar
-  const getInitials = () => {
-    if (first_name && last_name) {
-      return `${first_name.charAt(0)}${last_name.charAt(0)}`.toUpperCase();
-    } else if (first_name) {
-      return first_name.charAt(0).toUpperCase();
-    } else if (last_name) {
-      return last_name.charAt(0).toUpperCase();
-    } else if (email) {
-      return email.charAt(0).toUpperCase();
-    }
-    return "U";
   };
 
   return (
@@ -110,95 +31,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Sidebar */}
-        <div 
-          className={cn(
-            "bg-white border-r flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
-            sidebarOpen ? "w-64" : "w-0 md:w-20",
-            "fixed md:relative h-full z-50 shadow-lg md:shadow-none"
-          )}
-        >
-          <div className="flex flex-col h-full">
-            {/* Sidebar header */}
-            <div className="p-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 flex justify-between items-center">
-              {sidebarOpen && (
-                <h1 className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">
-                  Property Maintenance
-                </h1>
-              )}
-              <button 
-                onClick={toggleSidebar} 
-                className={cn("p-2 rounded-full hover:bg-white/70", !sidebarOpen && "mx-auto")}
-              >
-                <ChevronLeft className={cn("h-5 w-5 transition-transform text-indigo-700", !sidebarOpen && "rotate-180")} />
-              </button>
-            </div>
-            
-            {/* User info */}
-            <div className={cn("p-4 border-b bg-indigo-50/50", !sidebarOpen && "flex justify-center")}>
-              <div className="flex items-center gap-2">
-                <Avatar className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-                  <AvatarFallback className="text-white font-medium">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                {sidebarOpen && (
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate text-gray-800">
-                      {loading ? (
-                        <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
-                      ) : (
-                        getDisplayName()
-                      )}
-                    </div>
-                    <div className="text-sm text-indigo-700 capitalize">{userRole?.replace("_", " ") || "User"}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Navigation links */}
-            <nav className="flex-1 overflow-y-auto p-2">
-              <ul className="space-y-1">
-                {navLinks.map((link) => (
-                  <li key={link.href}>
-                    <Button
-                      variant="ghost" 
-                      className={cn(
-                        "flex items-center w-full rounded-md px-3 py-2 text-gray-700 hover:bg-indigo-50",
-                        location.pathname === link.href && "bg-indigo-100 text-indigo-700 font-medium",
-                        !sidebarOpen && "justify-center px-2"
-                      )}
-                      onClick={() => handleNavigation(link.href)}
-                    >
-                      <span className={cn(
-                        location.pathname === link.href ? "text-indigo-600" : "text-gray-500"
-                      )}>
-                        {link.icon}
-                      </span>
-                      {sidebarOpen && <span className="ml-3">{link.label}</span>}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-            
-            {/* Logout button */}
-            <div className={cn("p-4 border-t", !sidebarOpen && "flex justify-center")}>
-              <Button 
-                variant="outline" 
-                className={cn(
-                  "w-full flex items-center justify-center border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700", 
-                  !sidebarOpen && "w-auto p-2"
-                )} 
-                onClick={signOut}
-              >
-                <LogOut className="h-5 w-5" />
-                {sidebarOpen && <span className="ml-2">Sign Out</span>}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Sidebar 
+          user={user}
+          userRole={userRole}
+          signOut={signOut}
+          sidebarOpen={sidebarOpen}
+          toggleSidebar={toggleSidebar}
+        />
 
         {/* Main content */}
         <div className="flex-1 transition-all duration-300 bg-gradient-to-b from-indigo-50/30 to-white">

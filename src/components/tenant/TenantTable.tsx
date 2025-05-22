@@ -7,13 +7,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { TenantTableRow } from "./TenantTableRow";
 import { Tenant } from "@/types/tenant";
 
