@@ -2,13 +2,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MaintenanceRequestsListProps } from "@/types/maintenance";
-import { MaintenanceRequestItem } from "./MaintenanceRequestItem";
-import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { useState, useEffect } from "react";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { Button } from "../ui/button";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { MaintenanceRequestCard } from "./MaintenanceRequestCard";
 
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
@@ -141,7 +140,7 @@ export function MaintenanceRequestsList({
         />
         <div className="flex justify-center">
           <Button variant="outline" onClick={handleRetry} className="flex items-center">
-            <RefreshCcw className="mr-2 h-4 w-4" />
+            <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
         </div>
@@ -154,19 +153,17 @@ export function MaintenanceRequestsList({
       <div className="text-center py-8 bg-gray-50 rounded-lg border">
         <p className="text-gray-500">No maintenance requests found</p>
         <Button variant="ghost" onClick={handleRetry} className="mt-2">
-          <RefreshCcw className="mr-2 h-4 w-4" />
+          <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
       </div>
     );
   }
 
-  console.log("Rendering maintenance requests:", requests);
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {requests.map((request) => (
-        <MaintenanceRequestItem
+        <MaintenanceRequestCard
           key={request.id}
           request={request}
           userRole={userRole}
@@ -174,9 +171,15 @@ export function MaintenanceRequestsList({
           isUpdating={isUpdating}
         />
       ))}
+      
       <div className="flex justify-center mt-4">
-        <Button variant="outline" onClick={handleRetry} className="flex items-center" disabled={isUpdating}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
+        <Button 
+          variant="outline" 
+          onClick={handleRetry} 
+          className="flex items-center gap-2 px-6 py-2 rounded-full shadow-sm transition-all hover:shadow"
+          disabled={isUpdating}
+        >
+          <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
       </div>

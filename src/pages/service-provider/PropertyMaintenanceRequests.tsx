@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Building } from "lucide-react";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,21 +97,30 @@ export default function PropertyMaintenanceRequests() {
           </Button>
         </div>
         
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg shadow">
-          <h1 className="text-2xl font-bold text-indigo-800">
-            {loading ? (
-              <Skeleton className="h-8 w-64" />
-            ) : (
-              `${propertyName} - Maintenance Requests`
-            )}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {loading ? (
-              <Skeleton className="h-4 w-40" />
-            ) : (
-              "View and manage maintenance requests for this property"
-            )}
-          </p>
+        {/* Header with gradient background */}
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-xl shadow-sm border border-indigo-100">
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-3 rounded-lg shadow-sm">
+              <Building className="h-6 w-6 text-indigo-600" />
+            </div>
+            
+            <div>
+              <h1 className="text-2xl font-bold text-indigo-900">
+                {loading ? (
+                  <Skeleton className="h-8 w-64" />
+                ) : (
+                  `${propertyName}`
+                )}
+              </h1>
+              <p className="text-indigo-700 font-medium">
+                {loading ? (
+                  <Skeleton className="h-4 w-40" />
+                ) : (
+                  "Maintenance Requests"
+                )}
+              </p>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -122,7 +131,7 @@ export default function PropertyMaintenanceRequests() {
         )}
 
         {!error && propertyId && (
-          <Card>
+          <Card className="border-none shadow-lg rounded-xl overflow-hidden">
             <CardContent className="p-6">
               <MaintenanceRequestsList 
                 userRole="service_provider" 
