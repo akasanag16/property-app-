@@ -25,24 +25,19 @@ export async function checkProfileEmailColumn() {
   }
 }
 
-// Fetch tenants for the given properties
-export async function fetchTenantsForProperties(propertyIds: string[]): Promise<Tenant[]> {
+// Fetch tenants for the given owner
+export async function fetchTenantsForOwner(ownerId: string): Promise<Tenant[]> {
   try {
-    console.log(`Fetching tenants for properties: ${propertyIds}`);
+    console.log(`Fetching tenants for owner: ${ownerId}`);
     
-    // First, get the current user's id for owner data fetching
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("No authenticated user");
+    if (!ownerId) {
+      console.error("No owner ID provided");
       throw new Error("Authentication required to fetch tenants");
     }
     
-    // Get tenant-property links directly from the join table
+    // Use our new security definer function to avoid recursion
     const { data: tenantLinks, error: tenantLinksError } = await supabase
-      .from('tenant_property_link')
-      .select('tenant_id, property_id')
-      .in('property_id', propertyIds);
+      .rpc('safe_get_tenant_property_links', { owner_id_param: ownerId });
     
     if (tenantLinksError) {
       console.error("Error fetching tenant links:", tenantLinksError);
@@ -50,32 +45,19 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
     }
     
     if (!tenantLinks || tenantLinks.length === 0) {
-      console.log("No tenant links found for these properties");
+      console.log("No tenant links found for this owner");
       return [];
-    }
-    
-    // Get property names for the found property IDs
-    const { data: properties, error: propertiesError } = await supabase
-      .from('properties')
-      .select('id, name')
-      .in('id', propertyIds);
-      
-    if (propertiesError) {
-      console.error("Error fetching property names:", propertiesError);
-      // Continue without property names
-    }
-    
-    // Create property map
-    const propertyMap = new Map<string, string>();
-    if (properties) {
-      properties.forEach((property: any) => {
-        propertyMap.set(property.id, property.name);
-      });
     }
     
     // Extract unique tenant IDs
     const tenantIds = [...new Set(tenantLinks.map((link: any) => link.tenant_id))];
     console.log(`Found ${tenantIds.length} unique tenants`);
+    
+    // Create property map
+    const propertyMap = new Map<string, string>();
+    tenantLinks.forEach((link: any) => {
+      propertyMap.set(link.property_id, link.property_name);
+    });
     
     // Fetch tenant profiles
     const { data: profiles, error: profilesError } = await supabase
@@ -110,14 +92,23 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
       });
     }
     
+    // Find tenant's property from links
+    const tenantPropertyMap = new Map();
+    if (tenantLinks) {
+      tenantLinks.forEach((link: any) => {
+        tenantPropertyMap.set(link.tenant_id, {
+          id: link.property_id,
+          name: link.property_name || "Unknown Property"
+        });
+      });
+    }
+    
     // Create tenant objects
     const tenants: Tenant[] = [];
     if (profiles) {
       profiles.forEach(profile => {
-        // Find tenant's property from links
-        const tenantLink = tenantLinks.find((link: any) => link.tenant_id === profile.id);
-        const propertyId = tenantLink ? tenantLink.property_id : null;
-        const propertyName = propertyId ? propertyMap.get(propertyId) : null;
+        // Find tenant's property from our map
+        const propertyInfo = tenantPropertyMap.get(profile.id);
         
         const paymentInfo = paymentMap.get(profile.id);
         
@@ -134,10 +125,7 @@ export async function fetchTenantsForProperties(propertyIds: string[]): Promise<
           first_name: profile.first_name || "Unknown",
           last_name: profile.last_name || "",
           email: profile.email || null,
-          property: propertyId && propertyName ? {
-            id: propertyId,
-            name: propertyName
-          } : null,
+          property: propertyInfo || null,
           last_payment: paymentInfo ? {
             date: paymentInfo.paid_date,
             amount: paymentInfo.amount,

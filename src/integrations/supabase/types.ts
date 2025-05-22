@@ -622,6 +622,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      safe_check_owner_property_link: {
+        Args: { property_id_param: string; user_id_param: string }
+        Returns: boolean
+      }
       safe_check_tenant_property_access: {
         Args: { tenant_id_param: string; property_id_param: string }
         Returns: boolean
@@ -713,6 +717,14 @@ export type Database = {
           details: Json
         }[]
       }
+      safe_get_service_provider_property_links: {
+        Args: { owner_id_param: string }
+        Returns: {
+          service_provider_id: string
+          property_id: string
+          property_name: string
+        }[]
+      }
       safe_get_tenant_maintenance_requests: {
         Args: { tenant_id_param: string }
         Returns: {
@@ -734,6 +746,14 @@ export type Database = {
           name: string
           address: string
           details: Json
+        }[]
+      }
+      safe_get_tenant_property_links: {
+        Args: { owner_id_param: string }
+        Returns: {
+          tenant_id: string
+          property_id: string
+          property_name: string
         }[]
       }
       safe_is_owner_of_property: {
