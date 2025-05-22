@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,8 @@ export function MaintenanceRequestItem({
 
   const handleAcceptRequest = () => {
     if (userRole === "owner") {
+      // For owner role, log the property ID and then open the service provider selection modal
+      console.log("Opening service provider modal for property:", request.property.id);
       setShowServiceProviderModal(true);
     } else {
       onUpdateStatus(request.id, "accepted");
@@ -38,6 +39,7 @@ export function MaintenanceRequestItem({
   };
 
   const handleServiceProviderSelect = (serviceProviderId: string) => {
+    console.log(`Selected service provider ${serviceProviderId} for request ${request.id}`);
     onUpdateStatus(request.id, "accepted", serviceProviderId);
     setShowServiceProviderModal(false);
   };
@@ -169,10 +171,30 @@ export function MaintenanceRequestItem({
       </CardContent>
       
       <CardFooter className="border-t bg-gray-50 p-3">
-        {renderActionButtons()}
+        <div className="flex justify-end gap-2 w-full">
+          {request.status === "pending" && (
+            <Button
+              onClick={handleAcceptRequest}
+              variant="outline"
+              size="sm"
+            >
+              {userRole === "owner" ? "Mark In Progress" : "Accept Request"}
+            </Button>
+          )}
+          
+          {request.status === "accepted" && (
+            <Button
+              onClick={() => onUpdateStatus(request.id, "completed")}
+              variant="outline" 
+              size="sm"
+            >
+              Mark Completed
+            </Button>
+          )}
+        </div>
       </CardFooter>
 
-      {showServiceProviderModal && (
+      {showServiceProviderModal && request.property && (
         <ServiceProviderSelectionModal
           isOpen={showServiceProviderModal}
           onClose={() => setShowServiceProviderModal(false)}

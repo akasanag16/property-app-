@@ -25,9 +25,16 @@ export function ServiceProviderSelectionModal({
 
   const handleSelect = () => {
     if (selectedProvider) {
+      console.log("Selected service provider:", selectedProvider);
       onSelect(selectedProvider);
     }
   };
+
+  // Debug log
+  console.log("Modal property ID:", propertyId);
+  console.log("Service providers:", serviceProviders);
+  console.log("Loading state:", loading);
+  console.log("Error state:", error);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

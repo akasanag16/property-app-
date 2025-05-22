@@ -16,11 +16,14 @@ export const usePropertyServiceProviders = (propertyId: string | undefined) => {
         return;
       }
       
+      console.log("Fetching service providers for property:", propertyId);
+      
       try {
         setLoading(true);
         setError(null);
         
-        // Get service provider links for this property
+        // Use direct queries instead of the complex joins which might be causing issues
+        // First, get service provider links for this property
         const { data: spLinks, error: spLinksError } = await supabase
           .from('service_provider_property_link')
           .select('service_provider_id')
@@ -39,7 +42,8 @@ export const usePropertyServiceProviders = (propertyId: string | undefined) => {
         }
         
         // Get unique service provider IDs
-        const providerIds = spLinks.map((link) => link.service_provider_id);
+        const providerIds = [...new Set(spLinks.map(link => link.service_provider_id))];
+        console.log("Found provider IDs:", providerIds);
         
         // Get profiles for these service providers
         const { data: profiles, error: profilesError } = await supabase
@@ -52,6 +56,8 @@ export const usePropertyServiceProviders = (propertyId: string | undefined) => {
           setError("Failed to fetch service provider details. Please try again.");
           return;
         }
+        
+        console.log("Fetched provider profiles:", profiles);
         
         // Format service provider data
         const providers: ServiceProvider[] = profiles ? profiles.map(profile => ({
