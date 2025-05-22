@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Property } from "@/types/property";
+import { convertDetailsToPropertyDetails } from "./propertyUtils";
 
 export async function fetchServiceProviderProperties(providerId: string): Promise<Property[]> {
   try {
@@ -11,43 +12,28 @@ export async function fetchServiceProviderProperties(providerId: string): Promis
       return [];
     }
     
-    // Use our security definer function to avoid recursion
+    // Use the security definer function to avoid recursion
     const { data, error } = await supabase
-      .from('service_provider_property_link')
-      .select('property_id')
-      .eq('service_provider_id', providerId);
+      .rpc('safe_get_service_provider_properties', { provider_id_param: providerId });
       
     if (error) {
-      console.error("Error fetching service provider property links:", error);
+      console.error("Error fetching service provider properties:", error);
       throw error;
     }
     
     if (!data || data.length === 0) {
-      console.log("No property links found for service provider");
+      console.log("No properties found for service provider");
       return [];
     }
     
-    const propertyIds = data.map(link => link.property_id);
+    console.log(`Fetched ${data.length || 0} properties for service provider`);
     
-    // Get property details
-    const { data: propertiesData, error: propertiesError } = await supabase
-      .from('properties')
-      .select('id, name, address, details')
-      .in('id', propertyIds);
-      
-    if (propertiesError) {
-      console.error("Error fetching properties:", propertiesError);
-      throw propertiesError;
-    }
-    
-    console.log(`Fetched ${propertiesData?.length || 0} properties for service provider`);
-    
-    // Transform to Property type
-    const properties: Property[] = (propertiesData || []).map(p => ({
+    // Transform to Property type with proper type conversion for details
+    const properties: Property[] = data.map(p => ({
       id: p.id,
       name: p.name,
       address: p.address,
-      details: p.details
+      details: convertDetailsToPropertyDetails(p.details)
     }));
     
     return properties;
