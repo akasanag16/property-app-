@@ -100,39 +100,21 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
     
     setLoading(true);
     try {
-      // Instead of using the RPC function, use a direct update with owner verification
-      // First, verify ownership
-      const { data: isOwner, error: ownerCheckError } = await supabase
-        .rpc('safe_is_owner_of_property', {
-          user_id_param: user.id,
-          property_id_param: propertyId
+      // Use the safe_update_property_details RPC function to update the property name
+      const { data, error } = await supabase
+        .rpc('safe_update_property_details', {
+          property_id_param: propertyId,
+          owner_id_param: user.id,
+          name_param: name
         });
       
-      if (ownerCheckError) {
-        console.error("Error checking ownership:", ownerCheckError);
-        toast.error("Failed to verify ownership");
-        return;
-      }
-      
-      if (!isOwner) {
-        toast.error("You don't have permission to update this property");
-        return;
-      }
-      
-      // Now perform the update
-      const { error } = await supabase
-        .from('properties')
-        .update({ name })
-        .eq('id', propertyId)
-        .eq('owner_id', user.id);
-
       if (error) {
         console.error("Error updating property:", error);
         toast.error("Failed to update property: " + error.message);
       } else {
         setProperty({ 
           ...property, 
-          name
+          name 
         });
         toast.success("Property updated successfully");
         setEditing(false);

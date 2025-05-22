@@ -816,6 +816,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      safe_update_property_details: {
+        Args: {
+          property_id_param: string
+          owner_id_param: string
+          name_param: string
+        }
+        Returns: boolean
+      }
       update_invitation_expiry: {
         Args: { p_invitation_id: string; p_invitation_type: string }
         Returns: undefined
