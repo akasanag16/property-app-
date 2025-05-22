@@ -3,7 +3,7 @@ import React from "react";
 import { Property } from "@/types/property";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Tool, ArrowRight, Building, DollarSign } from "lucide-react";
+import { AlertCircle, Wrench, ArrowRight, Building, DollarSign } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TenantPropertiesSkeleton } from "./TenantDashboardSkeleton";
 
@@ -65,12 +65,6 @@ export function TenantPropertiesSection({
             
             <CardContent className="pt-4">
               <p className="text-gray-600 mb-2">{property.address}</p>
-              
-              {property.details?.description && (
-                <p className="text-sm text-gray-500 line-clamp-2">
-                  {property.details.description}
-                </p>
-              )}
             </CardContent>
             
             <CardFooter className="flex flex-wrap gap-2 justify-end border-t p-4">
@@ -80,7 +74,7 @@ export function TenantPropertiesSection({
                 className="flex items-center gap-1"
                 onClick={onMaintenanceClick}
               >
-                <Tool className="h-4 w-4" />
+                <Wrench className="h-4 w-4" />
                 <span>Maintenance</span>
               </Button>
               
