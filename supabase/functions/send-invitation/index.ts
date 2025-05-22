@@ -58,10 +58,10 @@ serve(async (req) => {
     // Ensure the base_url is properly formatted (remove trailing slash if present)
     const formattedBaseUrl = base_url.endsWith('/') ? base_url.slice(0, -1) : base_url;
     
-    // Create invitation URL - using the path that matches our route in App.tsx
-    const invitationUrl = `${formattedBaseUrl}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
+    // Generate both URLs to support backwards compatibility
+    const primaryInvitationUrl = `${formattedBaseUrl}/auth/accept-invitation?token=${invitation.link_token}&email=${encodeURIComponent(invitation.email)}`;
     
-    console.log(`Generated invitation URL: ${invitationUrl}`);
+    console.log(`Generated invitation URL: ${primaryInvitationUrl}`);
     
     // Try to send email via Supabase Auth OTP
     try {
@@ -69,7 +69,7 @@ serve(async (req) => {
         type: 'magiclink',
         email: invitation.email,
         options: {
-          redirectTo: invitationUrl,
+          redirectTo: primaryInvitationUrl,
           data: {
             invitation_id: invitation.id,
             property_id: invitation.property_id,
@@ -90,7 +90,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true,
           email_sent: !otpError,
-          magic_link: invitationUrl
+          magic_link: primaryInvitationUrl
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,7 +105,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true,
           email_sent: false,
-          magic_link: invitationUrl
+          magic_link: primaryInvitationUrl
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
