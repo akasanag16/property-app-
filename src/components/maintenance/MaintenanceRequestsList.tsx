@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MaintenanceRequestsListProps } from "@/types/maintenance";
@@ -67,9 +66,9 @@ export function MaintenanceRequestsList({
         });
         break;
       case "priority":
-        // Sort by building name/property name
+        // Sort by property name - FIX: Access property name through the property object
         sortedRequests.sort((a, b) => 
-          a.property_name.localeCompare(b.property_name));
+          a.property.name.localeCompare(b.property.name));
         break;
     }
 
