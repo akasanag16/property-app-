@@ -15,7 +15,7 @@ export function ServicesTab({ onInviteClick }: ServicesTabProps) {
         </div>
         <h3 className="font-medium text-lg">Service Provider Management</h3>
         <p className="text-gray-500 max-w-md mb-4">
-          Manage service providers for this property. You can invite new service providers or view current service provider information.
+          Assign service providers to this property. You can invite new service providers or view current service provider information.
         </p>
         <Button onClick={onInviteClick} className="px-6">Manage Service Providers</Button>
       </div>
