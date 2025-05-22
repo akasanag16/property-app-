@@ -8,6 +8,7 @@ import { Button } from "../ui/button";
 import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MaintenanceRequestCard } from "./MaintenanceRequestCard";
+import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
