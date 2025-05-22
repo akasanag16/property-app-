@@ -16,12 +16,14 @@ type MaintenanceRequestItemProps = {
     newStatus: "accepted" | "completed",
     serviceProviderId?: string
   ) => void;
+  isUpdating?: boolean;
 };
 
 export function MaintenanceRequestItem({
   request,
   userRole,
-  onUpdateStatus
+  onUpdateStatus,
+  isUpdating = false
 }: MaintenanceRequestItemProps) {
   const [showServiceProviderModal, setShowServiceProviderModal] = useState(false);
 
@@ -72,6 +74,7 @@ export function MaintenanceRequestItem({
           userRole={userRole}
           onAccept={handleAcceptRequest}
           onComplete={() => onUpdateStatus(request.id, "completed")}
+          disabled={isUpdating}
         />
       </CardFooter>
 

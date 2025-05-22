@@ -7,9 +7,16 @@ type ActionButtonsProps = {
   userRole: "owner" | "tenant" | "service_provider";
   onAccept: () => void;
   onComplete: () => void;
+  disabled?: boolean;
 };
 
-export function ActionButtons({ status, userRole, onAccept, onComplete }: ActionButtonsProps) {
+export function ActionButtons({ 
+  status, 
+  userRole, 
+  onAccept, 
+  onComplete,
+  disabled = false 
+}: ActionButtonsProps) {
   // Tenants can't update status
   if (userRole === "tenant") {
     return null;
@@ -22,6 +29,7 @@ export function ActionButtons({ status, userRole, onAccept, onComplete }: Action
           onClick={onAccept}
           variant="outline"
           size="sm"
+          disabled={disabled}
         >
           {userRole === "owner" ? "Mark In Progress" : "Accept Request"}
         </Button>
@@ -32,6 +40,7 @@ export function ActionButtons({ status, userRole, onAccept, onComplete }: Action
           onClick={onComplete}
           variant="outline" 
           size="sm"
+          disabled={disabled}
         >
           Mark Completed
         </Button>

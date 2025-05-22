@@ -715,6 +715,14 @@ export type Database = {
         Args: { user_id_param: string; property_id_param: string }
         Returns: boolean
       }
+      safe_service_provider_update_request: {
+        Args: {
+          request_id_param: string
+          service_provider_id_param: string
+          status_param: string
+        }
+        Returns: boolean
+      }
       safe_update_maintenance_request: {
         Args: {
           request_id_param: string

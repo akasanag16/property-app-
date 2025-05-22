@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { ErrorAlert } from "@/components/ui/alert-error";
 import { Button } from "../ui/button";
 import { RefreshCcw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ExtendedMaintenanceRequestsListProps = MaintenanceRequestsListProps & { 
   onRefreshNeeded?: () => void;
@@ -21,7 +22,9 @@ export function MaintenanceRequestsList({
   onError
 }: ExtendedMaintenanceRequestsListProps) {
   const [localRefreshKey, setLocalRefreshKey] = useState(refreshKey);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { requests, loading, error, refetch } = useMaintenanceRequests(userRole, localRefreshKey);
+  const { user } = useAuth();
 
   // Update local refresh key when parent refresh key changes
   useEffect(() => {
@@ -50,28 +53,57 @@ export function MaintenanceRequestsList({
     serviceProviderId?: string
   ) => {
     try {
+      setIsUpdating(true);
       console.log(`Updating request ${requestId} status to ${newStatus}${serviceProviderId ? ` with provider ${serviceProviderId}` : ''}`);
       
-      const updateData: {
-        status: "accepted" | "completed";
-        assigned_service_provider_id?: string;
-      } = {
-        status: newStatus
-      };
-      
-      // If assigning a service provider (when status becomes "accepted")
-      if (newStatus === "accepted" && serviceProviderId) {
-        updateData.assigned_service_provider_id = serviceProviderId;
+      if (!user?.id) {
+        throw new Error("User not authenticated");
       }
-      
-      const { error } = await supabase
-        .from('maintenance_requests')
-        .update(updateData)
-        .eq('id', requestId);
+
+      let updateResult;
+      let error;
+
+      // Use the appropriate function based on user role
+      if (userRole === "service_provider") {
+        console.log("Using service provider update function");
+        // Service providers can only mark as completed
+        if (newStatus !== "completed") {
+          throw new Error("Service providers can only mark requests as completed");
+        }
+        
+        // Call the secure function for service providers
+        const result = await supabase.rpc('safe_service_provider_update_request', {
+          request_id_param: requestId,
+          service_provider_id_param: user.id,
+          status_param: newStatus
+        });
+        
+        updateResult = result.data;
+        error = result.error;
+      } else if (userRole === "owner") {
+        console.log("Using owner update function");
+        // Use the owner's secure function
+        const result = await supabase.rpc('safe_update_maintenance_request', {
+          request_id_param: requestId,
+          owner_id_param: user.id,
+          status_param: newStatus,
+          service_provider_id_param: serviceProviderId || null
+        });
+        
+        updateResult = result.data;
+        error = result.error;
+      } else {
+        // Tenants cannot update requests
+        throw new Error("You don't have permission to update maintenance requests");
+      }
 
       if (error) {
         console.error("Error updating request status:", error);
         throw error;
+      }
+      
+      if (!updateResult) {
+        throw new Error("Failed to update request: Operation returned false");
       }
       
       toast.success(`Request marked as ${newStatus}`);
@@ -80,6 +112,8 @@ export function MaintenanceRequestsList({
     } catch (error: any) {
       console.error("Error updating request status:", error);
       toast.error(`Failed to update request status: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -135,10 +169,11 @@ export function MaintenanceRequestsList({
           request={request}
           userRole={userRole}
           onUpdateStatus={updateStatus}
+          isUpdating={isUpdating}
         />
       ))}
       <div className="flex justify-center mt-4">
-        <Button variant="outline" onClick={handleRetry} className="flex items-center">
+        <Button variant="outline" onClick={handleRetry} className="flex items-center" disabled={isUpdating}>
           <RefreshCcw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
