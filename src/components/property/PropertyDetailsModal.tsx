@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,18 +96,21 @@ export function PropertyDetailsModal({ propertyId, onSuccess }: PropertyDetailsM
   };
 
   const handleSave = async () => {
-    if (!propertyId || !property) return;
+    if (!propertyId || !property || !user?.id) return;
     
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('properties')
-        .update({ name })
-        .eq('id', propertyId);
+      // Use the secure RPC function instead of direct update
+      const { data, error } = await supabase
+        .rpc('safe_update_property_details', {
+          property_id_param: propertyId,
+          owner_id_param: user.id,
+          name_param: name
+        });
 
       if (error) {
         console.error("Error updating property:", error);
-        toast.error("Failed to update property");
+        toast.error("Failed to update property: " + error.message);
       } else {
         setProperty({ 
           ...property, 

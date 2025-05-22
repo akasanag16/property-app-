@@ -21,9 +21,11 @@ export function UserProfile({ user, userRole, sidebarOpen }: UserProfileProps) {
       return first_name;
     } else if (last_name) {
       return last_name;
-    } else {
+    } else if (email) {
+      // Only use email if no names are available
       return email;
     }
+    return "User";
   };
 
   // Get initials for the avatar
