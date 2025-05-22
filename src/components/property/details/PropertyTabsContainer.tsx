@@ -30,7 +30,7 @@ export function PropertyTabsContainer({ property, onInviteClick }: PropertyTabsC
       </TabsContent>
       
       <TabsContent value="services">
-        <ServicesTab property={property} />
+        <ServicesTab property={property} onInviteClick={onInviteClick} />
       </TabsContent>
       
       <TabsContent value="rent">
