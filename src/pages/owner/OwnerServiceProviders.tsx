@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";

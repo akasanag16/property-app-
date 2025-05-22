@@ -52,7 +52,7 @@ export function useOwnerInvitations(
           return;
         }
 
-        console.log(`Found ${data.length} ${type} invitations`);
+        console.log(`Found ${data.length} ${type} invitations:`, data);
         
         // Map the data to our client-side format
         const formattedInvitations = data.map((inv: any) => ({

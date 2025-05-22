@@ -13,7 +13,12 @@ export default function OwnerTenants() {
     error,
     emailColumnMissing,
     refreshing,
-    handleRefresh
+    handleRefresh,
+    tenantInvitations,
+    invitationsLoading,
+    invitationsError,
+    resendingId,
+    handleResendInvitation
   } = useTenantsPageData(user);
 
   return (
@@ -25,6 +30,11 @@ export default function OwnerTenants() {
         emailColumnMissing={emailColumnMissing}
         refreshing={refreshing}
         onRefresh={handleRefresh}
+        tenantInvitations={tenantInvitations}
+        invitationsLoading={invitationsLoading}
+        invitationsError={invitationsError}
+        resendingId={resendingId}
+        handleResendInvitation={handleResendInvitation}
       />
     </DashboardLayout>
   );
