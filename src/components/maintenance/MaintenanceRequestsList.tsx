@@ -44,11 +44,26 @@ export function MaintenanceRequestsList({
     if (onRefreshNeeded) onRefreshNeeded();
   };
 
-  const updateStatus = async (requestId: string, newStatus: "accepted" | "completed") => {
+  const updateStatus = async (
+    requestId: string, 
+    newStatus: "accepted" | "completed",
+    serviceProviderId?: string
+  ) => {
     try {
-      console.log(`Updating request ${requestId} status to ${newStatus}`);
+      console.log(`Updating request ${requestId} status to ${newStatus}${serviceProviderId ? ` with provider ${serviceProviderId}` : ''}`);
       
-      const updateData = { status: newStatus };
+      const updateData: {
+        status: "accepted" | "completed";
+        assigned_service_provider_id?: string;
+      } = {
+        status: newStatus
+      };
+      
+      // If assigning a service provider (when status becomes "accepted")
+      if (newStatus === "accepted" && serviceProviderId) {
+        updateData.assigned_service_provider_id = serviceProviderId;
+      }
+      
       const { error } = await supabase
         .from('maintenance_requests')
         .update(updateData)

@@ -4,7 +4,11 @@ import { MaintenanceRequest } from "@/types/maintenance";
 
 type MaintenanceRequestsListProps = {
   requests: MaintenanceRequest[];
-  onUpdateStatus: (requestId: string, newStatus: "accepted" | "completed") => void;
+  onUpdateStatus: (
+    requestId: string, 
+    newStatus: "accepted" | "completed", 
+    serviceProviderId?: string
+  ) => void;
 };
 
 export function MaintenanceRequestsList({ requests, onUpdateStatus }: MaintenanceRequestsListProps) {

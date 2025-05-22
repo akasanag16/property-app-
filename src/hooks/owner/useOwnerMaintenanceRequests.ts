@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useOwnerRequests } from "@/hooks/maintenanceRequests/useOwnerRequests";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useOwnerMaintenanceRequests() {
   const { user } = useAuth();
@@ -26,18 +27,68 @@ export function useOwnerMaintenanceRequests() {
     toast.success("Maintenance requests refreshed");
   };
 
-  const updateStatus = async (requestId: string, newStatus: "accepted" | "completed") => {
+  const updateStatus = async (
+    requestId: string, 
+    newStatus: "accepted" | "completed", 
+    serviceProviderId?: string
+  ) => {
     try {
-      // In a real implementation, this would update the database
-      // For demo purposes, update the state directly
-      const updatedRequests = requests.map(req => 
-        req.id === requestId ? { ...req, status: newStatus } : req
-      );
-
-      // Trigger a refetch to get fresh data from the server
+      console.log(`Updating request ${requestId} to ${newStatus}${serviceProviderId ? ` with provider ${serviceProviderId}` : ''}`);
+      
+      const updateData: { 
+        status: "accepted" | "completed"; 
+        assigned_service_provider_id?: string;
+      } = { 
+        status: newStatus 
+      };
+      
+      // If assigning a service provider (when status becomes "accepted")
+      if (newStatus === "accepted" && serviceProviderId) {
+        updateData.assigned_service_provider_id = serviceProviderId;
+      }
+      
+      // Update the request in the database
+      const { error: updateError } = await supabase
+        .from('maintenance_requests')
+        .update(updateData)
+        .eq('id', requestId);
+        
+      if (updateError) {
+        console.error("Error updating request:", updateError);
+        toast.error("Failed to update request");
+        return;
+      }
+      
+      // Create notification for the assigned service provider if applicable
+      if (newStatus === "accepted" && serviceProviderId) {
+        const requestDetails = requests.find(req => req.id === requestId);
+        if (requestDetails) {
+          try {
+            // Create notification for service provider
+            await supabase.rpc('create_notification', {
+              user_id_param: serviceProviderId,
+              title_param: "New Maintenance Request Assigned",
+              message_param: `You have been assigned to a maintenance request: ${requestDetails.title}`,
+              type_param: "maintenance_assignment",
+              related_entity_id_param: requestId,
+              related_entity_type_param: "maintenance_request"
+            });
+          } catch (notifError) {
+            console.error("Error creating notification:", notifError);
+            // Continue even if notification creation fails
+          }
+        }
+      }
+      
+      // Refresh the requests list
       refetch();
       
-      toast.success(`Request marked as ${newStatus}`);
+      const message = newStatus === "accepted" 
+        ? "Request marked as in progress" + (serviceProviderId ? " and assigned to service provider" : "")
+        : "Request marked as completed";
+      
+      toast.success(message);
+      
     } catch (error) {
       console.error("Error updating request status:", error);
       toast.error("Failed to update request status");
