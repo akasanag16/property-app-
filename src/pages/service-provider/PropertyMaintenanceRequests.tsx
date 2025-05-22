@@ -27,16 +27,22 @@ export default function PropertyMaintenanceRequests() {
         return;
       }
 
+      if (!user?.id) {
+        setError("Authentication required");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        // Fetch property details
+        // Use our new secure function to fetch property details
         const { data, error } = await supabase
-          .from('properties')
-          .select('name')
-          .eq('id', propertyId)
-          .single();
+          .rpc('safe_get_property_by_id_for_service_provider', {
+            property_id_param: propertyId,
+            service_provider_id_param: user.id
+          });
 
         if (error) {
           console.error("Error fetching property:", error);
@@ -44,9 +50,12 @@ export default function PropertyMaintenanceRequests() {
           return;
         }
 
-        if (data) {
-          setPropertyName(data.name);
+        if (!data || data.length === 0) {
+          setError("Property not found or you don't have access to this property");
+          return;
         }
+
+        setPropertyName(data[0].name);
       } catch (err: any) {
         console.error("Error in fetchPropertyDetails:", err);
         setError(err.message || "An unexpected error occurred");
@@ -56,7 +65,7 @@ export default function PropertyMaintenanceRequests() {
     }
 
     fetchPropertyDetails();
-  }, [propertyId]);
+  }, [propertyId, user?.id, refreshKey]);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);

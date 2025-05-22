@@ -68,16 +68,48 @@ export async function getPropertyMaintenanceRequestsForProvider(
       return [];
     }
     
-    // First get all maintenance requests for the service provider
-    const allRequests = await getServiceProviderRequests(providerId);
+    // Use our new secure function to directly fetch property-specific requests
+    const { data: requestsData, error: requestsError } = await supabase
+      .rpc('safe_get_property_maintenance_requests_for_provider', {
+        service_provider_id_param: providerId,
+        property_id_param: propertyId
+      });
     
-    // Then filter them by property ID
-    const propertyRequests = allRequests.filter(request => 
-      request.property && request.property.id === propertyId
-    );
+    if (requestsError) {
+      console.error("Error fetching property maintenance requests:", requestsError);
+      throw requestsError;
+    }
     
-    console.log(`Found ${propertyRequests.length} maintenance requests for property`);
-    return propertyRequests;
+    if (!requestsData || requestsData.length === 0) {
+      console.log(`No maintenance requests found for property ${propertyId}`);
+      return [];
+    }
+    
+    // Format the requests
+    const formattedRequests: MaintenanceRequest[] = requestsData.map(request => {
+      // Get tenant information
+      const tenant = request.tenant_id ? {
+        first_name: request.tenant_first_name || 'Unknown',
+        last_name: request.tenant_last_name || 'Tenant'
+      } : null;
+      
+      return {
+        id: request.id,
+        title: request.title || "Untitled Request",
+        description: request.description || "",
+        status: request.status as "pending" | "accepted" | "completed",
+        created_at: request.created_at,
+        property: {
+          id: request.property_id,
+          name: request.property_name || "Unknown property"
+        },
+        tenant,
+        assigned_service_provider: null
+      };
+    });
+    
+    console.log(`Found ${formattedRequests.length} maintenance requests for property ${propertyId}`);
+    return formattedRequests;
   } catch (error) {
     console.error("Error in getPropertyMaintenanceRequestsForProvider:", error);
     throw error;

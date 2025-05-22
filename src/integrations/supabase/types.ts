@@ -654,6 +654,31 @@ export type Database = {
           owner_id: string
         }[]
       }
+      safe_get_property_by_id_for_service_provider: {
+        Args: { property_id_param: string; service_provider_id_param: string }
+        Returns: {
+          id: string
+          name: string
+          address: string
+          details: Json
+        }[]
+      }
+      safe_get_property_maintenance_requests_for_provider: {
+        Args: { service_provider_id_param: string; property_id_param: string }
+        Returns: {
+          id: string
+          title: string
+          description: string
+          status: string
+          created_at: string
+          property_id: string
+          property_name: string
+          tenant_id: string
+          tenant_first_name: string
+          tenant_last_name: string
+          assigned_service_provider_id: string
+        }[]
+      }
       safe_get_property_service_providers: {
         Args: { property_id_param: string }
         Returns: {
