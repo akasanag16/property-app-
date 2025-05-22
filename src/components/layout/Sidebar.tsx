@@ -1,18 +1,15 @@
 
 import { useState } from "react";
 import { 
-  LayoutDashboard, 
-  House, 
-  Wrench, 
-  Users, 
-  Menu, 
-  Settings,
+  LogOut,
   ChevronLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "./SidebarNav";
 import { UserProfile } from "./UserProfile";
 import { User } from "@supabase/supabase-js";
+import { useSidebarLinks } from "@/hooks/useSidebarLinks";
+import { UserRole } from "@/lib/auth";
 
 interface SidebarProps {
   user: User | null;
@@ -23,37 +20,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ user, userRole, signOut, sidebarOpen, toggleSidebar }: SidebarProps) {
-  const getNavLinks = () => {
-    switch (userRole) {
-      case "owner":
-        return [
-          { href: "/owner-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/owner/properties", label: "Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/owner/tenants", label: "Tenants", icon: <Users className="h-5 w-5" /> },
-          { href: "/owner/service-providers", label: "Service Providers", icon: <Wrench className="h-5 w-5" /> },
-          { href: "/owner/maintenance", label: "Maintenance", icon: <Settings className="h-5 w-5" /> },
-        ];
-      case "tenant":
-        return [
-          { href: "/tenant-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/tenant/properties", label: "My Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/tenant/maintenance", label: "Maintenance Requests", icon: <Wrench className="h-5 w-5" /> },
-        ];
-      case "service_provider":
-        return [
-          { href: "/service-provider-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-          { href: "/service-provider/properties", label: "Assigned Properties", icon: <House className="h-5 w-5" /> },
-          { href: "/service-provider/maintenance", label: "Maintenance Requests", icon: <Wrench className="h-5 w-5" /> },
-        ];
-      default:
-        return [
-          { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-        ];
-    }
-  };
+  // Use the sidebar links hook to generate navigation based on user role
+  const navLinks = useSidebarLinks(userRole as UserRole);
   
-  const navLinks = getNavLinks();
-
   return (
     <div 
       className={cn(

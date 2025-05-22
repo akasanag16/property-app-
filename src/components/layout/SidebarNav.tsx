@@ -4,12 +4,7 @@ import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "./NavLink";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: ReactNode;
-}
+import { NavItem } from "@/hooks/useSidebarLinks";
 
 interface SidebarNavProps {
   navLinks: NavItem[];
