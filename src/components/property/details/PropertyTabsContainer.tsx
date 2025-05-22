@@ -1,10 +1,10 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Users, Wrench } from "lucide-react";
 import { Property } from "@/types/property";
 import { PropertyDetailsTab } from "./PropertyDetailsTab";
 import { TenantsTab } from "./TenantsTab";
 import { ServicesTab } from "./ServicesTab";
+import { RentTab } from "./RentTab"; // Import the new RentTab
 
 interface PropertyTabsContainerProps {
   property: Property | null;
@@ -13,20 +13,12 @@ interface PropertyTabsContainerProps {
 
 export function PropertyTabsContainer({ property, onInviteClick }: PropertyTabsContainerProps) {
   return (
-    <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="details" className="flex items-center gap-2">
-          <Home className="h-4 w-4" />
-          <span>Property Details</span>
-        </TabsTrigger>
-        <TabsTrigger value="tenants" className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          <span>Tenants</span>
-        </TabsTrigger>
-        <TabsTrigger value="services" className="flex items-center gap-2">
-          <Wrench className="h-4 w-4" />
-          <span>Services</span>
-        </TabsTrigger>
+    <Tabs defaultValue="details">
+      <TabsList className="mb-4">
+        <TabsTrigger value="details">Details</TabsTrigger>
+        <TabsTrigger value="tenants">Tenants</TabsTrigger>
+        <TabsTrigger value="services">Services</TabsTrigger>
+        <TabsTrigger value="rent">Rent</TabsTrigger> {/* Add new tab trigger */}
       </TabsList>
       
       <TabsContent value="details">
@@ -34,11 +26,15 @@ export function PropertyTabsContainer({ property, onInviteClick }: PropertyTabsC
       </TabsContent>
       
       <TabsContent value="tenants">
-        <TenantsTab onInviteClick={onInviteClick} />
+        <TenantsTab property={property} onInviteClick={onInviteClick} />
       </TabsContent>
       
       <TabsContent value="services">
-        <ServicesTab onInviteClick={onInviteClick} />
+        <ServicesTab property={property} />
+      </TabsContent>
+      
+      <TabsContent value="rent">
+        <RentTab property={property} /> {/* Add new tab content */}
       </TabsContent>
     </Tabs>
   );

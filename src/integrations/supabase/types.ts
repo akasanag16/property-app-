@@ -245,6 +245,111 @@ export type Database = {
           },
         ]
       }
+      rent_reminder_instances: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string
+          id: string
+          owner_notified: boolean
+          paid_date: string | null
+          property_id: string
+          reminder_id: string
+          status: Database["public"]["Enums"]["rent_status"]
+          tenant_id: string
+          tenant_notified: boolean
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date: string
+          id?: string
+          owner_notified?: boolean
+          paid_date?: string | null
+          property_id: string
+          reminder_id: string
+          status?: Database["public"]["Enums"]["rent_status"]
+          tenant_id: string
+          tenant_notified?: boolean
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          owner_notified?: boolean
+          paid_date?: string | null
+          property_id?: string
+          reminder_id?: string
+          status?: Database["public"]["Enums"]["rent_status"]
+          tenant_id?: string
+          tenant_notified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rent_reminder_instances_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rent_reminder_instances_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "rent_reminders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rent_reminder_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rent_reminders: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          owner_notification_days: number
+          property_id: string
+          reminder_day: number
+          tenant_notification_days: number
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          owner_notification_days?: number
+          property_id: string
+          reminder_day: number
+          tenant_notification_days?: number
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          owner_notification_days?: number
+          property_id?: string
+          reminder_day?: number
+          tenant_notification_days?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rent_reminders_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_provider_invitations: {
         Row: {
           accepted_at: string | null
@@ -495,6 +600,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      check_and_send_rent_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       check_owner_property_access: {
         Args: { owner_id_param: string; property_id_param: string }
         Returns: boolean
@@ -537,6 +646,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_or_update_rent_reminder: {
+        Args: {
+          property_id_param: string
+          reminder_day_param: number
+          amount_param: number
+          tenant_notification_days_param?: number
+          owner_notification_days_param?: number
+        }
+        Returns: string
+      }
       create_property: {
         Args: {
           name_param: string
@@ -545,6 +664,14 @@ export type Database = {
           details_param?: Json
         }
         Returns: string
+      }
+      generate_all_rent_reminder_instances: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      generate_rent_reminder_instances: {
+        Args: { reminder_id_param: string }
+        Returns: undefined
       }
       get_owner_invitations: {
         Args: { owner_id_param: string; invitation_type: string }
@@ -562,6 +689,34 @@ export type Database = {
       get_owner_properties: {
         Args: { owner_id_param: string }
         Returns: string[]
+      }
+      get_owner_rent_reminder_instances: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          reminder_id: string
+          property_id: string
+          property_name: string
+          tenant_id: string
+          tenant_first_name: string
+          tenant_last_name: string
+          due_date: string
+          amount: number
+          status: string
+          paid_date: string
+        }[]
+      }
+      get_owner_rent_reminders: {
+        Args: { owner_id_param: string }
+        Returns: {
+          id: string
+          property_id: string
+          property_name: string
+          reminder_day: number
+          amount: number
+          tenant_notification_days: number
+          owner_notification_days: number
+        }[]
       }
       get_owner_service_providers_with_details: {
         Args: { owner_id_param: string }
@@ -617,6 +772,18 @@ export type Database = {
         Args: { tenant_id_param: string }
         Returns: string[]
       }
+      get_tenant_rent_reminder_instances: {
+        Args: { tenant_id_param: string }
+        Returns: {
+          id: string
+          property_id: string
+          property_name: string
+          due_date: string
+          amount: number
+          status: string
+          paid_date: string
+        }[]
+      }
       get_user_notifications: {
         Args: { user_id_param: string }
         Returns: {
@@ -656,6 +823,22 @@ export type Database = {
       mark_notification_as_read: {
         Args: { notification_id_param: string }
         Returns: undefined
+      }
+      mark_rent_as_paid: {
+        Args: { instance_id_param: string }
+        Returns: boolean
+      }
+      mark_rent_as_pending: {
+        Args: { instance_id_param: string }
+        Returns: boolean
+      }
+      process_rent_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      process_rent_reminder_generation: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       rollback_transaction: {
         Args: Record<PropertyKey, never>
@@ -830,6 +1013,7 @@ export type Database = {
       }
     }
     Enums: {
+      rent_status: "pending" | "paid" | "overdue"
       request_status: "pending" | "accepted" | "completed"
       user_role: "owner" | "tenant" | "service_provider"
     }
@@ -947,6 +1131,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      rent_status: ["pending", "paid", "overdue"],
       request_status: ["pending", "accepted", "completed"],
       user_role: ["owner", "tenant", "service_provider"],
     },
