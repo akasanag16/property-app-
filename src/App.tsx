@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import { Toaster } from "sonner";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import SettingsPage from "./pages/settings/SettingsPage";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -76,11 +78,36 @@ const App = () => {
                   <OwnerRent />
                 </ProtectedRoute>
               } />
+              <Route path="/owner/settings" element={
+                <ProtectedRoute allowedRoles={["owner"]}>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } />
               
               {/* Tenant routes */}
               <Route path="/tenant-dashboard" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
                   <TenantDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/tenant/properties" element={
+                <ProtectedRoute allowedRoles={["tenant"]}>
+                  <NotFound note="Tenant Properties page is under development" />
+                </ProtectedRoute>
+              } />
+              <Route path="/tenant/maintenance" element={
+                <ProtectedRoute allowedRoles={["tenant"]}>
+                  <NotFound note="Tenant Maintenance page is under development" />
+                </ProtectedRoute>
+              } />
+              <Route path="/tenant/rent" element={
+                <ProtectedRoute allowedRoles={["tenant"]}>
+                  <NotFound note="Tenant Rent page is under development" />
+                </ProtectedRoute>
+              } />
+              <Route path="/tenant/settings" element={
+                <ProtectedRoute allowedRoles={["tenant"]}>
+                  <SettingsPage />
                 </ProtectedRoute>
               } />
               
@@ -90,9 +117,24 @@ const App = () => {
                   <ServiceProviderDashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/service-provider/properties" element={
+                <ProtectedRoute allowedRoles={["service_provider"]}>
+                  <NotFound note="Service Provider Properties page is under development" />
+                </ProtectedRoute>
+              } />
+              <Route path="/service-provider/maintenance" element={
+                <ProtectedRoute allowedRoles={["service_provider"]}>
+                  <NotFound note="Service Provider Maintenance page is under development" />
+                </ProtectedRoute>
+              } />
               <Route path="/service-provider/properties/:id/maintenance" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
                   <PropertyMaintenanceRequests />
+                </ProtectedRoute>
+              } />
+              <Route path="/service-provider/settings" element={
+                <ProtectedRoute allowedRoles={["service_provider"]}>
+                  <SettingsPage />
                 </ProtectedRoute>
               } />
               

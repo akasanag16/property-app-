@@ -1,50 +1,51 @@
 
-import { useLocation, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
-const NotFound = () => {
-  const location = useLocation();
+interface NotFoundProps {
+  note?: string;
+}
 
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
-  // Check if this might be an invitation link that has the wrong format
-  const isLikelyInvitationLink = location.pathname.includes('invitation') || 
-                                location.pathname.includes('accept-invitation');
-
+export default function NotFound({ note }: NotFoundProps) {
+  const navigate = useNavigate();
+  const { userRole } = useAuth();
+  
+  const goHome = () => {
+    if (userRole === "owner") {
+      navigate("/owner-dashboard");
+    } else if (userRole === "tenant") {
+      navigate("/tenant-dashboard");
+    } else if (userRole === "service_provider") {
+      navigate("/service-provider-dashboard");
+    } else {
+      navigate("/");
+    }
+  };
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full text-center">
-        <h1 className="text-4xl font-bold mb-4 text-gray-800">404</h1>
-        <p className="text-xl text-gray-600 mb-6">Oops! Page not found</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+      <div className="text-center max-w-md">
+        <h1 className="text-9xl font-extrabold text-gray-400">404</h1>
+        <h2 className="text-2xl font-bold mt-4 mb-2">Page Not Found</h2>
         
-        {isLikelyInvitationLink && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md text-left">
-            <p className="text-amber-800 mb-2 font-medium">This might be an invitation link issue</p>
-            <p className="text-amber-700 text-sm">
-              If you're trying to accept an invitation, please make sure the link is correct
-              or contact the person who invited you for a new invitation.
-            </p>
-          </div>
+        {note ? (
+          <p className="text-gray-600 mb-8">{note}</p>
+        ) : (
+          <p className="text-gray-600 mb-8">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
         )}
         
-        <div className="flex flex-col gap-3">
-          <Button asChild className="w-full">
-            <Link to="/">Return to Home</Link>
+        <div className="space-x-4">
+          <Button onClick={goHome}>
+            Return to Dashboard
           </Button>
-          
-          <Button asChild variant="outline" className="w-full">
-            <Link to="/auth">Go to Login</Link>
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Go Back
           </Button>
         </div>
       </div>
     </div>
   );
-};
-
-export default NotFound;
+}
