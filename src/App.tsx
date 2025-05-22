@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "./pages/Index";
@@ -84,19 +84,21 @@ const App = () => {
                   <TenantDashboard />
                 </ProtectedRoute>
               } />
+              
+              {/* Tenant redirects to dashboard with appropriate tab */}
               <Route path="/tenant/properties" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <NotFound note="Tenant Properties page is under development" />
+                  <Navigate to="/tenant-dashboard?tab=my-properties" replace />
                 </ProtectedRoute>
               } />
               <Route path="/tenant/maintenance" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <NotFound note="Tenant Maintenance page is under development" />
+                  <Navigate to="/tenant-dashboard?tab=maintenance-requests" replace />
                 </ProtectedRoute>
               } />
               <Route path="/tenant/rent" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <NotFound note="Tenant Rent page is under development" />
+                  <Navigate to="/tenant-dashboard?tab=rent-payments" replace />
                 </ProtectedRoute>
               } />
               
@@ -106,14 +108,16 @@ const App = () => {
                   <ServiceProviderDashboard />
                 </ProtectedRoute>
               } />
+              
+              {/* Service Provider redirects */}
               <Route path="/service-provider/properties" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
-                  <NotFound note="Service Provider Properties page is under development" />
+                  <Navigate to="/service-provider-dashboard?tab=assigned-properties" replace />
                 </ProtectedRoute>
               } />
               <Route path="/service-provider/maintenance" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
-                  <NotFound note="Service Provider Maintenance page is under development" />
+                  <Navigate to="/service-provider-dashboard?tab=maintenance-requests" replace />
                 </ProtectedRoute>
               } />
               <Route path="/service-provider/properties/:id/maintenance" element={

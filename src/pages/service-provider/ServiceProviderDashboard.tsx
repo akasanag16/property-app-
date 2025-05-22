@@ -7,24 +7,39 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaintenanceRequestsList } from "@/components/maintenance/MaintenanceRequestsList";
 import { ErrorAlert } from "@/components/ui/alert-error";
-import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Building, Wrench, Clock } from "lucide-react";
-import { GradientCard } from "@/components/ui/gradient-card";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 import type { Property, PropertyDetails } from "@/types/property";
 import { ServiceProviderStats } from "@/components/service-provider/ServiceProviderStats";
 import { ServiceProviderPropertiesSection } from "@/components/service-provider/ServiceProviderPropertiesSection";
 
 export default function ServiceProviderDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("assigned-properties");
   const [refreshKey, setRefreshKey] = useState(0);
   const [requestsCount, setRequestsCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  
+  // Get tab from URL query parameter
+  const getTabFromQuery = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    
+    if (tab === 'assigned-properties') return "assigned-properties";
+    if (tab === 'maintenance-requests') return "maintenance-requests";
+    
+    return "assigned-properties"; // Default tab
+  };
+  
+  const [activeTab, setActiveTab] = useState(() => getTabFromQuery());
+  
+  // Update tab when URL changes
+  useEffect(() => {
+    setActiveTab(getTabFromQuery());
+  }, [location.search]);
 
   // Fetch service provider's properties using the secure function pattern
   const fetchProperties = async () => {

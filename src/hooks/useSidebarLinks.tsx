@@ -33,15 +33,15 @@ export const useSidebarLinks = (userRole: UserRole | null): NavItem[] => {
     case "tenant":
       return [
         { href: "/tenant-dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
-        { href: "/tenant/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
-        { href: "/tenant/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
-        { href: "/tenant/rent", label: "Rent Payments", icon: <DollarSign className="h-5 w-5" /> }
+        { href: "/tenant-dashboard?tab=my-properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
+        { href: "/tenant-dashboard?tab=maintenance-requests", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
+        { href: "/tenant-dashboard?tab=rent-payments", label: "Rent Payments", icon: <DollarSign className="h-5 w-5" /> }
       ];
     case "service_provider":
       return [
         { href: "/service-provider-dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
-        { href: "/service-provider/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
-        { href: "/service-provider/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> }
+        { href: "/service-provider-dashboard?tab=assigned-properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
+        { href: "/service-provider-dashboard?tab=maintenance-requests", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> }
       ];
     default:
       return [];

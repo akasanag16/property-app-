@@ -17,15 +17,24 @@ export default function TenantDashboard() {
   const location = useLocation();
   const [requestRefreshKey, setRequestRefreshKey] = useState(0);
   
-  // Set default tab based on the current path
+  // Set default tab based on the query parameter
   const getInitialTab = useCallback(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    
+    if (tab === 'my-properties') return "my-properties";
+    if (tab === 'maintenance-requests') return "maintenance-requests";
+    if (tab === 'rent-payments') return "rent-payments";
+    
+    // Fallback to previous logic for backward compatibility
     if (location.pathname.includes("/tenant/maintenance")) {
       return "maintenance-requests";
     } else if (location.pathname.includes("/tenant/rent")) {
       return "rent-payments";
     }
+    
     return "my-properties";
-  }, [location.pathname]);
+  }, [location.search, location.pathname]);
   
   const [activeTab, setActiveTab] = useState(() => getInitialTab());
   
@@ -49,7 +58,7 @@ export default function TenantDashboard() {
   // Update active tab when the route changes
   useEffect(() => {
     setActiveTab(getInitialTab());
-  }, [location.pathname, getInitialTab]);
+  }, [location.search, location.pathname, getInitialTab]);
 
   return (
     <DashboardLayout>
