@@ -50,11 +50,11 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         setLoading(true);
         setError(null);
         
-        // Using a direct SQL query instead of RPC function
+        // Using the RPC function with proper type checking
         const { data, error: fetchError } = await supabase
-          .from('get_owner_service_providers_with_details')
-          .select('*')
-          .eq('owner_id_param', ownerId);
+          .rpc('get_owner_service_providers_with_details', { 
+            owner_id_param: ownerId 
+          });
         
         if (fetchError) {
           console.error("Error fetching service providers:", fetchError);
@@ -72,7 +72,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         // Process the data - this is now more efficient as the database did most of the work
         const providersMap = new Map<string, ServiceProvider>();
         
-        data.forEach((item: ServiceProviderDetails) => {
+        (data as ServiceProviderDetails[]).forEach((item: ServiceProviderDetails) => {
           const provider = providersMap.get(item.id);
           
           if (provider) {
