@@ -26,7 +26,8 @@ export const useSidebarLinks = (userRole: UserRole | null): NavItem[] => {
         { href: "/owner/properties", label: "Properties", icon: <Building className="h-5 w-5" /> },
         { href: "/owner/tenants", label: "Tenants", icon: <Users className="h-5 w-5" /> },
         { href: "/owner/service-providers", label: "Service Providers", icon: <Briefcase className="h-5 w-5" /> },
-        { href: "/owner/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> }
+        { href: "/owner/maintenance", label: "Maintenance", icon: <Wrench className="h-5 w-5" /> },
+        { href: "/owner/rent", label: "Rent Management", icon: <DollarSign className="h-5 w-5" /> }
       ];
     case "tenant":
       return [

@@ -22,6 +22,7 @@ import OwnerTenants from "./pages/owner/OwnerTenants";
 import OwnerServiceProviders from "./pages/owner/OwnerServiceProviders";
 import OwnerMaintenance from "./pages/owner/OwnerMaintenance";
 import OwnerProperties from "./pages/owner/OwnerProperties";
+import OwnerRent from "./pages/owner/OwnerRent";
 
 // Create the query client outside the component to prevent unnecessary recreations
 const queryClient = new QueryClient({
@@ -65,6 +66,7 @@ const App = () => {
                 <Route path="/owner/tenants" element={<OwnerTenants />} />
                 <Route path="/owner/service-providers" element={<OwnerServiceProviders />} />
                 <Route path="/owner/maintenance" element={<OwnerMaintenance />} />
+                <Route path="/owner/rent" element={<OwnerRent />} />
               </Route>
               
               {/* Tenant-specific routes */}
