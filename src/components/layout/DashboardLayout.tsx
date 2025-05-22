@@ -16,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -26,6 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { first_name, last_name, email, loading } = useUserProfile(user);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -67,6 +70,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate(path);
   };
 
+  // Get the user's display name or initials
+  const getDisplayName = () => {
+    if (first_name && last_name) {
+      return `${first_name} ${last_name}`;
+    } else if (first_name) {
+      return first_name;
+    } else if (last_name) {
+      return last_name;
+    } else {
+      return email;
+    }
+  };
+
+  // Get initials for the avatar
+  const getInitials = () => {
+    if (first_name && last_name) {
+      return `${first_name.charAt(0)}${last_name.charAt(0)}`.toUpperCase();
+    } else if (first_name) {
+      return first_name.charAt(0).toUpperCase();
+    } else if (last_name) {
+      return last_name.charAt(0).toUpperCase();
+    } else if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <NotificationProvider>
       <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -105,15 +135,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             
             {/* User info */}
             <div className={cn("p-4 border-b bg-indigo-50/50", !sidebarOpen && "flex justify-center")}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                {user?.email?.charAt(0).toUpperCase() || "U"}
+              <div className="flex items-center gap-2">
+                <Avatar className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
+                  <AvatarFallback className="text-white font-medium">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {sidebarOpen && (
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate text-gray-800">
+                      {loading ? (
+                        <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
+                      ) : (
+                        getDisplayName()
+                      )}
+                    </div>
+                    <div className="text-sm text-indigo-700 capitalize">{userRole?.replace("_", " ") || "User"}</div>
+                  </div>
+                )}
               </div>
-              {sidebarOpen && (
-                <div className="mt-2">
-                  <div className="font-medium truncate text-gray-800">{user?.email}</div>
-                  <div className="text-sm text-indigo-700 capitalize">{userRole?.replace("_", " ") || "User"}</div>
-                </div>
-              )}
             </div>
             
             {/* Navigation links */}
