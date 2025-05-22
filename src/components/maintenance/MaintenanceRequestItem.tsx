@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MaintenanceStatusBadge } from './MaintenanceStatusBadge';
-import { MaintenanceRequest } from '@/types/maintenance';
-import { formatDistanceToNow } from 'date-fns';
 import { ServiceProviderSelectionModal } from '../owner/maintenance/ServiceProviderSelectionModal';
+import { MaintenanceRequest } from '@/types/maintenance';
 import { toast } from "sonner";
+import { RequestHeader } from './request-item/RequestHeader';
+import { RequestContent } from './request-item/RequestContent';
+import { ActionButtons } from './request-item/ActionButtons';
 
 type MaintenanceRequestItemProps = {
   request: MaintenanceRequest;
@@ -24,11 +24,6 @@ export function MaintenanceRequestItem({
   onUpdateStatus
 }: MaintenanceRequestItemProps) {
   const [showServiceProviderModal, setShowServiceProviderModal] = useState(false);
-
-  const timeAgo = formatDistanceToNow(new Date(request.created_at), {
-    addSuffix: true,
-    includeSeconds: true
-  });
 
   const handleAcceptRequest = () => {
     if (userRole === "owner") {
@@ -51,154 +46,33 @@ export function MaintenanceRequestItem({
     setShowServiceProviderModal(false);
   };
 
-  const renderActionButtons = () => {
-    if (userRole === "tenant") {
-      return null; // Tenants can't update status
-    }
-
-    return (
-      <div className="flex justify-end gap-2 w-full">
-        {request.status === "pending" && (
-          <Button
-            onClick={handleAcceptRequest}
-            variant="outline"
-            size="sm"
-          >
-            {userRole === "owner" ? "Mark In Progress" : "Accept Request"}
-          </Button>
-        )}
-        
-        {request.status === "accepted" && (
-          <Button
-            onClick={() => onUpdateStatus(request.id, "completed")}
-            variant="outline" 
-            size="sm"
-          >
-            Mark Completed
-          </Button>
-        )}
-      </div>
-    );
-  };
-
-  const renderOwnerView = () => {
-    return (
-      <>
-        {request.tenant && (
-          <div className="mb-3">
-            <p className="text-sm font-medium">
-              {request.tenant.first_name} {request.tenant.last_name}
-            </p>
-            {request.tenant.email && (
-              <p className="text-xs text-gray-500">{request.tenant.email}</p>
-            )}
-          </div>
-        )}
-        
-        <p className="text-sm">{request.description}</p>
-        
-        {/* Service provider info */}
-        {request.assigned_service_provider ? (
-          <div className="mt-3">
-            <p className="text-sm font-medium">Service Provider:</p>
-            <p className="text-sm">
-              {request.assigned_service_provider.first_name} {request.assigned_service_provider.last_name}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-gray-500">No service provider assigned yet</p>
-        )}
-      </>
-    );
-  };
-
-  const renderTenantView = () => {
-    return (
-      <>
-        <p className="text-sm">{request.description}</p>
-        
-        {request.assigned_service_provider && (
-          <div className="mt-3">
-            <p className="text-sm font-medium">Service Provider:</p>
-            <p className="text-sm">
-              {request.assigned_service_provider.first_name} {request.assigned_service_provider.last_name}
-            </p>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  const renderServiceProviderView = () => {
-    return (
-      <>
-        {request.tenant && (
-          <div className="mb-3">
-            <p className="text-sm font-medium">Tenant:</p>
-            <p className="text-sm">
-              {request.tenant.first_name} {request.tenant.last_name}
-            </p>
-          </div>
-        )}
-        
-        <p className="text-sm">{request.description}</p>
-      </>
-    );
-  };
-
-  const getContent = () => {
-    switch (userRole) {
-      case "owner": 
-        return renderOwnerView();
-      case "tenant": 
-        return renderTenantView();
-      case "service_provider": 
-        return renderServiceProviderView();
-      default:
-        return <p className="text-sm">{request.description}</p>;
-    }
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="font-semibold text-lg">{request.title}</h3>
-            <p className="text-sm text-gray-500">
-              {request.property?.name || "Unknown Property"} • {timeAgo}
-            </p>
-          </div>
-          <MaintenanceStatusBadge status={request.status} />
-        </div>
+        <RequestHeader 
+          title={request.title}
+          propertyName={request.property?.name || ""}
+          createdAt={request.created_at}
+          status={request.status}
+        />
 
         <div className="mb-4">
-          {getContent()}
+          <RequestContent
+            userRole={userRole}
+            description={request.description}
+            tenant={request.tenant}
+            serviceProvider={request.assigned_service_provider}
+          />
         </div>
       </CardContent>
       
       <CardFooter className="border-t bg-gray-50 p-3">
-        <div className="flex justify-end gap-2 w-full">
-          {request.status === "pending" && (
-            <Button
-              onClick={handleAcceptRequest}
-              variant="outline"
-              size="sm"
-            >
-              {userRole === "owner" ? "Mark In Progress" : "Accept Request"}
-            </Button>
-          )}
-          
-          {request.status === "accepted" && (
-            <Button
-              onClick={() => onUpdateStatus(request.id, "completed")}
-              variant="outline" 
-              size="sm"
-            >
-              Mark Completed
-            </Button>
-          )}
-        </div>
+        <ActionButtons
+          status={request.status}
+          userRole={userRole}
+          onAccept={handleAcceptRequest}
+          onComplete={() => onUpdateStatus(request.id, "completed")}
+        />
       </CardFooter>
 
       {showServiceProviderModal && request.property && (
