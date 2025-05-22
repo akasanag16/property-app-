@@ -4,6 +4,11 @@ import { Property } from "@/types/property";
 import { PropertyEditForm } from "./details/PropertyEditForm";
 import { PropertyTabsContainer } from "./details/PropertyTabsContainer";
 import { PropertyActionButtons } from "./details/PropertyActionButtons";
+import {
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface PropertyDetailsViewProps {
   loading: boolean;
@@ -14,6 +19,7 @@ interface PropertyDetailsViewProps {
   editing: boolean;
   name: string;
   setName: (name: string) => void;
+  dialogTitle: string;
 }
 
 export function PropertyDetailsView({
@@ -25,9 +31,23 @@ export function PropertyDetailsView({
   editing,
   name,
   setName,
+  dialogTitle,
 }: PropertyDetailsViewProps) {
   return (
     <>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold">
+          {loading ? "Loading..." : dialogTitle}
+        </DialogTitle>
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <DialogDescription>
+            {editing ? "Update property details." : "View property details."}
+          </DialogDescription>
+        )}
+      </DialogHeader>
+      
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <Loader2 className="h-6 w-6 animate-spin" />
