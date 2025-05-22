@@ -1,7 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOwnerInvitations } from "../invitations/useOwnerInvitations";
+import { User } from "@supabase/supabase-js";
 
 // Type for service providers
 export interface ServiceProvider {
@@ -16,6 +17,16 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Get service provider invitations
+  const user = ownerId ? { id: ownerId } as User : null;
+  const {
+    invitations: serviceProviderInvitations,
+    loading: invitationsLoading,
+    error: invitationsError,
+    resendingId,
+    handleResendInvitation
+  } = useOwnerInvitations(user, 'service_provider', refreshKey);
   
   useEffect(() => {
     const fetchServiceProviders = async () => {
@@ -57,7 +68,12 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
     serviceProviders,
     loading,
     error,
-    handleRefresh
+    handleRefresh,
+    serviceProviderInvitations,
+    invitationsLoading,
+    invitationsError,
+    resendingId,
+    handleResendInvitation
   };
 };
 

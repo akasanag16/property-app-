@@ -546,6 +546,19 @@ export type Database = {
         }
         Returns: string
       }
+      get_owner_invitations: {
+        Args: { owner_id_param: string; invitation_type: string }
+        Returns: {
+          id: string
+          email: string
+          property_id: string
+          property_name: string
+          status: string
+          created_at: string
+          expires_at: string
+          link_token: string
+        }[]
+      }
       get_owner_properties: {
         Args: { owner_id_param: string }
         Returns: string[]

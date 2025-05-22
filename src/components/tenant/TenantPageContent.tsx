@@ -1,13 +1,14 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { DatabaseWarningBanner } from "./DatabaseWarningBanner";
+import { TenantStats } from "./TenantStats";
+import { TenantTable } from "./TenantTable";
+import { TenantStates } from "./TenantStates";
 import { RefreshCw } from "lucide-react";
-import { TenantStats } from "@/components/tenant/TenantStats";
-import { TenantTable } from "@/components/tenant/TenantTable";
-import { TenantLoadingState, TenantEmptyState } from "@/components/tenant/TenantStates";
-import { ErrorAlert } from "@/components/ui/alert-error";
-import { DatabaseWarningBanner } from "@/components/tenant/DatabaseWarningBanner";
 import { Tenant } from "@/types/tenant";
+import { OwnerInvitationsList } from "../invitations/OwnerInvitationsList";
+import { OwnerInvitation } from "@/hooks/invitations/useOwnerInvitations";
 
 interface TenantPageContentProps {
   tenants: Tenant[];
@@ -16,6 +17,11 @@ interface TenantPageContentProps {
   emailColumnMissing: boolean;
   refreshing: boolean;
   onRefresh: () => void;
+  tenantInvitations?: OwnerInvitation[];
+  invitationsLoading?: boolean;
+  invitationsError?: string | null;
+  resendingId?: string | null;
+  handleResendInvitation?: (id: string) => Promise<void>;
 }
 
 export function TenantPageContent({
@@ -24,50 +30,62 @@ export function TenantPageContent({
   error,
   emailColumnMissing,
   refreshing,
-  onRefresh
+  onRefresh,
+  tenantInvitations = [],
+  invitationsLoading = false,
+  invitationsError = null,
+  resendingId = null,
+  handleResendInvitation = async () => {},
 }: TenantPageContentProps) {
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tenants</h1>
         <Button
           variant="outline"
           size="sm"
           onClick={onRefresh}
           disabled={refreshing}
+          className="flex items-center gap-1"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 
-      <p className="text-gray-600">
-        View and manage your tenants and their payments.
-      </p>
-
       {emailColumnMissing && (
-        <DatabaseWarningBanner 
-          message="The email column is missing from the profiles table. Please run the database migration to add this column."
-          migrationFile="20250501_add_email_to_profiles.sql"
-        />
+        <DatabaseWarningBanner onRefresh={onRefresh} />
       )}
 
-      {error && (
-        <ErrorAlert 
-          message={error}
-          onRetry={onRefresh}
-        />
+      {/* Tenant Stats Section */}
+      {!error && tenants.length > 0 && (
+        <TenantStats tenants={tenants} loading={loading} />
       )}
 
-      {loading ? (
-        <TenantLoadingState />
+      {/* Tenant Invitations Section */}
+      <div className="mb-6">
+        <OwnerInvitationsList
+          invitations={tenantInvitations}
+          loading={invitationsLoading}
+          error={invitationsError}
+          resendingId={resendingId}
+          title="Pending Tenant Invitations"
+          emptyMessage="No pending tenant invitations"
+          onResend={handleResendInvitation}
+        />
+      </div>
+
+      {/* Tenant Table Section */}
+      {error ? (
+        <TenantStates.Error error={error} onRefresh={onRefresh} />
+      ) : loading ? (
+        <TenantStates.Loading />
       ) : tenants.length === 0 ? (
-        <TenantEmptyState />
+        <TenantStates.Empty />
       ) : (
-        <>
-          <TenantStats tenants={tenants} emailColumnMissing={emailColumnMissing} />
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
           <TenantTable tenants={tenants} />
-        </>
+        </div>
       )}
     </div>
   );

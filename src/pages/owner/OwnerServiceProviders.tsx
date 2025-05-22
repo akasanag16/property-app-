@@ -9,10 +9,21 @@ import { ServiceProvidersHeader } from "@/components/services/ServiceProvidersHe
 import { EmptyServiceProviderState } from "@/components/services/EmptyServiceProviderState";
 import { useOwnerServiceProviders } from "@/hooks/services/useOwnerServiceProviders";
 import { serviceTypes } from "@/data/serviceTypes";
+import { OwnerInvitationsList } from "@/components/invitations/OwnerInvitationsList";
 
 export default function OwnerServiceProviders() {
   const { user } = useAuth();
-  const { serviceProviders, loading, error, handleRefresh } = useOwnerServiceProviders(user?.id);
+  const { 
+    serviceProviders, 
+    loading, 
+    error, 
+    handleRefresh,
+    serviceProviderInvitations,
+    invitationsLoading,
+    invitationsError,
+    resendingId,
+    handleResendInvitation
+  } = useOwnerServiceProviders(user?.id);
 
   const handleViewProviders = (serviceName: string) => {
     toast.info(`Viewing ${serviceName} providers`);
@@ -27,7 +38,7 @@ export default function OwnerServiceProviders() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <ServiceProvidersHeader onRefresh={handleRefresh} loading={loading} />
+        <ServiceProvidersHeader onRefresh={handleRefresh} loading={loading || invitationsLoading} />
         
         <p className="text-gray-600">
           Browse and manage service providers for your properties. These services can be offered to your tenants.
@@ -36,6 +47,19 @@ export default function OwnerServiceProviders() {
         {error && (
           <ErrorAlert message={error} onRetry={handleRefresh} />
         )}
+
+        {/* Pending Service Provider Invitations Section */}
+        <div className="mb-6">
+          <OwnerInvitationsList
+            invitations={serviceProviderInvitations || []}
+            loading={invitationsLoading}
+            error={invitationsError}
+            resendingId={resendingId}
+            title="Pending Service Provider Invitations"
+            emptyMessage="No pending service provider invitations"
+            onResend={handleResendInvitation}
+          />
+        </div>
 
         {/* Assigned Service Providers Section */}
         <div className="mb-8">

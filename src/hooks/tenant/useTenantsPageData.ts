@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { useTenantData } from "./useTenantData";
 import { toast } from "sonner";
+import { useOwnerInvitations } from "../invitations/useOwnerInvitations";
 
 /**
  * Custom hook to manage tenant page data loading and refresh functionality
@@ -12,6 +13,13 @@ export function useTenantsPageData(user: User | null) {
   const [refreshing, setRefreshing] = useState(false);
   
   const { tenants, loading, error, emailColumnMissing } = useTenantData(user, refreshKey);
+  const { 
+    invitations: tenantInvitations, 
+    loading: invitationsLoading, 
+    error: invitationsError, 
+    resendingId,
+    handleResendInvitation 
+  } = useOwnerInvitations(user, 'tenant', refreshKey);
   
   const handleRefresh = () => {
     setRefreshing(true);
@@ -22,10 +30,10 @@ export function useTenantsPageData(user: User | null) {
   useEffect(() => {
     // Don't auto-refresh on mount - wait for user interaction
     
-    if (!loading && refreshing) {
+    if (!loading && !invitationsLoading && refreshing) {
       setRefreshing(false);
     }
-  }, [loading, refreshing]);
+  }, [loading, invitationsLoading, refreshing]);
 
   return {
     tenants,
@@ -33,6 +41,11 @@ export function useTenantsPageData(user: User | null) {
     error, 
     emailColumnMissing,
     refreshing,
-    handleRefresh
+    handleRefresh,
+    tenantInvitations,
+    invitationsLoading,
+    invitationsError,
+    resendingId,
+    handleResendInvitation
   };
 }
