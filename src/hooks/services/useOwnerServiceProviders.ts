@@ -28,6 +28,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Get service provider invitations
   const user = useMemo(() => ownerId ? { id: ownerId } as User : null, [ownerId]);
@@ -99,6 +100,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         setServiceProviders([]);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     };
     
@@ -107,6 +109,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
+    setRefreshing(true);
     toast.success("Refreshing service provider list...");
   };
 
@@ -114,8 +117,9 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
     serviceProviders,
     loading,
     error,
+    refreshing,
     handleRefresh,
-    serviceProviderInvitations,
+    serviceProviderInvitations: serviceProviderInvitations?.filter(inv => inv.status === 'pending') || [],
     invitationsLoading,
     invitationsError,
     resendingId,
