@@ -13,6 +13,16 @@ export interface ServiceProvider {
   properties: string[];
 }
 
+// Define a type for the API response
+interface ServiceProviderDetails {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  property_id: string;
+  property_name: string;
+}
+
 export const useOwnerServiceProviders = (ownerId: string | undefined) => {
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,11 +50,11 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         setLoading(true);
         setError(null);
         
-        // Use a more efficient RPC function that combines all the queries
+        // Using a custom function call with proper type checking
         const { data, error: fetchError } = await supabase
           .rpc('get_owner_service_providers_with_details', { 
             owner_id_param: ownerId 
-          });
+          }) as { data: ServiceProviderDetails[] | null, error: Error | null };
         
         if (fetchError) {
           console.error("Error fetching service providers:", fetchError);
@@ -62,7 +72,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
         // Process the data - this is now more efficient as the database did most of the work
         const providersMap = new Map<string, ServiceProvider>();
         
-        data.forEach((item: any) => {
+        data.forEach((item: ServiceProviderDetails) => {
           const provider = providersMap.get(item.id);
           
           if (provider) {
@@ -75,7 +85,7 @@ export const useOwnerServiceProviders = (ownerId: string | undefined) => {
             providersMap.set(item.id, {
               id: item.id,
               name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || "Unknown Name",
-              email: item.email,
+              email: item.email || undefined,
               properties: item.property_name ? [item.property_name] : []
             });
           }
