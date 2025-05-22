@@ -22,7 +22,6 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import { Toaster } from "sonner";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import SettingsPage from "./pages/settings/SettingsPage";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -78,11 +77,6 @@ const App = () => {
                   <OwnerRent />
                 </ProtectedRoute>
               } />
-              <Route path="/owner/settings" element={
-                <ProtectedRoute allowedRoles={["owner"]}>
-                  <SettingsPage />
-                </ProtectedRoute>
-              } />
               
               {/* Tenant routes */}
               <Route path="/tenant-dashboard" element={
@@ -105,11 +99,6 @@ const App = () => {
                   <NotFound note="Tenant Rent page is under development" />
                 </ProtectedRoute>
               } />
-              <Route path="/tenant/settings" element={
-                <ProtectedRoute allowedRoles={["tenant"]}>
-                  <SettingsPage />
-                </ProtectedRoute>
-              } />
               
               {/* Service Provider routes */}
               <Route path="/service-provider-dashboard" element={
@@ -130,11 +119,6 @@ const App = () => {
               <Route path="/service-provider/properties/:id/maintenance" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
                   <PropertyMaintenanceRequests />
-                </ProtectedRoute>
-              } />
-              <Route path="/service-provider/settings" element={
-                <ProtectedRoute allowedRoles={["service_provider"]}>
-                  <SettingsPage />
                 </ProtectedRoute>
               } />
               
