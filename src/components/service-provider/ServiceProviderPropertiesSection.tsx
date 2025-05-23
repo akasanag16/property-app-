@@ -100,7 +100,7 @@ export function ServiceProviderPropertiesSection({
                 
                 <div className="mt-auto pt-4">
                   <Link 
-                    to={`/service-provider/property/${property.id}/maintenance`}
+                    to={`/service-provider/properties/${property.id}/maintenance`}
                     className="flex items-center justify-between w-full text-sm font-medium text-indigo-600 hover:text-indigo-700 group-hover:underline"
                   >
                     <span>View maintenance requests</span>
