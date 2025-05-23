@@ -19,71 +19,96 @@ export async function createInvitedUser(requestData: any) {
   console.log(`Property ID: ${propertyId}`);
   
   const supabaseClient = getSupabaseClient();
-
-  // Check if user already exists
-  const { data: existingUsers, error: existingUserError } = await supabaseClient
-    .from('profiles')
-    .select('id')
-    .eq('id', email);
   
-  if (existingUserError) {
-    console.error('Error checking existing user:', existingUserError);
-    throw existingUserError;
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check if user already exists by email in profiles table
+  const { data: existingProfile, error: profileCheckError } = await supabaseClient
+    .from('profiles')
+    .select('id, email')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+  
+  if (profileCheckError) {
+    console.error('Error checking existing profile:', profileCheckError);
+    throw new Error('Failed to check existing user profile');
   }
   
   // If user already exists, return appropriate message
-  if (existingUsers && existingUsers.length > 0) {
-    console.log(`User with email ${email} already exists - should use linking flow instead`);
+  if (existingProfile) {
+    console.log(`User with email ${normalizedEmail} already exists - should use linking flow instead`);
     return createErrorResponse("This email has already been registered. Please use the existing account option.");
   }
   
-  // Begin transaction
+  // Validate invitation token and get details
   const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
   const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
   
   try {
-    // If user doesn't exist, create new user account
+    // Verify the invitation exists and is valid
+    const { data: invitation, error: invitationError } = await supabaseClient
+      .from(tableName)
+      .select('*')
+      .eq('link_token', token)
+      .eq('email', normalizedEmail)
+      .eq('is_used', false)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (invitationError || !invitation) {
+      console.error('Invalid or expired invitation:', invitationError);
+      throw new Error('Invalid or expired invitation');
+    }
+
     if (!firstName || !lastName || !password) {
       throw new Error("Missing required parameters for creating a new user");
     }
 
-    const { data: authUser, error: userError } = await supabaseClient.auth.signUp({
-      email,
+    // Create new user account with normalized email
+    const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
+      email: normalizedEmail,
       password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          role,
-          email_verified: true
-        }
-      }
+      user_metadata: {
+        first_name: firstName,
+        last_name: lastName,
+        role,
+        email_verified: true
+      },
+      email_confirm: true // Skip email confirmation
     });
 
     if (userError) {
       console.error('Error creating user:', userError);
-      throw userError;
+      throw new Error(`Failed to create user account: ${userError.message}`);
     }
 
     if (!authUser || !authUser.user) {
-      throw new Error("Failed to create user account");
+      throw new Error("Failed to create user account - no user returned");
     }
 
     const userId = authUser.user.id;
     console.log(`New user created with ID: ${userId}`);
     
-    // Make sure profile has the email set
-    const { error: profileUpdateError } = await supabaseClient
+    // Ensure profile is created with normalized email
+    const { error: profileError } = await supabaseClient
       .from('profiles')
-      .update({ email: email })
-      .eq('id', userId);
+      .upsert({ 
+        id: userId,
+        email: normalizedEmail,
+        first_name: firstName,
+        last_name: lastName,
+        role: role
+      }, { 
+        onConflict: 'id' 
+      });
       
-    if (profileUpdateError) {
-      console.error('Error updating profile with email:', profileUpdateError);
-      // Continue anyway as this is not critical
+    if (profileError) {
+      console.error('Error creating/updating profile:', profileError);
+      // Continue anyway as this might be handled by trigger
     }
 
-    // 2. Mark invitation as used
+    // Mark invitation as used
     const { error: inviteError } = await supabaseClient
       .from(tableName)
       .update({ 
@@ -93,14 +118,14 @@ export async function createInvitedUser(requestData: any) {
         accepted_by_user_id: userId
       })
       .eq('link_token', token)
-      .eq('email', email);
+      .eq('email', normalizedEmail);
 
     if (inviteError) {
       console.error('Error updating invitation:', inviteError);
-      throw inviteError;
+      throw new Error('Failed to mark invitation as used');
     }
 
-    // 3. Create property link
+    // Create property link
     const linkData = {
       property_id: propertyId,
     };
@@ -117,19 +142,19 @@ export async function createInvitedUser(requestData: any) {
 
     if (linkError) {
       console.error('Error creating property link:', linkError);
-      throw linkError;
+      throw new Error('Failed to link user to property');
     }
       
-    console.log('User successfully linked to property');
+    console.log('User successfully created and linked to property');
 
     return createSuccessResponse({ 
       success: true, 
       userExists: false,
-      userLinked: true
+      userLinked: true,
+      message: 'Account created successfully'
     });
   } catch (error: any) {
     console.error('Transaction error:', error);
-    
-    return createErrorResponse(error);
+    return createErrorResponse(error.message || 'Failed to create user account');
   }
 }

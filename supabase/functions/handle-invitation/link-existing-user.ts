@@ -1,195 +1,143 @@
 
-import { getSupabaseClient, corsHeaders, createSuccessResponse, createErrorResponse } from "./utils.ts";
+import { getSupabaseClient, corsHeaders, createErrorResponse, createSuccessResponse } from "./utils.ts";
 
 export async function linkExistingUser(requestData: any) {
   const { token, email, propertyId, role, userId } = requestData;
   
-  if (!token || !email || !propertyId || !role) {
+  if (!token || !email || !propertyId || !role || !userId) {
     const missingParams = [];
     if (!token) missingParams.push('token');
     if (!email) missingParams.push('email');
     if (!propertyId) missingParams.push('propertyId');
     if (!role) missingParams.push('role');
+    if (!userId) missingParams.push('userId');
     
     console.error("Missing parameters:", missingParams);
     throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
   }
+
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = email.toLowerCase().trim();
   
-  console.log(`Linking existing user with email ${email} to property ${propertyId} as ${role}`);
+  console.log(`Linking existing user with email ${normalizedEmail} to property ${propertyId} as ${role}`);
+  
+  const supabaseClient = getSupabaseClient();
+  const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
+  const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
   
   try {
-    const supabaseClient = getSupabaseClient();
-    
-    // Get user ID from the auth session if not provided
-    let userIdToUse = userId;
-    
-    if (!userIdToUse) {
-      // Find the user by email
-      const { data: userByEmail, error: userByEmailError } = await supabaseClient
-        .from('profiles')
-        .select('id')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-      
-      if (userByEmailError) {
-        console.error('Error finding user by email:', userByEmailError);
-        return createErrorResponse("Database error while finding user account", 500);
-      }
-      
-      if (!userByEmail) {
-        console.log('User not found by email in profiles table, checking auth.users directly');
-        
-        // If user not found by email in profiles, try querying auth.users directly
-        const { data, error } = await supabaseClient.auth.admin.listUsers({
-          filter: {
-            email: email.toLowerCase()
-          }
-        });
-        
-        if (error) {
-          console.error('Error finding user through admin API:', error);
-          return createErrorResponse("Unable to find user account with this email", 400);
-        }
-        
-        const foundUser = data?.users?.find(user => user.email?.toLowerCase() === email.toLowerCase());
-        
-        if (!foundUser) {
-          console.error('User not found in auth.users');
-          return createErrorResponse("No account exists with this email. Please create a new account instead.", 400);
-        }
-        
-        userIdToUse = foundUser.id;
-        
-        // Make sure profile exists and has the email set
-        const { error: profileCheckError } = await supabaseClient
-          .from('profiles')
-          .select('id')
-          .eq('id', userIdToUse)
-          .maybeSingle();
-          
-        if (profileCheckError) {
-          // If profile doesn't exist, create it
-          const { error: profileCreateError } = await supabaseClient
-            .from('profiles')
-            .insert({
-              id: userIdToUse,
-              email: email.toLowerCase(),
-              role: role
-            });
-            
-          if (profileCreateError) {
-            console.error('Error creating profile:', profileCreateError);
-            // Continue anyway as we might have a race condition
-          }
-        } else {
-          // Update the profile with the email
-          const { error: profileUpdateError } = await supabaseClient
-            .from('profiles')
-            .update({ email: email.toLowerCase() })
-            .eq('id', userIdToUse);
-            
-          if (profileUpdateError) {
-            console.error('Error updating profile email:', profileUpdateError);
-            // Continue anyway as this is not critical
-          }
-        }
-      } else {
-        userIdToUse = userByEmail.id;
-      }
-    }
-    
-    if (!userIdToUse) {
-      return createErrorResponse("Could not determine user ID for linking", 400);
-    }
-    
-    console.log(`Found existing user with ID: ${userIdToUse}`);
-    
-    // Begin transaction
-    const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
-    const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
-    
-    // 1. First check if the invitation exists and is valid
-    const { data: invitation, error: inviteCheckError } = await supabaseClient
+    // Verify the invitation exists and is valid
+    const { data: invitation, error: invitationError } = await supabaseClient
       .from(tableName)
       .select('*')
       .eq('link_token', token)
-      .eq('email', email)
-      .gt('expires_at', 'now()')
+      .eq('email', normalizedEmail)
+      .eq('is_used', false)
+      .gt('expires_at', new Date().toISOString())
       .maybeSingle();
-      
-    if (inviteCheckError) {
-      console.error('Error checking invitation:', inviteCheckError);
-      throw inviteCheckError;
-    }
-    
-    if (!invitation) {
-      return createErrorResponse("Invitation not found or has expired. Please request a new invitation.", 400);
-    }
-    
-    // 2. Mark invitation as used
-    const { error: inviteError } = await supabaseClient
-      .from(tableName)
-      .update({ 
-        is_used: true,
-        status: 'accepted',
-        accepted_at: new Date().toISOString(),
-        accepted_by_user_id: userIdToUse
-      })
-      .eq('link_token', token)
-      .eq('email', email);
 
-    if (inviteError) {
-      console.error('Error updating invitation:', inviteError);
-      throw inviteError;
+    if (invitationError || !invitation) {
+      console.error('Invalid or expired invitation:', invitationError);
+      throw new Error('Invalid or expired invitation');
     }
+
+    // Verify user exists and email matches
+    const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
     
-    // 3. Create property link if it doesn't exist
-    // First check if link already exists
-    const { data: existingLink, error: existingLinkError } = await supabaseClient
+    if (userError || !user) {
+      console.error('User not found:', userError);
+      throw new Error('User account not found');
+    }
+
+    // Check if emails match (normalized comparison)
+    if (user.user.email?.toLowerCase().trim() !== normalizedEmail) {
+      console.error('Email mismatch:', { userEmail: user.user.email, invitationEmail: normalizedEmail });
+      throw new Error('Email address does not match the invitation');
+    }
+
+    console.log(`Found existing user with ID: ${userId}`);
+
+    // Check if user is already linked to this property
+    const existingLinkField = role === 'tenant' ? 'tenant_id' : 'service_provider_id';
+    const { data: existingLink, error: linkCheckError } = await supabaseClient
       .from(linkTableName)
-      .select('id')
+      .select('*')
+      .eq(existingLinkField, userId)
       .eq('property_id', propertyId)
-      .eq(role === 'tenant' ? 'tenant_id' : 'service_provider_id', userIdToUse)
       .maybeSingle();
-      
-    if (existingLinkError) {
-      console.error('Error checking existing property link:', existingLinkError);
-      throw existingLinkError;
+
+    if (linkCheckError) {
+      console.error('Error checking existing link:', linkCheckError);
+      throw new Error('Failed to check existing property link');
     }
-    
-    // Only create the link if it doesn't already exist
-    if (!existingLink) {
-      const linkData: any = {
+
+    if (existingLink) {
+      console.log('User is already linked to this property');
+      // Still mark invitation as used and return success
+    } else {
+      // Create property link
+      const linkData = {
         property_id: propertyId,
       };
       
       if (role === 'tenant') {
-        linkData.tenant_id = userIdToUse;
+        linkData.tenant_id = userId;
       } else {
-        linkData.service_provider_id = userIdToUse;
+        linkData.service_provider_id = userId;
       }
-      
+        
       const { error: linkError } = await supabaseClient
         .from(linkTableName)
         .insert(linkData);
 
       if (linkError) {
         console.error('Error creating property link:', linkError);
-        throw linkError;
+        throw new Error('Failed to link user to property');
       }
-      console.log('User successfully linked to property');
-    } else {
-      console.log('User was already linked to this property');
     }
 
+    // Update profile to ensure email is normalized
+    const { error: profileUpdateError } = await supabaseClient
+      .from('profiles')
+      .upsert({ 
+        id: userId,
+        email: normalizedEmail
+      }, { 
+        onConflict: 'id' 
+      });
+      
+    if (profileUpdateError) {
+      console.error('Error updating profile email:', profileUpdateError);
+      // Continue anyway as this is not critical
+    }
+
+    // Mark invitation as used
+    const { error: inviteError } = await supabaseClient
+      .from(tableName)
+      .update({ 
+        is_used: true,
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+        accepted_by_user_id: userId
+      })
+      .eq('link_token', token)
+      .eq('email', normalizedEmail);
+
+    if (inviteError) {
+      console.error('Error updating invitation:', inviteError);
+      throw new Error('Failed to mark invitation as used');
+    }
+      
+    console.log('User successfully linked to property');
+
     return createSuccessResponse({ 
-      success: true,
-      userLinked: true, 
-      userId: userIdToUse,
-      role
+      success: true, 
+      userExists: true,
+      userLinked: true,
+      message: 'Successfully linked to property'
     });
   } catch (error: any) {
     console.error('Error linking existing user:', error);
-    return createErrorResponse(error.message || "Unknown error occurred during account linking");
+    return createErrorResponse(error.message || 'Failed to link user to property');
   }
 }

@@ -8,7 +8,10 @@ export async function validateToken(requestData: any) {
     return createErrorResponse("Missing token or email", 400);
   }
 
-  console.log(`Validating token for email: ${email}`);
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  console.log(`Validating token for email: ${normalizedEmail}`);
   const supabaseClient = getSupabaseClient();
 
   try {
@@ -24,7 +27,7 @@ export async function validateToken(requestData: any) {
         .from(table)
         .select('*')
         .eq('link_token', token)
-        .eq('email', email)
+        .eq('email', normalizedEmail)
         .eq('is_used', false)
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
@@ -53,7 +56,7 @@ export async function validateToken(requestData: any) {
       valid: true, 
       propertyId, 
       role,
-      email,
+      email: normalizedEmail,
       token,
       invitationType,
       invitationId: validInvitation.id

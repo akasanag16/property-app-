@@ -31,18 +31,23 @@ export function useInvitationValidation() {
           return;
         }
 
-        console.log(`Validating invitation: token=${token}, email=${email}`);
+        // Normalize email for consistency
+        const normalizedEmail = email.toLowerCase().trim();
+
+        console.log(`Validating invitation: token=${token}, email=${normalizedEmail}`);
 
         // Check if we're already authenticated
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
           // If we're already logged in with a different email, we need to sign out first
-          const currentUserEmail = session.user.email;
+          const currentUserEmail = session.user.email?.toLowerCase().trim();
           
-          if (currentUserEmail && currentUserEmail.toLowerCase() !== email.toLowerCase()) {
+          if (currentUserEmail && currentUserEmail !== normalizedEmail) {
             console.log("Signed in with different email. Signing out first...");
             await supabase.auth.signOut();
+            // Small delay to ensure sign out is complete
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
 
@@ -51,13 +56,13 @@ export function useInvitationValidation() {
           body: { 
             action: "validateToken",
             token,
-            email
+            email: normalizedEmail
           }
         });
 
         if (functionError) {
           console.error("Invitation function error:", functionError);
-          setError("Error validating invitation. Please try again.");
+          setError("Error validating invitation. Please try again or contact support.");
           setValidating(false);
           return;
         }
@@ -66,14 +71,14 @@ export function useInvitationValidation() {
 
         if (!data || !data.valid) {
           console.error("Invitation validation failed:", data?.message || "Invalid token");
-          setError(data?.message || "This invitation is invalid or has expired.");
+          setError(data?.message || "This invitation is invalid or has expired. Please request a new invitation.");
           setValidating(false);
           return;
         }
 
         setInvitationData({
           token,
-          email,
+          email: data.email, // Use the normalized email from the response
           propertyId: data.propertyId,
           role: data.role as UserRole,
           invitationType: data.invitationType
@@ -83,7 +88,7 @@ export function useInvitationValidation() {
         setValidating(false);
       } catch (error) {
         console.error("Error validating invitation:", error);
-        setError("Error validating invitation. Please try again.");
+        setError("Error validating invitation. Please check your internet connection and try again.");
         setValidating(false);
       }
     };

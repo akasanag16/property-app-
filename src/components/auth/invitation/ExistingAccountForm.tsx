@@ -49,18 +49,34 @@ export function ExistingAccountForm({
     try {
       console.log("Trying to link existing account with email:", email);
       
+      // Normalize email for consistency
+      const normalizedEmail = email.toLowerCase().trim();
+      
       // First, sign out any current user to ensure we're starting fresh
       await supabase.auth.signOut();
       
+      // Small delay to ensure sign out is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Attempt to sign in with the provided credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password: existingPassword
       });
       
       if (signInError) {
         console.error("Sign in error:", signInError);
-        throw new Error("Invalid login credentials. Please check your password and try again.");
+        
+        // Provide more specific error messages
+        if (signInError.message.includes('Invalid login credentials')) {
+          throw new Error("Invalid email or password. Please check your credentials and try again.");
+        } else if (signInError.message.includes('Email not confirmed')) {
+          throw new Error("Please check your email and confirm your account before signing in.");
+        } else if (signInError.message.includes('Too many requests')) {
+          throw new Error("Too many login attempts. Please wait a moment and try again.");
+        } else {
+          throw new Error(`Sign in failed: ${signInError.message}`);
+        }
       }
       
       if (!signInData?.user) {
@@ -69,12 +85,18 @@ export function ExistingAccountForm({
       
       console.log("User authenticated successfully:", signInData.user.id);
       
+      // Verify the signed-in user's email matches the invitation email
+      if (signInData.user.email?.toLowerCase().trim() !== normalizedEmail) {
+        await supabase.auth.signOut();
+        throw new Error("This account email does not match the invitation email. Please use the correct account.");
+      }
+      
       // Now link the user to the property
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
           action: "linkExistingUser",
           token,
-          email,
+          email: normalizedEmail,
           propertyId,
           role,
           userId: signInData.user.id
@@ -102,7 +124,7 @@ export function ExistingAccountForm({
       
     } catch (error: any) {
       console.error("Error linking existing account:", error);
-      setError(error.message || "Failed to link account. Please check your password and try again.");
+      setError(error.message || "Failed to link account. Please check your credentials and try again.");
     } finally {
       setLoading(false);
     }
@@ -129,6 +151,7 @@ export function ExistingAccountForm({
           onChange={(e) => setExistingPassword(e.target.value)}
           placeholder="Enter your password"
           required
+          autoComplete="current-password"
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>

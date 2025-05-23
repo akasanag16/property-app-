@@ -61,7 +61,10 @@ export function NewAccountForm({
     setError("");
     
     try {
-      console.log("Submitting invitation acceptance for:", email);
+      // Normalize email for consistency
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      console.log("Submitting invitation acceptance for:", normalizedEmail);
       console.log("With token:", token);
       console.log("For property:", propertyId);
       console.log("As role:", role);
@@ -70,11 +73,11 @@ export function NewAccountForm({
         body: {
           action: "createInvitedUser",
           token,
-          email,
+          email: normalizedEmail,
           propertyId,
           role,
-          firstName,
-          lastName,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           password
         }
       });
@@ -96,8 +99,13 @@ export function NewAccountForm({
         throw new Error(data?.error || "Failed to create account. Please try again.");
       }
       
-      toast.success("Account created successfully! Please sign in to continue.");
-      setTimeout(() => navigate("/auth"), 2000);
+      toast.success("Account created successfully! You can now sign in.");
+      
+      // Navigate to auth page for the user to sign in
+      setTimeout(() => {
+        navigate("/auth");
+      }, 2000);
+      
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
       
@@ -131,6 +139,7 @@ export function NewAccountForm({
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             required
+            autoComplete="given-name"
           />
         </div>
         <div className="space-y-2">
@@ -140,6 +149,7 @@ export function NewAccountForm({
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             required
+            autoComplete="family-name"
           />
         </div>
       </div>
@@ -155,6 +165,8 @@ export function NewAccountForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="new-password"
+          minLength={6}
         />
       </div>
       <div className="space-y-2">
@@ -165,6 +177,8 @@ export function NewAccountForm({
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
+          autoComplete="new-password"
+          minLength={6}
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
