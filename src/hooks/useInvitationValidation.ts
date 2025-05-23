@@ -10,6 +10,7 @@ interface InvitationData {
   propertyId: string;
   role: UserRole;
   invitationType?: string;
+  invitationId?: string;
 }
 
 export function useInvitationValidation() {
@@ -47,7 +48,7 @@ export function useInvitationValidation() {
             console.log("Signed in with different email. Signing out first...");
             await supabase.auth.signOut();
             // Small delay to ensure sign out is complete
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
 
@@ -78,10 +79,11 @@ export function useInvitationValidation() {
 
         setInvitationData({
           token,
-          email: data.email, // Use the normalized email from the response
+          email: normalizedEmail, // Use the normalized email consistently
           propertyId: data.propertyId,
           role: data.role as UserRole,
-          invitationType: data.invitationType
+          invitationType: data.invitationType,
+          invitationId: data.invitationId
         });
         
         setIsValid(true);

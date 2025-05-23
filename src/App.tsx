@@ -24,7 +24,14 @@ import { Toaster } from "sonner";
 import { NotificationProvider } from "./contexts/NotificationContext";
 
 // Create a client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+    },
+  },
+});
 
 const App = () => {
   return (
@@ -86,20 +93,20 @@ const App = () => {
                 </ProtectedRoute>
               } />
               
-              {/* Tenant redirects to dashboard with appropriate tab */}
+              {/* Tenant routes - direct access */}
               <Route path="/tenant/properties" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <Navigate to="/tenant-dashboard?tab=my-properties" replace />
+                  <TenantDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/tenant/maintenance" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <Navigate to="/tenant-dashboard?tab=maintenance-requests" replace />
+                  <TenantDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/tenant/rent" element={
                 <ProtectedRoute allowedRoles={["tenant"]}>
-                  <Navigate to="/tenant-dashboard?tab=rent-payments" replace />
+                  <TenantDashboard />
                 </ProtectedRoute>
               } />
               
@@ -110,15 +117,15 @@ const App = () => {
                 </ProtectedRoute>
               } />
               
-              {/* Service Provider redirects */}
+              {/* Service Provider direct access routes */}
               <Route path="/service-provider/properties" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
-                  <Navigate to="/service-provider-dashboard?tab=assigned-properties" replace />
+                  <ServiceProviderDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/service-provider/maintenance" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
-                  <Navigate to="/service-provider-dashboard?tab=maintenance-requests" replace />
+                  <ServiceProviderDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/service-provider/properties/:id/maintenance" element={

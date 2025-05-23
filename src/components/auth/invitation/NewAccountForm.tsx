@@ -82,6 +82,8 @@ export function NewAccountForm({
         }
       });
       
+      console.log("Response from createInvitedUser:", data);
+      
       if (functionError) {
         console.error("Function error:", functionError);
         throw new Error(functionError.message || "Error accepting invitation");
@@ -99,11 +101,36 @@ export function NewAccountForm({
         throw new Error(data?.error || "Failed to create account. Please try again.");
       }
       
-      toast.success("Account created successfully! You can now sign in.");
+      toast.success("Account created successfully!");
       
-      // Navigate to auth page for the user to sign in
+      // Try to sign in with the new credentials
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password
+      });
+      
+      if (signInError) {
+        console.error("Error signing in after account creation:", signInError);
+        toast.info("Account created. Please sign in with your new credentials.");
+        
+        // Navigate to auth page for manual sign in
+        setTimeout(() => {
+          navigate("/auth");
+        }, 2000);
+        return;
+      }
+      
+      console.log("Successfully signed in with new account");
+      
+      // Navigate to the appropriate dashboard based on role
       setTimeout(() => {
-        navigate("/auth");
+        if (role === 'tenant') {
+          navigate("/tenant-dashboard");
+        } else if (role === 'service_provider') {
+          navigate("/service-provider-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }, 2000);
       
     } catch (error: any) {

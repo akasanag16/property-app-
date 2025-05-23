@@ -13,7 +13,7 @@ export async function linkExistingUser(requestData: any) {
     if (!userId) missingParams.push('userId');
     
     console.error("Missing parameters:", missingParams);
-    throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+    return createErrorResponse(`Missing required parameters: ${missingParams.join(', ')}`, 400);
   }
 
   // Normalize email to lowercase for consistency
@@ -36,23 +36,34 @@ export async function linkExistingUser(requestData: any) {
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
-    if (invitationError || !invitation) {
-      console.error('Invalid or expired invitation:', invitationError);
-      throw new Error('Invalid or expired invitation');
+    if (invitationError) {
+      console.error('Error checking invitation:', invitationError);
+      return createErrorResponse('Error validating invitation', 500);
+    }
+    
+    if (!invitation) {
+      console.error('Invalid or expired invitation');
+      return createErrorResponse('Invalid or expired invitation. Please request a new invitation.', 400);
     }
 
     // Verify user exists and email matches
     const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
     
-    if (userError || !user) {
+    if (userError) {
       console.error('User not found:', userError);
-      throw new Error('User account not found');
+      return createErrorResponse('User account not found', 404);
+    }
+
+    if (!user || !user.user) {
+      console.error('User object is missing');
+      return createErrorResponse('Invalid user account', 400);
     }
 
     // Check if emails match (normalized comparison)
-    if (user.user.email?.toLowerCase().trim() !== normalizedEmail) {
-      console.error('Email mismatch:', { userEmail: user.user.email, invitationEmail: normalizedEmail });
-      throw new Error('Email address does not match the invitation');
+    const userEmail = user.user.email?.toLowerCase().trim() || '';
+    if (userEmail !== normalizedEmail) {
+      console.error('Email mismatch:', { userEmail, invitationEmail: normalizedEmail });
+      return createErrorResponse('Email address does not match the invitation', 400);
     }
 
     console.log(`Found existing user with ID: ${userId}`);
@@ -68,7 +79,7 @@ export async function linkExistingUser(requestData: any) {
 
     if (linkCheckError) {
       console.error('Error checking existing link:', linkCheckError);
-      throw new Error('Failed to check existing property link');
+      return createErrorResponse('Failed to check existing property link', 500);
     }
 
     if (existingLink) {
@@ -76,7 +87,7 @@ export async function linkExistingUser(requestData: any) {
       // Still mark invitation as used and return success
     } else {
       // Create property link
-      const linkData = {
+      const linkData: any = {
         property_id: propertyId,
       };
       
@@ -92,7 +103,7 @@ export async function linkExistingUser(requestData: any) {
 
       if (linkError) {
         console.error('Error creating property link:', linkError);
-        throw new Error('Failed to link user to property');
+        return createErrorResponse('Failed to link user to property', 500);
       }
     }
 
@@ -125,7 +136,7 @@ export async function linkExistingUser(requestData: any) {
 
     if (inviteError) {
       console.error('Error updating invitation:', inviteError);
-      throw new Error('Failed to mark invitation as used');
+      return createErrorResponse('Failed to mark invitation as used', 500);
     }
       
     console.log('User successfully linked to property');
@@ -138,6 +149,6 @@ export async function linkExistingUser(requestData: any) {
     });
   } catch (error: any) {
     console.error('Error linking existing user:', error);
-    return createErrorResponse(error.message || 'Failed to link user to property');
+    return createErrorResponse(error.message || 'Failed to link user to property', 500);
   }
 }

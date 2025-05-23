@@ -56,7 +56,7 @@ export function ExistingAccountForm({
       await supabase.auth.signOut();
       
       // Small delay to ensure sign out is complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Attempt to sign in with the provided credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -103,9 +103,14 @@ export function ExistingAccountForm({
         }
       });
       
-      if (functionError || !data?.success) {
-        console.error("Function error:", functionError || data?.error);
-        throw new Error(data?.error || functionError?.message || "Error linking to property. Please try again.");
+      if (functionError) {
+        console.error("Function error:", functionError);
+        throw new Error(functionError.message || "Error linking to property. Please try again.");
+      }
+      
+      if (!data?.success) {
+        console.error("Operation failed:", data);
+        throw new Error(data?.error || "Error linking to property. Please try again.");
       }
       
       // Show success message
