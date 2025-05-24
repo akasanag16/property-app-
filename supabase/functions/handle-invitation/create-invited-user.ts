@@ -4,6 +4,16 @@ import { getSupabaseClient, corsHeaders, createErrorResponse, createSuccessRespo
 export async function createInvitedUser(requestData: any) {
   const { token, email, propertyId, role, firstName, lastName, password } = requestData;
   
+  console.log("Create invited user request data:", { 
+    token: token ? "present" : "missing",
+    email,
+    propertyId,
+    role,
+    firstName,
+    lastName,
+    password: password ? "present" : "missing"
+  });
+  
   if (!token || !email || !propertyId || !role) {
     const missingParams = [];
     if (!token) missingParams.push('token');
@@ -11,17 +21,33 @@ export async function createInvitedUser(requestData: any) {
     if (!propertyId) missingParams.push('propertyId');
     if (!role) missingParams.push('role');
     
-    console.error("Missing parameters:", missingParams);
-    throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+    console.error("Missing required parameters:", missingParams);
+    return createErrorResponse(`Missing required parameters: ${missingParams.join(', ')}`, 400);
   }
 
-  console.log(`Processing invitation for: ${email} as ${role}`);
+  if (!firstName || !lastName || !password) {
+    console.error("Missing user creation parameters:", { firstName: !!firstName, lastName: !!lastName, password: !!password });
+    return createErrorResponse("First name, last name, and password are required for creating a new user", 400);
+  }
+
+  // Validate names don't contain email patterns
+  const emailPattern = /\S+@\S+\.\S+/;
+  if (emailPattern.test(firstName) || emailPattern.test(lastName)) {
+    console.error("Invalid name fields - contains email pattern:", { firstName, lastName });
+    return createErrorResponse("First name and last name cannot contain email addresses", 400);
+  }
+
+  // Normalize and validate email
+  const normalizedEmail = email.toLowerCase().trim();
+  if (!emailPattern.test(normalizedEmail)) {
+    console.error("Invalid email format:", normalizedEmail);
+    return createErrorResponse("Invalid email format", 400);
+  }
+
+  console.log(`Processing invitation for: ${normalizedEmail} as ${role}`);
   console.log(`Property ID: ${propertyId}`);
   
   const supabaseClient = getSupabaseClient();
-  
-  // Normalize email to lowercase for consistency
-  const normalizedEmail = email.toLowerCase().trim();
 
   try {
     // Check if user already exists by email in profiles table
@@ -33,7 +59,7 @@ export async function createInvitedUser(requestData: any) {
     
     if (profileCheckError) {
       console.error('Error checking existing profile:', profileCheckError);
-      throw new Error('Failed to check existing user profile');
+      return createErrorResponse('Failed to check existing user profile', 500);
     }
     
     // If user already exists, return appropriate message
@@ -56,26 +82,32 @@ export async function createInvitedUser(requestData: any) {
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
-    if (invitationError || !invitation) {
-      console.error('Invalid or expired invitation:', invitationError);
-      throw new Error('Invalid or expired invitation');
+    if (invitationError) {
+      console.error('Error checking invitation:', invitationError);
+      return createErrorResponse('Failed to validate invitation', 500);
     }
 
-    if (!firstName || !lastName || !password) {
-      throw new Error("Missing required parameters for creating a new user");
+    if (!invitation) {
+      console.error('Invalid or expired invitation');
+      return createErrorResponse('Invalid or expired invitation. Please request a new invitation.', 400);
     }
 
     console.log("Creating new user account with email:", normalizedEmail);
 
-    // Begin a transaction by setting up all the operations
+    // Validate password strength
+    if (password.length < 6) {
+      console.error('Password too short');
+      return createErrorResponse('Password must be at least 6 characters long', 400);
+    }
+
     try {
       // Create new user account with normalized email
       const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
         email: normalizedEmail,
         password,
         user_metadata: {
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           role,
           email_verified: true
         },
@@ -84,11 +116,18 @@ export async function createInvitedUser(requestData: any) {
 
       if (userError) {
         console.error('Error creating user:', userError);
-        throw new Error(`Failed to create user account: ${userError.message}`);
+        
+        // Handle specific Supabase auth errors
+        if (userError.message?.includes('User already registered')) {
+          return createErrorResponse('An account with this email already exists. Please use the existing account option.', 400);
+        }
+        
+        return createErrorResponse(`Failed to create user account: ${userError.message}`, 400);
       }
 
       if (!authUser || !authUser.user) {
-        throw new Error("Failed to create user account - no user returned");
+        console.error('No user returned from auth creation');
+        return createErrorResponse("Failed to create user account - no user returned", 500);
       }
 
       const userId = authUser.user.id;
@@ -100,8 +139,8 @@ export async function createInvitedUser(requestData: any) {
         .upsert({ 
           id: userId,
           email: normalizedEmail,
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           role: role
         }, { 
           onConflict: 'id' 
@@ -126,7 +165,7 @@ export async function createInvitedUser(requestData: any) {
 
       if (inviteError) {
         console.error('Error updating invitation:', inviteError);
-        throw new Error('Failed to mark invitation as used');
+        return createErrorResponse('Failed to mark invitation as used', 500);
       }
 
       // Create property link
@@ -146,7 +185,7 @@ export async function createInvitedUser(requestData: any) {
 
       if (linkError) {
         console.error('Error creating property link:', linkError);
-        throw new Error('Failed to link user to property');
+        return createErrorResponse('Failed to link user to property', 500);
       }
         
       console.log('User successfully created and linked to property');
@@ -159,11 +198,11 @@ export async function createInvitedUser(requestData: any) {
         message: 'Account created successfully'
       });
     } catch (transactionError: any) {
-      console.error('Transaction error:', transactionError);
-      throw transactionError;
+      console.error('Transaction error during user creation:', transactionError);
+      return createErrorResponse(`Failed to complete account creation: ${transactionError.message}`, 500);
     }
   } catch (error: any) {
-    console.error('Invitation error:', error);
-    return createErrorResponse(error.message || 'Failed to create user account', 400);
+    console.error('Unexpected error in createInvitedUser:', error);
+    return createErrorResponse(`An unexpected error occurred: ${error.message}`, 500);
   }
 }

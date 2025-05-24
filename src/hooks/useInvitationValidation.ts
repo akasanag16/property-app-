@@ -35,6 +35,14 @@ export function useInvitationValidation() {
         // Normalize email for consistency
         const normalizedEmail = email.toLowerCase().trim();
 
+        // Validate email format
+        const emailPattern = /\S+@\S+\.\S+/;
+        if (!emailPattern.test(normalizedEmail)) {
+          setError("Invalid email format in invitation link.");
+          setValidating(false);
+          return;
+        }
+
         console.log(`Validating invitation: token=${token}, email=${normalizedEmail}`);
 
         // Check if we're already authenticated
