@@ -128,7 +128,7 @@ const App = () => {
                   <ServiceProviderDashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/service-provider/properties/:id/maintenance" element={
+              <Route path="/service-provider/properties/:propertyId/maintenance" element={
                 <ProtectedRoute allowedRoles={["service_provider"]}>
                   <PropertyMaintenanceRequests />
                 </ProtectedRoute>
