@@ -1,9 +1,8 @@
 
 import { createErrorResponse, createSuccessResponse } from "./utils.ts";
-import { validateCreateUserRequest } from "./validation/request-validation.ts";
-import { validateEmail, validateNames, validatePassword } from "./validation/email-validation.ts";
+import { validateCreateUserRequest, validateUserDetails } from "./validation/create-user-validation.ts";
 import { validateInvitation, markInvitationAsUsed } from "./services/invitation-service.ts";
-import { checkExistingUser, createAuthUser, createUserProfile } from "./services/user-service.ts";
+import { checkExistingUser, createAuthUser, createUserProfile } from "./services/user-creation-service.ts";
 import { createPropertyLink } from "./services/property-link-service.ts";
 
 export async function createInvitedUser(requestData: any) {
@@ -12,14 +11,8 @@ export async function createInvitedUser(requestData: any) {
     const validatedRequest = validateCreateUserRequest(requestData);
     const { token, email, propertyId, role, firstName, lastName, password } = validatedRequest;
 
-    // Validate email format and normalize
-    const normalizedEmail = validateEmail(email);
-
-    // Validate names
-    const { firstName: validFirstName, lastName: validLastName } = validateNames(firstName, lastName);
-
-    // Validate password
-    validatePassword(password);
+    // Validate user details and get normalized values
+    const { normalizedEmail, validFirstName, validLastName } = validateUserDetails(email, firstName, lastName, password);
 
     console.log(`Processing invitation for: ${normalizedEmail} as ${role}`);
     console.log(`Property ID: ${propertyId}`);

@@ -1,5 +1,5 @@
 
-import { createErrorResponse } from "../utils.ts";
+import { validateEmail, validateNames, validatePassword } from "./email-validation.ts";
 
 export interface CreateUserRequest {
   token: string;
@@ -48,5 +48,22 @@ export function validateCreateUserRequest(requestData: any): CreateUserRequest {
     firstName,
     lastName,
     password
+  };
+}
+
+export function validateUserDetails(email: string, firstName: string, lastName: string, password: string) {
+  // Validate email format and normalize
+  const normalizedEmail = validateEmail(email);
+
+  // Validate names
+  const { firstName: validFirstName, lastName: validLastName } = validateNames(firstName, lastName);
+
+  // Validate password
+  validatePassword(password);
+
+  return {
+    normalizedEmail,
+    validFirstName,
+    validLastName
   };
 }
