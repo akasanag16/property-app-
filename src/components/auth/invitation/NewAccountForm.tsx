@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { AlertCircle, Loader2, ArrowLeft, Info } from "lucide-react";
 import { UserRole } from "@/lib/auth";
 import { validateAccountForm } from "./utils/formValidation";
 import { PasswordInputs } from "./components/PasswordInputs";
@@ -64,6 +64,14 @@ export function NewAccountForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {/* Helpful instructions */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          Please enter your actual first and last name. Do not use email addresses in the name fields.
+        </AlertDescription>
+      </Alert>
+
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

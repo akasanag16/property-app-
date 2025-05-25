@@ -30,11 +30,22 @@ export async function createInvitedUser(requestData: any) {
     return createErrorResponse("First name, last name, and password are required for creating a new user", 400);
   }
 
-  // Validate names don't contain email patterns
+  // Enhanced validation for names
   const emailPattern = /\S+@\S+\.\S+/;
-  if (emailPattern.test(firstName) || emailPattern.test(lastName)) {
-    console.error("Invalid name fields - contains email pattern:", { firstName, lastName });
-    return createErrorResponse("First name and last name cannot contain email addresses", 400);
+  if (emailPattern.test(firstName.trim()) || emailPattern.test(lastName.trim())) {
+    console.error("Invalid name fields - contains email pattern:", { firstName: firstName.trim(), lastName: lastName.trim() });
+    return createErrorResponse("First name and last name cannot contain email addresses. Please enter your actual first and last name.", 400);
+  }
+
+  // Additional name validation
+  if (firstName.trim().length === 0 || lastName.trim().length === 0) {
+    console.error("Empty name fields after trimming:", { firstName: firstName.trim(), lastName: lastName.trim() });
+    return createErrorResponse("First name and last name cannot be empty", 400);
+  }
+
+  if (firstName.trim().length > 50 || lastName.trim().length > 50) {
+    console.error("Name fields too long:", { firstNameLength: firstName.trim().length, lastNameLength: lastName.trim().length });
+    return createErrorResponse("First name and last name must be less than 50 characters", 400);
   }
 
   // Normalize and validate email
@@ -46,6 +57,7 @@ export async function createInvitedUser(requestData: any) {
 
   console.log(`Processing invitation for: ${normalizedEmail} as ${role}`);
   console.log(`Property ID: ${propertyId}`);
+  console.log(`Names: ${firstName.trim()} ${lastName.trim()}`);
   
   const supabaseClient = getSupabaseClient();
 
@@ -101,7 +113,7 @@ export async function createInvitedUser(requestData: any) {
     }
 
     try {
-      // Create new user account with normalized email
+      // Create new user account with normalized email and trimmed names
       const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
         email: normalizedEmail,
         password,
@@ -133,7 +145,7 @@ export async function createInvitedUser(requestData: any) {
       const userId = authUser.user.id;
       console.log(`New user created with ID: ${userId}`);
       
-      // Ensure profile is created with normalized email
+      // Ensure profile is created with normalized email and trimmed names
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({ 

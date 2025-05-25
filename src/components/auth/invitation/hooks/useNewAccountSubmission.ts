@@ -65,14 +65,20 @@ export function useNewAccountSubmission({
       
       if (!data?.success) {
         console.error("Operation failed:", data);
-        // Check if this is a known error about email already existing
-        if (data?.error && (
-          data.error.includes("already been registered") || 
-          data.error.includes("already exists")
-        )) {
-          toast.info("An account with this email already exists. Please sign in instead.");
-          onToggleMode();
-          return;
+        
+        // Handle specific error cases with user-friendly messages
+        if (data?.error) {
+          if (data.error.includes("already been registered") || data.error.includes("already exists")) {
+            toast.info("An account with this email already exists. Please sign in instead.");
+            onToggleMode();
+            return;
+          } else if (data.error.includes("email addresses")) {
+            setError("Please enter your actual first and last name, not email addresses.");
+            return;
+          } else if (data.error.includes("Invalid or expired")) {
+            setError("This invitation link has expired or is invalid. Please request a new invitation.");
+            return;
+          }
         }
         
         throw new Error(data?.error || "Failed to create account. Please try again.");
@@ -113,12 +119,21 @@ export function useNewAccountSubmission({
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
       
-      // Handle specific error cases
+      // Handle specific error cases with better user feedback
       if (error.message?.includes("already been registered") || 
           error.message?.includes("email_exists") ||
           error.message?.includes("already exists")) {
         toast.info("An account with this email already exists. Please sign in with that account.");
         onToggleMode();
+        return;
+      } else if (error.message?.includes("email addresses")) {
+        setError("Please enter your actual first and last name, not email addresses.");
+        return;
+      } else if (error.message?.includes("Invalid or expired")) {
+        setError("This invitation link has expired or is invalid. Please request a new invitation.");
+        return;
+      } else if (error.message?.includes("network") || error.message?.includes("timeout")) {
+        setError("Network error. Please check your connection and try again.");
         return;
       }
       
