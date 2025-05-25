@@ -1,220 +1,74 @@
 
-import { getSupabaseClient, corsHeaders, createErrorResponse, createSuccessResponse } from "./utils.ts";
+import { createErrorResponse, createSuccessResponse } from "./utils.ts";
+import { validateCreateUserRequest } from "./validation/request-validation.ts";
+import { validateEmail, validateNames, validatePassword } from "./validation/email-validation.ts";
+import { validateInvitation, markInvitationAsUsed } from "./services/invitation-service.ts";
+import { checkExistingUser, createAuthUser, createUserProfile } from "./services/user-service.ts";
+import { createPropertyLink } from "./services/property-link-service.ts";
 
 export async function createInvitedUser(requestData: any) {
-  const { token, email, propertyId, role, firstName, lastName, password } = requestData;
-  
-  console.log("Create invited user request data:", { 
-    token: token ? "present" : "missing",
-    email,
-    propertyId,
-    role,
-    firstName,
-    lastName,
-    password: password ? "present" : "missing"
-  });
-  
-  if (!token || !email || !propertyId || !role) {
-    const missingParams = [];
-    if (!token) missingParams.push('token');
-    if (!email) missingParams.push('email');
-    if (!propertyId) missingParams.push('propertyId');
-    if (!role) missingParams.push('role');
-    
-    console.error("Missing required parameters:", missingParams);
-    return createErrorResponse(`Missing required parameters: ${missingParams.join(', ')}`, 400);
-  }
-
-  if (!firstName || !lastName || !password) {
-    console.error("Missing user creation parameters:", { firstName: !!firstName, lastName: !!lastName, password: !!password });
-    return createErrorResponse("First name, last name, and password are required for creating a new user", 400);
-  }
-
-  // Enhanced validation for names
-  const emailPattern = /\S+@\S+\.\S+/;
-  if (emailPattern.test(firstName.trim()) || emailPattern.test(lastName.trim())) {
-    console.error("Invalid name fields - contains email pattern:", { firstName: firstName.trim(), lastName: lastName.trim() });
-    return createErrorResponse("First name and last name cannot contain email addresses. Please enter your actual first and last name.", 400);
-  }
-
-  // Additional name validation
-  if (firstName.trim().length === 0 || lastName.trim().length === 0) {
-    console.error("Empty name fields after trimming:", { firstName: firstName.trim(), lastName: lastName.trim() });
-    return createErrorResponse("First name and last name cannot be empty", 400);
-  }
-
-  if (firstName.trim().length > 50 || lastName.trim().length > 50) {
-    console.error("Name fields too long:", { firstNameLength: firstName.trim().length, lastNameLength: lastName.trim().length });
-    return createErrorResponse("First name and last name must be less than 50 characters", 400);
-  }
-
-  // Normalize and validate email
-  const normalizedEmail = email.toLowerCase().trim();
-  if (!emailPattern.test(normalizedEmail)) {
-    console.error("Invalid email format:", normalizedEmail);
-    return createErrorResponse("Invalid email format", 400);
-  }
-
-  console.log(`Processing invitation for: ${normalizedEmail} as ${role}`);
-  console.log(`Property ID: ${propertyId}`);
-  console.log(`Names: ${firstName.trim()} ${lastName.trim()}`);
-  
-  const supabaseClient = getSupabaseClient();
-
   try {
-    // Check if user already exists by email in profiles table
-    const { data: existingProfile, error: profileCheckError } = await supabaseClient
-      .from('profiles')
-      .select('id, email')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error('Error checking existing profile:', profileCheckError);
-      return createErrorResponse('Failed to check existing user profile', 500);
-    }
-    
-    // If user already exists, return appropriate message
-    if (existingProfile) {
-      console.log(`User with email ${normalizedEmail} already exists - should use linking flow instead`);
-      return createErrorResponse("This email has already been registered. Please use the existing account option.", 400);
-    }
-    
-    // Validate invitation token and get details
-    const tableName = role === 'tenant' ? 'tenant_invitations' : 'service_provider_invitations';
-    const linkTableName = role === 'tenant' ? 'tenant_property_link' : 'service_provider_property_link';
-    
-    // Verify the invitation exists and is valid
-    const { data: invitation, error: invitationError } = await supabaseClient
-      .from(tableName)
-      .select('*')
-      .eq('link_token', token)
-      .eq('email', normalizedEmail)
-      .eq('is_used', false)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
+    // Validate and extract request data
+    const validatedRequest = validateCreateUserRequest(requestData);
+    const { token, email, propertyId, role, firstName, lastName, password } = validatedRequest;
 
-    if (invitationError) {
-      console.error('Error checking invitation:', invitationError);
-      return createErrorResponse('Failed to validate invitation', 500);
-    }
+    // Validate email format and normalize
+    const normalizedEmail = validateEmail(email);
 
-    if (!invitation) {
-      console.error('Invalid or expired invitation');
-      return createErrorResponse('Invalid or expired invitation. Please request a new invitation.', 400);
-    }
+    // Validate names
+    const { firstName: validFirstName, lastName: validLastName } = validateNames(firstName, lastName);
 
-    console.log("Creating new user account with email:", normalizedEmail);
+    // Validate password
+    validatePassword(password);
 
-    // Validate password strength
-    if (password.length < 6) {
-      console.error('Password too short');
-      return createErrorResponse('Password must be at least 6 characters long', 400);
-    }
+    console.log(`Processing invitation for: ${normalizedEmail} as ${role}`);
+    console.log(`Property ID: ${propertyId}`);
+    console.log(`Names: ${validFirstName} ${validLastName}`);
 
-    try {
-      // Create new user account with normalized email and trimmed names
-      const { data: authUser, error: userError } = await supabaseClient.auth.admin.createUser({
-        email: normalizedEmail,
-        password,
-        user_metadata: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          role,
-          email_verified: true
-        },
-        email_confirm: true // Skip email confirmation
-      });
+    // Check if user already exists
+    await checkExistingUser(normalizedEmail);
 
-      if (userError) {
-        console.error('Error creating user:', userError);
-        
-        // Handle specific Supabase auth errors
-        if (userError.message?.includes('User already registered')) {
-          return createErrorResponse('An account with this email already exists. Please use the existing account option.', 400);
-        }
-        
-        return createErrorResponse(`Failed to create user account: ${userError.message}`, 400);
-      }
+    // Validate invitation token
+    const { invitation, tableName } = await validateInvitation(token, normalizedEmail, role);
 
-      if (!authUser || !authUser.user) {
-        console.error('No user returned from auth creation');
-        return createErrorResponse("Failed to create user account - no user returned", 500);
-      }
+    // Create new user account
+    const userId = await createAuthUser(normalizedEmail, password, validFirstName, validLastName, role);
 
-      const userId = authUser.user.id;
-      console.log(`New user created with ID: ${userId}`);
-      
-      // Ensure profile is created with normalized email and trimmed names
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .upsert({ 
-          id: userId,
-          email: normalizedEmail,
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          role: role
-        }, { 
-          onConflict: 'id' 
-        });
-        
-      if (profileError) {
-        console.error('Error creating/updating profile:', profileError);
-        // Continue anyway as this might be handled by trigger
-      }
+    // Create user profile
+    await createUserProfile(userId, normalizedEmail, validFirstName, validLastName, role);
 
-      // Mark invitation as used
-      const { error: inviteError } = await supabaseClient
-        .from(tableName)
-        .update({ 
-          is_used: true,
-          status: 'accepted',
-          accepted_at: new Date().toISOString(),
-          accepted_by_user_id: userId
-        })
-        .eq('link_token', token)
-        .eq('email', normalizedEmail);
+    // Mark invitation as used
+    await markInvitationAsUsed(tableName, token, normalizedEmail, userId);
 
-      if (inviteError) {
-        console.error('Error updating invitation:', inviteError);
-        return createErrorResponse('Failed to mark invitation as used', 500);
-      }
+    // Create property link
+    await createPropertyLink(propertyId, userId, role);
 
-      // Create property link
-      const linkData: any = {
-        property_id: propertyId,
-      };
-      
-      if (role === 'tenant') {
-        linkData.tenant_id = userId;
-      } else {
-        linkData.service_provider_id = userId;
-      }
-        
-      const { error: linkError } = await supabaseClient
-        .from(linkTableName)
-        .insert(linkData);
+    console.log('User successfully created and linked to property');
 
-      if (linkError) {
-        console.error('Error creating property link:', linkError);
-        return createErrorResponse('Failed to link user to property', 500);
-      }
-        
-      console.log('User successfully created and linked to property');
+    return createSuccessResponse({ 
+      success: true, 
+      userExists: false,
+      userLinked: true,
+      userId: userId,
+      message: 'Account created successfully'
+    });
 
-      return createSuccessResponse({ 
-        success: true, 
-        userExists: false,
-        userLinked: true,
-        userId: userId,
-        message: 'Account created successfully'
-      });
-    } catch (transactionError: any) {
-      console.error('Transaction error during user creation:', transactionError);
-      return createErrorResponse(`Failed to complete account creation: ${transactionError.message}`, 500);
-    }
   } catch (error: any) {
-    console.error('Unexpected error in createInvitedUser:', error);
-    return createErrorResponse(`An unexpected error occurred: ${error.message}`, 500);
+    console.error('Error in createInvitedUser:', error);
+    
+    // Handle specific error cases with better user feedback
+    if (error.message?.includes("already been registered") || 
+        error.message?.includes("email_exists") ||
+        error.message?.includes("already exists")) {
+      return createErrorResponse('An account with this email already exists. Please use the existing account option.', 400);
+    } else if (error.message?.includes("email addresses")) {
+      return createErrorResponse('Please enter your actual first and last name, not email addresses.', 400);
+    } else if (error.message?.includes("Invalid or expired")) {
+      return createErrorResponse('This invitation link has expired or is invalid. Please request a new invitation.', 400);
+    } else if (error.message?.includes("network") || error.message?.includes("timeout")) {
+      return createErrorResponse('Network error. Please check your connection and try again.', 400);
+    }
+    
+    return createErrorResponse(error.message || 'An unexpected error occurred', 500);
   }
 }
