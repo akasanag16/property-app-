@@ -34,14 +34,9 @@ export function useNewAccountSubmission({
     setError("");
     
     try {
-      // Normalize email for consistency
       const normalizedEmail = email.toLowerCase().trim();
       
       console.log("Submitting invitation acceptance for:", normalizedEmail);
-      console.log("With token:", token);
-      console.log("For property:", propertyId);
-      console.log("As role:", role);
-      console.log("Form data:", { firstName: firstName.trim(), lastName: lastName.trim() });
       
       const { data, error: functionError } = await supabase.functions.invoke('handle-invitation', {
         body: {
@@ -66,7 +61,6 @@ export function useNewAccountSubmission({
       if (!data?.success) {
         console.error("Operation failed:", data);
         
-        // Handle specific error cases with user-friendly messages
         if (data?.error) {
           if (data.error.includes("already been registered") || data.error.includes("already exists")) {
             toast.info("An account with this email already exists. Please sign in instead.");
@@ -96,7 +90,6 @@ export function useNewAccountSubmission({
         console.error("Error signing in after account creation:", signInError);
         toast.info("Account created. Please sign in with your new credentials.");
         
-        // Navigate to auth page for manual sign in
         setTimeout(() => {
           navigate("/auth");
         }, 2000);
@@ -119,7 +112,6 @@ export function useNewAccountSubmission({
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
       
-      // Handle specific error cases with better user feedback
       if (error.message?.includes("already been registered") || 
           error.message?.includes("email_exists") ||
           error.message?.includes("already exists")) {

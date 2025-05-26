@@ -1,15 +1,17 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2, ArrowLeft, Info } from "lucide-react";
+import { Loader2, ArrowLeft, Info } from "lucide-react";
 import { UserRole } from "@/lib/auth";
-import { validateAccountForm } from "./utils/formValidation";
 import { PasswordInputs } from "./components/PasswordInputs";
-import { NameInputs } from "./components/NameInputs";
-import { useNewAccountSubmission } from "./hooks/useNewAccountSubmission";
+import { EnhancedNameInputs } from "./components/EnhancedNameInputs";
+import { EnhancedErrorAlert } from "./components/EnhancedErrorAlert";
+import { useEnhancedFormSubmission } from "./hooks/useEnhancedFormSubmission";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewAccountFormProps {
   email: string;
@@ -29,37 +31,74 @@ export function NewAccountForm({
   role,
   onToggleMode,
   onBackToLogin,
-  setError,
-  error
+  setError: setGlobalError,
+  error: globalError
 }: NewAccountFormProps) {
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { loading, handleSubmit } = useNewAccountSubmission({
-    email,
-    token,
-    propertyId,
-    role,
-    onToggleMode,
-    setError
+  const { 
+    loading, 
+    error, 
+    clearError, 
+    retry, 
+    createInvitedUser 
+  } = useEnhancedFormSubmission({
+    onSuccess: () => {
+      // Navigate to appropriate dashboard
+      setTimeout(() => {
+        if (role === 'tenant') {
+          navigate("/tenant-dashboard");
+        } else if (role === 'service_provider') {
+          navigate("/service-provider-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 1000);
+    },
+    onToggleMode
   });
+
+  const validateForm = () => {
+    const errors = [];
+    
+    if (!firstName.trim()) errors.push("First name is required");
+    if (!lastName.trim()) errors.push("Last name is required");
+    if (firstName.includes('@') || lastName.includes('@')) {
+      errors.push("Names cannot contain email addresses");
+    }
+    if (password !== confirmPassword) errors.push("Passwords do not match");
+    if (password.length < 6) errors.push("Password must be at least 6 characters");
+    
+    return errors;
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validationError = validateAccountForm(firstName, lastName, password, confirmPassword);
-    if (validationError) {
-      setError(validationError);
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setGlobalError(validationErrors[0]);
       return;
     }
     
-    await handleSubmit(firstName, lastName, password);
+    await createInvitedUser({
+      token,
+      email,
+      propertyId,
+      role,
+      firstName,
+      lastName,
+      password
+    });
   };
 
-  const clearError = () => {
-    if (error) setError("");
+  const clearAllErrors = () => {
+    clearError();
+    if (globalError) setGlobalError("");
   };
 
   return (
@@ -72,19 +111,28 @@ export function NewAccountForm({
         </AlertDescription>
       </Alert>
 
+      {/* Enhanced error display */}
       {error && (
+        <EnhancedErrorAlert 
+          error={error} 
+          onRetry={retry}
+          onClear={clearError}
+        />
+      )}
+      
+      {/* Legacy error for backward compatibility */}
+      {globalError && !error && (
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{globalError}</AlertDescription>
         </Alert>
       )}
       
-      <NameInputs
+      <EnhancedNameInputs
         firstName={firstName}
         lastName={lastName}
         onFirstNameChange={setFirstName}
         onLastNameChange={setLastName}
-        onErrorClear={clearError}
+        onErrorClear={clearAllErrors}
       />
       
       <div className="space-y-2">
@@ -97,7 +145,7 @@ export function NewAccountForm({
         confirmPassword={confirmPassword}
         onPasswordChange={setPassword}
         onConfirmPasswordChange={setConfirmPassword}
-        onErrorClear={clearError}
+        onErrorClear={clearAllErrors}
       />
       
       <Button type="submit" className="w-full" disabled={loading}>
