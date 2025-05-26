@@ -5,121 +5,118 @@ import { motion } from "framer-motion";
 import { UpdatePasswordForm } from "@/components/auth/forms/UpdatePasswordForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(true);
   const [validSession, setValidSession] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if the user has an active recovery session
-    const checkSession = async () => {
+    const processResetToken = async () => {
       try {
-        // Log the current URL for debugging
-        console.log("Reset password page loaded with URL:", window.location.href);
+        console.log("Reset password page loaded");
+        console.log("Current URL:", window.location.href);
+        console.log("Hash:", window.location.hash);
+        console.log("Search:", window.location.search);
         
-        // First check if we have a hash or query params with the recovery token
+        // Parse URL parameters
         const url = new URL(window.location.href);
-        const hash = url.hash;
-        const queryParams = new URLSearchParams(url.search);
+        const hash = url.hash.substring(1); // Remove the # character
+        const searchParams = new URLSearchParams(url.search);
         
-        // Check for recovery tokens in hash or query params
-        const hasRecoveryToken = (
-          hash.includes('type=recovery') || 
-          queryParams.get('type') === 'recovery'
-        );
+        console.log("Parsed hash:", hash);
+        console.log("Search params:", Object.fromEntries(searchParams));
         
-        console.log("Has recovery token:", hasRecoveryToken);
+        let accessToken = null;
+        let refreshToken = null;
+        let type = null;
         
-        if (hasRecoveryToken) {
-          // Try to exchange the token for a session
-          console.log("Attempting to process recovery token");
+        // Check hash fragment first (modern Supabase auth flow)
+        if (hash) {
+          const hashParams = new URLSearchParams(hash);
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+          type = hashParams.get('type');
           
-          try {
-            // Process tokens from hash fragment
-            if (hash && hash.includes('access_token')) {
-              const hashParams = new URLSearchParams(hash.substring(1));
-              const accessToken = hashParams.get('access_token');
-              const refreshToken = hashParams.get('refresh_token');
-              
-              if (accessToken && refreshToken) {
-                console.log("Found tokens in hash, setting session");
-                const { data, error } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken
-                });
-                
-                if (error) throw error;
-                
-                if (data?.session) {
-                  console.log("Session set successfully from hash");
-                  setValidSession(true);
-                  setLoading(false);
-                  return;
-                }
-              }
-            }
-            
-            // Process tokens from query parameters
-            const accessToken = queryParams.get('access_token');
-            const refreshToken = queryParams.get('refresh_token');
-            
-            if (accessToken && refreshToken) {
-              console.log("Found tokens in query params, setting session");
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
-              
-              if (error) throw error;
-              
-              if (data?.session) {
-                console.log("Session set successfully from query params");
-                setValidSession(true);
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (error) {
-            console.error("Error processing recovery token:", error);
-            toast.error("Invalid or expired recovery token");
-          }
+          console.log("From hash - Access token:", accessToken ? "present" : "missing");
+          console.log("From hash - Refresh token:", refreshToken ? "present" : "missing");
+          console.log("From hash - Type:", type);
         }
         
-        // If we don't have a recovery token, check for an existing session
-        const { data } = await supabase.auth.getSession();
-        console.log("Current session status:", data.session ? "Active" : "None");
-        
-        if (data.session) {
-          console.log("Using existing session");
-          setValidSession(true);
-        } else {
-          console.log("No valid session found, redirecting to login");
-          toast.error("Your password reset link has expired or is invalid");
-          // Short delay to allow the toast to be seen
-          setTimeout(() => navigate("/auth"), 2000);
+        // Check query parameters as fallback
+        if (!accessToken || !refreshToken) {
+          accessToken = searchParams.get('access_token');
+          refreshToken = searchParams.get('refresh_token');
+          type = searchParams.get('type');
+          
+          console.log("From query - Access token:", accessToken ? "present" : "missing");
+          console.log("From query - Refresh token:", refreshToken ? "present" : "missing");
+          console.log("From query - Type:", type);
         }
         
-        setLoading(false);
+        // Validate that this is a recovery flow
+        if (type !== 'recovery') {
+          console.log("Not a recovery flow, type:", type);
+          throw new Error("Invalid reset link - not a recovery type");
+        }
+        
+        if (!accessToken || !refreshToken) {
+          console.log("Missing required tokens");
+          throw new Error("Invalid reset link - missing authentication tokens");
+        }
+        
+        console.log("Setting session with tokens...");
+        
+        // Set the session with the tokens
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (error) {
+          console.error("Error setting session:", error);
+          throw new Error(`Failed to authenticate: ${error.message}`);
+        }
+        
+        if (!data.session) {
+          console.error("No session created");
+          throw new Error("Failed to create authentication session");
+        }
+        
+        console.log("Session created successfully for user:", data.session.user.email);
+        setValidSession(true);
+        
+        // Clean up the URL by removing the hash/query parameters
+        const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
       } catch (error) {
-        console.error("Error checking session:", error);
-        toast.error("An error occurred while verifying your session");
+        console.error("Error processing reset token:", error);
+        const errorMessage = error instanceof Error ? error.message : "Invalid or expired reset link";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
         setLoading(false);
-        // Short delay to allow the toast to be seen
-        setTimeout(() => navigate("/auth"), 2000);
       }
     };
     
-    checkSession();
-  }, [navigate]);
+    processResetToken();
+  }, []);
+
+  const handleReturnToLogin = () => {
+    navigate("/auth");
+  };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#F5F3FF] via-[#EDE9FE] to-white">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-gray-600">Verifying your reset link...</p>
+        <p className="mt-2 text-xs text-gray-500">This may take a moment</p>
       </div>
     );
   }
@@ -136,17 +133,39 @@ export default function ResetPassword() {
           {validSession ? (
             <UpdatePasswordForm />
           ) : (
-            <div className="text-center">
-              <h2 className="text-2xl font-bold">Invalid Reset Link</h2>
-              <p className="text-sm text-gray-600 mt-2">
-                This password reset link is invalid or has expired.
-              </p>
-              <Button
-                onClick={() => navigate("/auth")}
-                className="mt-4 text-primary hover:underline"
-              >
-                Return to login
-              </Button>
+            <div className="text-center space-y-4">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+              <h2 className="text-2xl font-bold text-gray-900">Reset Link Issue</h2>
+              
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>This password reset link appears to be invalid or has expired.</p>
+                <p>Common causes:</p>
+                <ul className="text-left list-disc pl-4 space-y-1">
+                  <li>The link has already been used</li>
+                  <li>The link has expired (links expire after a certain time)</li>
+                  <li>The link was not copied completely</li>
+                  <li>The link format is incorrect</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-3">
+                <Button
+                  onClick={handleReturnToLogin}
+                  className="w-full"
+                >
+                  Return to Login
+                </Button>
+                
+                <p className="text-xs text-gray-500">
+                  You can request a new password reset link from the login page
+                </p>
+              </div>
             </div>
           )}
         </div>

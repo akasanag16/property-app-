@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,26 +25,33 @@ export function ResetPasswordForm({
     setError(null);
 
     try {
-      // Get the origin from window.location
-      const origin = window.location.origin;
+      console.log("Starting password reset process for:", email);
       
-      // Construct the absolute redirect URL
-      const resetRedirectUrl = `${origin}/auth/reset-password`;
+      // Use the current window location to construct the redirect URL
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      const resetRedirectUrl = `${protocol}//${host}/auth/reset-password`;
       
       console.log("Using reset redirect URL:", resetRedirectUrl);
+      console.log("Current location:", window.location.href);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: resetRedirectUrl,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Reset password error:", error);
+        throw error;
+      }
 
+      console.log("Password reset email sent successfully");
       setResetEmailSent(true);
       toast.success("Password reset instructions have been sent to your email");
     } catch (error) {
       console.error("Reset password error:", error);
-      setError(error instanceof Error ? error.message : "Failed to send reset email");
-      toast.error(error instanceof Error ? error.message : "Failed to send reset email");
+      const errorMessage = error instanceof Error ? error.message : "Failed to send reset email";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -56,6 +63,9 @@ export function ResetPasswordForm({
         <h3 className="text-lg font-medium">Check your email</h3>
         <p className="text-sm text-gray-600">
           We've sent password reset instructions to {email}
+        </p>
+        <p className="text-xs text-gray-500">
+          The reset link will redirect you to: {window.location.protocol}//{window.location.host}/auth/reset-password
         </p>
         <Button
           type="button"
@@ -102,6 +112,7 @@ export function ResetPasswordForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="Enter your email address"
           />
         </div>
 
