@@ -17,7 +17,8 @@ export const parseRecoveryTokenFromURL = async () => {
     path: window.location.pathname,
     hash,
     hasRecoveryType,
-    isResetPasswordPage
+    isResetPasswordPage,
+    origin: window.location.origin
   });
   
   if (hasRecoveryType) {
@@ -38,7 +39,7 @@ export const parseRecoveryTokenFromURL = async () => {
           
           if (error) {
             console.error("Error setting session from hash:", error);
-            throw error;
+            throw new Error(`Session error: ${error.message}`);
           }
           
           console.log("Session set successfully from hash");
@@ -60,7 +61,7 @@ export const parseRecoveryTokenFromURL = async () => {
         
         if (error) {
           console.error("Error setting session from query params:", error);
-          throw error;
+          throw new Error(`Session error: ${error.message}`);
         }
         
         console.log("Session set successfully from query params");
@@ -68,7 +69,7 @@ export const parseRecoveryTokenFromURL = async () => {
       }
       
       console.log("Recovery type found but missing valid tokens");
-      throw new Error("Invalid recovery tokens");
+      throw new Error("Invalid recovery tokens - tokens may be expired or malformed");
       
     } catch (error) {
       console.error("Error processing recovery:", error);
@@ -112,4 +113,24 @@ export const cleanAuthURL = () => {
   const cleanUrl = `${window.location.origin}${window.location.pathname}`;
   window.history.replaceState({}, document.title, cleanUrl);
   console.log("URL cleaned up:", cleanUrl);
+};
+
+/**
+ * Gets the appropriate reset redirect URL for the current environment
+ */
+export const getResetRedirectURL = () => {
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/auth/reset-password`;
+};
+
+/**
+ * Validates if a URL is properly formatted for reset redirects
+ */
+export const validateResetURL = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:';
+  } catch {
+    return false;
+  }
 };

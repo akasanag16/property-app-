@@ -27,12 +27,12 @@ export function ResetPasswordForm({
     try {
       console.log("Starting password reset process for:", email);
       
-      // Use the current window location to construct the redirect URL
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      const resetRedirectUrl = `${protocol}//${host}/auth/reset-password`;
+      // Use a more robust redirect URL construction
+      const baseUrl = window.location.origin;
+      const resetRedirectUrl = `${baseUrl}/auth/reset-password`;
       
       console.log("Using reset redirect URL:", resetRedirectUrl);
+      console.log("Current origin:", window.location.origin);
       console.log("Current location:", window.location.href);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -41,6 +41,16 @@ export function ResetPasswordForm({
 
       if (error) {
         console.error("Reset password error:", error);
+        
+        // Handle specific error cases
+        if (error.message.includes("User not found")) {
+          throw new Error("No account found with this email address");
+        } else if (error.message.includes("Email rate limit")) {
+          throw new Error("Too many reset attempts. Please wait before trying again");
+        } else if (error.message.includes("Invalid email")) {
+          throw new Error("Please enter a valid email address");
+        }
+        
         throw error;
       }
 
@@ -64,9 +74,14 @@ export function ResetPasswordForm({
         <p className="text-sm text-gray-600">
           We've sent password reset instructions to {email}
         </p>
-        <p className="text-xs text-gray-500">
-          The reset link will redirect you to: {window.location.protocol}//{window.location.host}/auth/reset-password
-        </p>
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <p className="text-xs text-blue-700">
+            The reset link will redirect you to: {window.location.origin}/auth/reset-password
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            If you see a "Project not found" error, please contact support or try again later.
+          </p>
+        </div>
         <Button
           type="button"
           variant="outline"
