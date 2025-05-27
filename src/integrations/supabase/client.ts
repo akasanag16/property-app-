@@ -15,7 +15,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     storage: localStorage,
     detectSessionInUrl: true,
-    flowType: 'implicit',
+    flowType: 'pkce',
     debug: process.env.NODE_ENV === 'development'
   }
 });

@@ -27,13 +27,10 @@ export function ResetPasswordForm({
     try {
       console.log("Starting password reset process for:", email);
       
-      // Use a more robust redirect URL construction
-      const baseUrl = window.location.origin;
-      const resetRedirectUrl = `${baseUrl}/auth/reset-password`;
+      // Use the exact deployed URL for reset redirect
+      const resetRedirectUrl = "https://prop-link-manage.lovable.app/auth/reset-password";
       
       console.log("Using reset redirect URL:", resetRedirectUrl);
-      console.log("Current origin:", window.location.origin);
-      console.log("Current location:", window.location.href);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: resetRedirectUrl,
@@ -76,10 +73,7 @@ export function ResetPasswordForm({
         </p>
         <div className="bg-blue-50 p-3 rounded-lg">
           <p className="text-xs text-blue-700">
-            The reset link will redirect you to: {window.location.origin}/auth/reset-password
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            If you see a "Project not found" error, please contact support or try again later.
+            Click the link in your email to reset your password. If you don't receive it within a few minutes, check your spam folder.
           </p>
         </div>
         <Button
