@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, Info } from "lucide-react";
+import { Loader2, ArrowLeft, Info, UserCheck } from "lucide-react";
 import { UserRole } from "@/lib/auth";
 import { PasswordInputs } from "./components/PasswordInputs";
 import { EnhancedNameInputs } from "./components/EnhancedNameInputs";
 import { EnhancedErrorAlert } from "./components/EnhancedErrorAlert";
 import { useEnhancedFormSubmission } from "./hooks/useEnhancedFormSubmission";
-import { supabase } from "@/integrations/supabase/client";
 
 interface NewAccountFormProps {
   email: string;
@@ -39,6 +38,7 @@ export function NewAccountForm({
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showUserExistsGuidance, setShowUserExistsGuidance] = useState(false);
 
   const { 
     loading, 
@@ -59,7 +59,12 @@ export function NewAccountForm({
         }
       }, 1000);
     },
-    onToggleMode
+    onToggleMode: () => {
+      setShowUserExistsGuidance(true);
+      setTimeout(() => {
+        onToggleMode();
+      }, 1500);
+    }
   });
 
   const validateForm = () => {
@@ -99,10 +104,24 @@ export function NewAccountForm({
   const clearAllErrors = () => {
     clearError();
     if (globalError) setGlobalError("");
+    setShowUserExistsGuidance(false);
   };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {/* User exists guidance */}
+      {showUserExistsGuidance && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <UserCheck className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <div className="space-y-2">
+              <p className="font-medium">Account Found!</p>
+              <p>We found an existing account with this email. Switching you to the sign-in option...</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Helpful instructions */}
       <Alert className="border-blue-200 bg-blue-50">
         <Info className="h-4 w-4 text-blue-600" />
@@ -148,12 +167,14 @@ export function NewAccountForm({
         onErrorClear={clearAllErrors}
       />
       
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || showUserExistsGuidance}>
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creating account...
           </>
+        ) : showUserExistsGuidance ? (
+          "Switching to sign-in..."
         ) : (
           "Create Account"
         )}
@@ -164,7 +185,7 @@ export function NewAccountForm({
           type="button" 
           className="text-primary hover:underline"
           onClick={onToggleMode}
-          disabled={loading}
+          disabled={loading || showUserExistsGuidance}
         >
           I already have an account
         </button>
@@ -175,7 +196,7 @@ export function NewAccountForm({
         variant="outline" 
         className="w-full flex items-center justify-center" 
         onClick={onBackToLogin}
-        disabled={loading}
+        disabled={loading || showUserExistsGuidance}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Login

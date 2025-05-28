@@ -36,16 +36,6 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
       const parsedError = parseApiError(error);
       setError(parsedError);
       
-      // Handle specific error cases
-      if (parsedError.message.includes("already been registered") || 
-          parsedError.message.includes("already exists")) {
-        toast.info("An account with this email already exists. Please sign in instead.");
-        if (onToggleMode) {
-          setTimeout(onToggleMode, 2000);
-        }
-        return;
-      }
-      
       // Show toast for user feedback
       toast.error(parsedError.message);
       
@@ -95,8 +85,22 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
         throw functionError;
       }
       
+      // Handle the new response format
+      if (result?.userExists && result?.requiresLinking) {
+        console.log("User exists, should switch to linking flow");
+        toast.info("An account with this email already exists. Switching to sign-in mode...");
+        
+        // Give user time to read the message, then switch modes
+        if (onToggleMode) {
+          setTimeout(() => {
+            onToggleMode();
+          }, 2000);
+        }
+        return;
+      }
+      
       if (!result?.success) {
-        throw new Error(result?.error || "Failed to create account");
+        throw new Error(result?.message || "Failed to create account");
       }
       
       console.log("Account created successfully");

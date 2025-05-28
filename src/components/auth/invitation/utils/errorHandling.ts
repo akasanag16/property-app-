@@ -47,6 +47,7 @@ export function getErrorMessage(error: ApiError): string {
   // Map specific errors to user-friendly messages
   const errorMappings: Record<string, string> = {
     'already been registered': 'An account with this email already exists. Please sign in with your existing account instead.',
+    'already exists': 'An account with this email already exists. Please sign in with your existing account instead.',
     'email addresses': 'Please enter your actual first and last name, not email addresses.',
     'Invalid or expired': 'This invitation link has expired or is invalid. Please request a new invitation.',
     'network': 'Network connection issue. Please check your internet and try again.',
@@ -66,8 +67,19 @@ export function getErrorMessage(error: ApiError): string {
 }
 
 export function shouldShowRetry(error: ApiError): boolean {
-  const retryableErrors = ['NETWORK_ERROR', 'timeout', 'network'];
+  const retryableErrors = ['NETWORK_ERROR', 'timeout', 'network', 'connection'];
+  const nonRetryableErrors = ['already exists', 'already been registered', 'email addresses'];
+  
+  // Don't show retry for user existence errors
+  for (const pattern of nonRetryableErrors) {
+    if (error.message.toLowerCase().includes(pattern.toLowerCase())) {
+      return false;
+    }
+  }
+  
+  // Show retry for network and temporary errors
   return retryableErrors.some(pattern => 
-    error.code?.includes(pattern) || error.message.toLowerCase().includes(pattern)
+    error.code?.toLowerCase().includes(pattern) || 
+    error.message.toLowerCase().includes(pattern)
   );
 }
