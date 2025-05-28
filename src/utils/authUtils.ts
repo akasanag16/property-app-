@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
  * Gets the appropriate reset redirect URL for the current environment
  */
 export const getResetRedirectURL = () => {
-  // Always use the production URL for consistency
   return "https://prop-link-manage.lovable.app/auth/reset-password";
 };
 

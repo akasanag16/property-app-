@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,19 +26,13 @@ export function ResetPasswordForm({
     try {
       console.log("Starting password reset process for:", email);
       
-      // Use the exact deployed URL for reset redirect
-      const resetRedirectUrl = "https://prop-link-manage.lovable.app/auth/reset-password";
-      
-      console.log("Using reset redirect URL:", resetRedirectUrl);
-
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: resetRedirectUrl,
+        redirectTo: "https://prop-link-manage.lovable.app/auth/reset-password",
       });
 
       if (error) {
         console.error("Reset password error:", error);
         
-        // Handle specific error cases
         if (error.message.includes("User not found")) {
           throw new Error("No account found with this email address");
         } else if (error.message.includes("Email rate limit")) {

@@ -8,12 +8,14 @@ import { toast } from "sonner";
 import { Loader2, AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { processAuthTokens, cleanupURL, validateResetSession } from "@/utils/resetUtils";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [processingTokens, setProcessingTokens] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,59 +23,45 @@ export default function ResetPassword() {
     
     let mounted = true;
 
-    const handleAuthStateChange = async () => {
+    const initializeReset = async () => {
       try {
-        // Get the current session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        // First, check if we have tokens in the URL to process
+        const url = new URL(window.location.href);
+        const hasCode = url.searchParams.get('code');
+        const hasHashTokens = url.hash.includes('access_token') && url.hash.includes('type=recovery');
         
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          throw new Error(`Session error: ${sessionError.message}`);
-        }
-
-        if (!mounted) return;
-
-        console.log("Current session:", currentSession ? "exists" : "null");
-        
-        if (currentSession) {
-          console.log("Valid session found for password reset");
-          setSession(currentSession);
+        if (hasCode || hasHashTokens) {
+          console.log("Found auth tokens in URL, processing...");
+          setProcessingTokens(true);
+          
+          const result = await processAuthTokens();
+          
+          if (result.success && result.session && mounted) {
+            console.log("Tokens processed successfully, session established");
+            setSession(result.session);
+            cleanupURL();
+          } else if (mounted) {
+            console.error("Token processing failed:", result.error);
+            setError(result.error || "Failed to process reset link");
+          }
+          
+          setProcessingTokens(false);
         } else {
-          console.log("No session found, checking URL for auth tokens");
+          // No tokens in URL, check for existing session
+          console.log("No tokens in URL, checking for existing session");
+          const isValidSession = await validateResetSession();
           
-          // Check if we're in a recovery flow by looking at the URL
-          const url = new URL(window.location.href);
-          const fragment = url.hash.substring(1);
-          const params = new URLSearchParams(fragment);
-          const type = params.get('type');
-          
-          console.log("URL analysis:", { fragment, type });
-          
-          if (type === 'recovery') {
-            console.log("Recovery type detected, waiting for Supabase to process tokens");
-            // Wait a bit for Supabase to process the tokens
-            setTimeout(async () => {
-              const { data: { session: retrySession } } = await supabase.auth.getSession();
-              if (retrySession && mounted) {
-                console.log("Session established after retry");
-                setSession(retrySession);
-              } else if (mounted) {
-                console.log("No session after retry, showing error");
-                setError("Invalid or expired reset link. Please request a new password reset.");
-              }
-              if (mounted) setLoading(false);
-            }, 2000);
-            return;
-          } else {
-            setError("Invalid reset link. Please use the link from your email or request a new password reset.");
+          if (isValidSession && mounted) {
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            setSession(currentSession);
+          } else if (mounted) {
+            setError("Invalid or expired reset link. Please request a new password reset.");
           }
         }
       } catch (error) {
-        console.error("Error in handleAuthStateChange:", error);
+        console.error("Reset initialization error:", error);
         if (mounted) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to process reset link";
-          setError(errorMessage);
-          toast.error(errorMessage);
+          setError("An error occurred while processing your reset link");
         }
       } finally {
         if (mounted) {
@@ -82,24 +70,21 @@ export default function ResetPassword() {
       }
     };
 
-    // Set up auth state change listener
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state change:", event, session ? "session exists" : "no session");
+      console.log("Auth state change in ResetPassword:", event, session ? "session exists" : "no session");
       
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' && session && mounted) {
         console.log("Password recovery event detected");
-        if (session && mounted) {
-          setSession(session);
-          setLoading(false);
-          setError(null);
-        }
+        setSession(session);
+        setError(null);
+        setLoading(false);
       }
     });
 
-    // Initial check
-    handleAuthStateChange();
+    // Initialize the reset process
+    initializeReset();
 
-    // Cleanup
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -120,11 +105,13 @@ export default function ResetPassword() {
     navigate("/");
   };
 
-  if (loading) {
+  if (loading || processingTokens) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#F5F3FF] via-[#EDE9FE] to-white">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-gray-600">Processing your reset link...</p>
+        <p className="mt-4 text-gray-600">
+          {processingTokens ? "Processing your reset link..." : "Loading reset form..."}
+        </p>
         <p className="mt-2 text-xs text-gray-500">This may take a moment</p>
       </div>
     );
@@ -162,6 +149,7 @@ export default function ResetPassword() {
                     <li>Check that you're using the complete link from your email</li>
                     <li>Make sure you haven't already used this reset link</li>
                     <li>Verify the link hasn't expired (usually expires after 1 hour)</li>
+                    <li>Ensure you're accessing the correct deployment URL</li>
                   </ul>
                 </details>
               </div>
