@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, CheckCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,28 +27,26 @@ export function ResetPasswordForm({
       console.log("Starting password reset process for:", email);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: "https://prop-link-manage.lovable.app/auth/reset-password",
       });
 
       if (error) {
         console.error("Reset password error:", error);
         
-        if (error.message.includes("User not found") || error.message.includes("user_not_found")) {
+        if (error.message.includes("User not found")) {
           throw new Error("No account found with this email address");
-        } else if (error.message.includes("Email rate limit") || error.message.includes("rate_limit")) {
+        } else if (error.message.includes("Email rate limit")) {
           throw new Error("Too many reset attempts. Please wait before trying again");
-        } else if (error.message.includes("Invalid email") || error.message.includes("invalid_email")) {
+        } else if (error.message.includes("Invalid email")) {
           throw new Error("Please enter a valid email address");
         }
         
-        throw new Error(error.message || "Failed to send reset email");
+        throw error;
       }
 
       console.log("Password reset email sent successfully");
       setResetEmailSent(true);
-      toast.success("Password reset instructions sent!", {
-        description: "Check your email for the reset link"
-      });
+      toast.success("Password reset instructions have been sent to your email");
     } catch (error) {
       console.error("Reset password error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to send reset email";
@@ -62,20 +59,10 @@ export function ResetPasswordForm({
 
   if (resetEmailSent) {
     return (
-      <motion.div 
-        className="text-center space-y-4"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex justify-center">
-          <div className="rounded-full bg-green-100 p-3">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-          </div>
-        </div>
+      <div className="text-center space-y-4">
         <h3 className="text-lg font-medium">Check your email</h3>
         <p className="text-sm text-gray-600">
-          We've sent password reset instructions to <strong>{email}</strong>
+          We've sent password reset instructions to {email}
         </p>
         <div className="bg-blue-50 p-3 rounded-lg">
           <p className="text-xs text-blue-700">
@@ -89,13 +76,11 @@ export function ResetPasswordForm({
           onClick={() => {
             onModeChange("login");
             setResetEmailSent(false);
-            setError(null);
-            setEmail("");
           }}
         >
           Back to Sign In
         </Button>
-      </motion.div>
+      </div>
     );
   }
 
@@ -123,24 +108,17 @@ export function ResetPasswordForm({
       >
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(null);
-              }}
-              required
-              placeholder="Enter your email address"
-              className="pl-10"
-            />
-          </div>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="Enter your email address"
+          />
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading || !email.trim()}>
+        <Button type="submit" className="w-full" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

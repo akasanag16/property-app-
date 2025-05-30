@@ -20,7 +20,7 @@ export async function createInvitedUser(requestData: any) {
     // Validate invitation token first
     const { invitation, tableName } = await validateInvitation(token, normalizedEmail, role);
 
-    // Check if user already exists
+    // Check if user already exists - but don't throw error, return info instead
     const { getSupabaseClient } = await import("./utils.ts");
     const supabase = getSupabaseClient();
     
@@ -40,8 +40,7 @@ export async function createInvitedUser(requestData: any) {
         requiresLinking: true,
         userId: existingUser.user.id,
         message: 'An account with this email already exists. Please use the "I already have an account" option to link your existing account.',
-        guidance: 'switch_to_existing_flow',
-        userEmail: normalizedEmail
+        guidance: 'switch_to_existing_flow'
       });
     }
 
@@ -67,8 +66,7 @@ export async function createInvitedUser(requestData: any) {
       userExists: false,
       userLinked: true,
       userId: userId,
-      message: 'Account created and linked successfully',
-      userEmail: normalizedEmail
+      message: 'Account created successfully'
     });
 
   } catch (error: any) {
@@ -80,15 +78,7 @@ export async function createInvitedUser(requestData: any) {
     } else if (error.message?.includes("Invalid or expired")) {
       return createErrorResponse('This invitation link has expired or is invalid. Please request a new invitation.', 400);
     } else if (error.message?.includes("network") || error.message?.includes("timeout")) {
-      return createErrorResponse('Network error. Please check your connection and try again.', 503);
-    } else if (error.message?.includes("already exists") || error.message?.includes("already been registered")) {
-      return createSuccessResponse({
-        success: false,
-        userExists: true,
-        requiresLinking: true,
-        message: 'An account with this email already exists. Please use the "I already have an account" option.',
-        guidance: 'switch_to_existing_flow'
-      });
+      return createErrorResponse('Network error. Please check your connection and try again.', 400);
     }
     
     return createErrorResponse(error.message || 'An unexpected error occurred', 500);
