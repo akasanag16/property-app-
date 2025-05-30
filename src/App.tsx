@@ -7,11 +7,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
+import Auth from "./pages/auth/Auth";
 import Dashboard from "./pages/Dashboard";
-import TenantDashboard from "./pages/tenant/TenantDashboard";
-import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
-import OwnerDashboard from "./pages/owner/OwnerDashboard";
+import TenantDashboard from "./pages/TenantDashboard";
+import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
 import AcceptInvitation from "./pages/auth/AcceptInvitation";
 import ResetPassword from "./pages/auth/ResetPassword";
 
@@ -53,7 +52,6 @@ function App() {
                   <Route path="/auth/reset-password" element={<ResetPassword />} />
                   <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/owner-dashboard" element={<OwnerDashboard />} />
                   <Route path="/tenant-dashboard" element={<TenantDashboard />} />
                   <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
                 </Routes>
