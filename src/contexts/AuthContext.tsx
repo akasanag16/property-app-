@@ -4,6 +4,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { UserRole } from "@/lib/auth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { toast } from "sonner";
 
 interface AuthContextType {
   session: Session | null;
@@ -11,15 +12,16 @@ interface AuthContextType {
   userRole: UserRole | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
-// Create a default value for the context to avoid the need for null checks
 const defaultContextValue: AuthContextType = {
   session: null,
   user: null,
   userRole: null,
   loading: true,
-  signOut: async () => { console.error("AuthContext not initialized"); }
+  signOut: async () => { console.error("AuthContext not initialized"); },
+  refreshSession: async () => { console.error("AuthContext not initialized"); }
 };
 
 const AuthContext = createContext<AuthContextType>(defaultContextValue);
@@ -29,11 +31,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     loading: sessionLoading,
-    signOut
+    signOut,
+    refreshSession
   } = useAuthSession();
   
   const { userRole, fetching: roleLoading } = useUserRole(user);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   // Store user role in sessionStorage for access outside the auth context
   useEffect(() => {
@@ -45,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       try {
-        // Only remove if not loading - this prevents clearing during load state
         if (!roleLoading) {
           sessionStorage.removeItem('userRole');
         }
@@ -55,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userRole, roleLoading]);
 
-  // Debug auth state
+  // Debug auth state and handle errors
   useEffect(() => {
     console.log("AuthProvider: Auth state updated", { 
       session: session ? "exists" : "null", 
@@ -68,18 +71,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!sessionLoading && !roleLoading && !isInitialized) {
       setIsInitialized(true);
     }
-  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized]);
 
-  // The loading state should be true if sessionLoading or roleLoading is true
+    // Handle authentication errors
+    if (session && !userRole && !roleLoading && isInitialized) {
+      const errorMsg = "Unable to determine user role. Please try signing out and back in.";
+      if (lastError !== errorMsg) {
+        setLastError(errorMsg);
+        toast.error(errorMsg, {
+          duration: 8000,
+          action: {
+            label: "Sign Out",
+            onClick: signOut
+          }
+        });
+      }
+    } else {
+      setLastError(null);
+    }
+  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized, lastError, signOut]);
+
   const loading = sessionLoading || roleLoading || !isInitialized;
 
-  // Provide context value
   const contextValue: AuthContextType = {
     session, 
     user, 
     userRole, 
     loading,
-    signOut
+    signOut,
+    refreshSession
   };
 
   return (

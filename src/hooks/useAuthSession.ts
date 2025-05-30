@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const useAuthSession = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -11,20 +12,34 @@ export const useAuthSession = () => {
   useEffect(() => {
     console.log("Auth session hook initializing...");
 
+    let mounted = true;
+
     // Set up auth state listener first to prevent missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
         
+        if (!mounted) return;
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(newSession);
           setUser(newSession?.user ?? null);
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
+          // Clear any stored user data
+          try {
+            sessionStorage.removeItem('userRole');
+          } catch (e) {
+            console.warn("Failed to clear session storage:", e);
+          }
         } else if (event === 'USER_UPDATED') {
-          // Handle user metadata updates
           setUser(newSession?.user ?? null);
+        }
+        
+        // Handle auth errors
+        if (event === 'SIGNED_OUT' && newSession === null) {
+          console.log("User signed out or session expired");
         }
       }
     );
@@ -34,8 +49,11 @@ export const useAuthSession = () => {
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+        
         if (error) {
           console.error("Error getting initial session:", error);
+          toast.error("Authentication error. Please try signing in again.");
           setLoading(false);
           return;
         }
@@ -51,8 +69,13 @@ export const useAuthSession = () => {
         }
       } catch (err) {
         console.error("Unexpected error during session initialization:", err);
+        if (mounted) {
+          toast.error("Failed to initialize authentication. Please refresh the page.");
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -61,16 +84,48 @@ export const useAuthSession = () => {
     
     // Cleanup subscription on unmount
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log("Signing out user...");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out:", error);
+        toast.error("Failed to sign out. Please try again.");
+        throw error;
+      }
+      
       console.log("User signed out successfully");
+      toast.success("Signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
+      throw error;
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      console.log("Refreshing session...");
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error("Error refreshing session:", error);
+        toast.error("Session refresh failed. Please sign in again.");
+        throw error;
+      }
+      
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        console.log("Session refreshed successfully");
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
       throw error;
     }
   };
@@ -79,6 +134,7 @@ export const useAuthSession = () => {
     user,
     session,
     loading,
-    signOut
+    signOut,
+    refreshSession
   };
 };

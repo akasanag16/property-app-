@@ -10,7 +10,7 @@ export const extractAuthTokens = () => {
   // Check query parameters first (newer Supabase format)
   const code = url.searchParams.get('code');
   if (code) {
-    console.log("Found auth code in query params:", code);
+    console.log("Found auth code in query params");
     return { code, type: 'query' };
   }
   
@@ -23,7 +23,7 @@ export const extractAuthTokens = () => {
     const type = params.get('type');
     
     if (accessToken && type === 'recovery') {
-      console.log("Found recovery tokens in hash:", { accessToken: "***", refreshToken: "***", type });
+      console.log("Found recovery tokens in hash");
       return { accessToken, refreshToken, type: 'hash' };
     }
   }
@@ -44,7 +44,6 @@ export const processAuthTokens = async () => {
   
   try {
     if (tokens.type === 'query' && tokens.code) {
-      // Handle PKCE flow with code
       console.log("Processing PKCE code exchange");
       const { data, error } = await supabase.auth.exchangeCodeForSession(tokens.code);
       
@@ -56,7 +55,6 @@ export const processAuthTokens = async () => {
       console.log("Session established successfully via code exchange");
       return { success: true, session: data.session };
     } else if (tokens.type === 'hash' && tokens.accessToken) {
-      // Handle legacy token format
       console.log("Processing legacy token format");
       const { data, error } = await supabase.auth.setSession({
         access_token: tokens.accessToken,

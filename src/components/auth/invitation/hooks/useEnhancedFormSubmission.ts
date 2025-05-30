@@ -27,7 +27,7 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
       
       // Reset retry count on success
       setRetryCount(0);
-      toast.success("Success!");
+      toast.success("Operation completed successfully!");
       onSuccess();
       
     } catch (error: any) {
@@ -36,8 +36,12 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
       const parsedError = parseApiError(error);
       setError(parsedError);
       
-      // Show toast for user feedback
-      toast.error(parsedError.message);
+      // Show appropriate toast based on error type
+      if (parsedError.message.includes('already exists') || parsedError.message.includes('already been registered')) {
+        toast.warning(parsedError.message);
+      } else {
+        toast.error(parsedError.message);
+      }
       
     } finally {
       setLoading(false);
@@ -82,13 +86,16 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
       });
       
       if (functionError) {
-        throw functionError;
+        console.error("Function invocation error:", functionError);
+        throw new Error(functionError.message || "Failed to communicate with server");
       }
       
-      // Handle the new response format
+      // Handle the response format
       if (result?.userExists && result?.requiresLinking) {
         console.log("User exists, should switch to linking flow");
-        toast.info("An account with this email already exists. Switching to sign-in mode...");
+        toast.info("Account found! Switching to sign-in mode...", {
+          description: "We found an existing account with this email."
+        });
         
         // Give user time to read the message, then switch modes
         if (onToggleMode) {
@@ -97,6 +104,10 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
           }, 2000);
         }
         return;
+      }
+      
+      if (result?.success === false && !result?.userExists) {
+        throw new Error(result?.message || "Failed to create account");
       }
       
       if (!result?.success) {
@@ -129,11 +140,12 @@ export function useEnhancedFormSubmission({ onSuccess, onToggleMode }: UseEnhanc
       });
       
       if (functionError) {
-        throw functionError;
+        console.error("Function invocation error:", functionError);
+        throw new Error(functionError.message || "Failed to communicate with server");
       }
       
       if (!result?.success) {
-        throw new Error(result?.error || "Failed to link account");
+        throw new Error(result?.error || result?.message || "Failed to link account");
       }
       
       console.log("Account linked successfully");
