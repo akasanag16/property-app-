@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TenantDashboard from "./pages/tenant/TenantDashboard";
 import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
+import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import AcceptInvitation from "./pages/auth/AcceptInvitation";
 import ResetPassword from "./pages/auth/ResetPassword";
 
@@ -52,6 +53,7 @@ function App() {
                   <Route path="/auth/reset-password" element={<ResetPassword />} />
                   <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/owner-dashboard" element={<OwnerDashboard />} />
                   <Route path="/tenant-dashboard" element={<TenantDashboard />} />
                   <Route path="/service-provider-dashboard" element={<ServiceProviderDashboard />} />
                 </Routes>
