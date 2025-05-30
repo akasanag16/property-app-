@@ -10,7 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TenantDashboard from "./pages/tenant/TenantDashboard";
-import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
+import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
 import AcceptInvitation from "./pages/auth/AcceptInvitation";
 import ResetPassword from "./pages/auth/ResetPassword";
 
