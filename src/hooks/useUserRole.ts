@@ -16,30 +16,79 @@ export const useUserRole = (user: User | null) => {
       // First check if the role is already in the user metadata
       if (user?.user_metadata?.role) {
         console.log("Using role from user metadata:", user.user_metadata.role);
-        setUserRole(user.user_metadata.role as UserRole);
+        const roleFromMetadata = user.user_metadata.role as UserRole;
+        setUserRole(roleFromMetadata);
+        // Store in session storage for future use
+        try {
+          sessionStorage.setItem('userRole', roleFromMetadata);
+        } catch (e) {
+          console.warn("Failed to store role in session storage:", e);
+        }
         return;
       }
       
-      // If not in metadata, try to get from profiles table using a simple, direct query
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .maybeSingle(); // Use maybeSingle instead of single to handle case where profile might not exist yet
-
-      if (error) {
-        console.error("Error fetching profile:", error);
-        // Check for session storage fallback
+      // Check session storage first for cached role
+      try {
         const storedRole = sessionStorage.getItem('userRole');
-        if (storedRole) {
+        if (storedRole && ['owner', 'tenant', 'service_provider'].includes(storedRole)) {
           console.log("Using role from session storage:", storedRole);
           setUserRole(storedRole as UserRole);
           return;
         }
+      } catch (e) {
+        console.warn("Failed to read from session storage:", e);
+      }
+      
+      // Try to get from profiles table using a simple, direct query
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
         
-        // Fall back to 'tenant' role if we can't determine the role
-        console.log("Falling back to default role: tenant");
-        setUserRole('tenant');
+        // If it's a permission error, the user might not have a profile yet
+        // Let's try to create one with a default role
+        if (error.code === 'PGRST116' || error.message.includes('permission')) {
+          console.log("Profile might not exist, trying to create with default role");
+          
+          // Try to insert a profile with default role 'owner'
+          const { data: insertData, error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              role: 'owner' as UserRole,
+              first_name: user?.user_metadata?.first_name || null,
+              last_name: user?.user_metadata?.last_name || null,
+              email: user?.email || null
+            })
+            .select("role")
+            .single();
+            
+          if (!insertError && insertData?.role) {
+            console.log("Created profile with default role:", insertData.role);
+            setUserRole(insertData.role as UserRole);
+            try {
+              sessionStorage.setItem('userRole', insertData.role);
+            } catch (e) {
+              console.warn("Failed to store role in session storage:", e);
+            }
+            return;
+          } else {
+            console.error("Failed to create profile:", insertError);
+          }
+        }
+        
+        // Fall back to 'owner' role if we can't determine the role
+        console.log("Falling back to default role: owner");
+        setUserRole('owner');
+        try {
+          sessionStorage.setItem('userRole', 'owner');
+        } catch (e) {
+          console.warn("Failed to store fallback role:", e);
+        }
         return;
       }
 
@@ -53,29 +102,23 @@ export const useUserRole = (user: User | null) => {
           console.warn("Failed to store role in session storage:", e);
         }
       } else {
-        console.warn("No role found for user:", userId);
-        // Check for session storage fallback
-        const storedRole = sessionStorage.getItem('userRole');
-        if (storedRole) {
-          console.log("Using role from session storage:", storedRole);
-          setUserRole(storedRole as UserRole);
-          return;
+        console.warn("No role found for user, using default:", userId);
+        // Fall back to 'owner' role if profile exists but has no role
+        setUserRole('owner');
+        try {
+          sessionStorage.setItem('userRole', 'owner');
+        } catch (e) {
+          console.warn("Failed to store default role:", e);
         }
-        
-        // Fall back to 'tenant' role if we can't determine the role
-        console.log("Falling back to default role: tenant");
-        setUserRole('tenant');
       }
     } catch (error) {
-      console.error("Error fetching user role:", error);
-      // Check for session storage fallback
-      const storedRole = sessionStorage.getItem('userRole');
-      if (storedRole) {
-        console.log("Using role from session storage:", storedRole);
-        setUserRole(storedRole as UserRole);
-      } else {
-        // Fall back to 'tenant' role if we can't determine the role
-        setUserRole('tenant');
+      console.error("Unexpected error fetching user role:", error);
+      // Fall back to 'owner' role in case of any unexpected error
+      setUserRole('owner');
+      try {
+        sessionStorage.setItem('userRole', 'owner');
+      } catch (e) {
+        console.warn("Failed to store fallback role:", e);
       }
     } finally {
       setFetching(false);

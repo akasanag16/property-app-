@@ -19,7 +19,7 @@ const defaultContextValue: AuthContextType = {
   session: null,
   user: null,
   userRole: null,
-  loading: false, // Changed to false to prevent blocking
+  loading: false,
   signOut: async () => { console.error("AuthContext not initialized"); },
   refreshSession: async () => { console.error("AuthContext not initialized"); }
 };
@@ -37,26 +37,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { userRole, fetching: roleLoading } = useUserRole(user);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [lastError, setLastError] = useState<string | null>(null);
+  const [hasShownRoleError, setHasShownRoleError] = useState(false);
 
   // Store user role in sessionStorage for access outside the auth context
   useEffect(() => {
     if (userRole) {
       try {
         sessionStorage.setItem('userRole', userRole);
+        // Clear error state when role is successfully determined
+        setHasShownRoleError(false);
       } catch (error) {
         console.error("Could not store role in sessionStorage:", error);
       }
-    } else {
-      try {
-        if (!roleLoading && user) { // Only clear if we have a user but no role
-          sessionStorage.removeItem('userRole');
-        }
-      } catch (error) {
-        console.error("Could not remove role from sessionStorage:", error);
-      }
     }
-  }, [userRole, roleLoading, user]);
+  }, [userRole]);
 
   // Debug auth state and handle errors
   useEffect(() => {
@@ -64,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session: session ? "exists" : "null", 
       user: user ? user.email : "null", 
       userRole,
-      loading: sessionLoading || roleLoading,
+      sessionLoading,
+      roleLoading,
       isInitialized
     });
     
@@ -75,23 +70,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Handle authentication errors only for authenticated users
-    if (session && user && !userRole && !roleLoading && isInitialized) {
-      const errorMsg = "Unable to determine user role. Please try signing out and back in.";
-      if (lastError !== errorMsg) {
-        setLastError(errorMsg);
-        console.error("AuthProvider: Role error for authenticated user");
-        toast.error(errorMsg, {
-          duration: 8000,
-          action: {
-            label: "Sign Out",
-            onClick: signOut
-          }
-        });
-      }
-    } else {
-      setLastError(null);
+    // Only show error once per session and only if we have a user but still no role after loading
+    if (session && user && !userRole && !roleLoading && isInitialized && !hasShownRoleError) {
+      // Wait a bit more before showing error in case role is still being fetched
+      const timer = setTimeout(() => {
+        if (!userRole && !roleLoading) {
+          setHasShownRoleError(true);
+          console.error("AuthProvider: Role error for authenticated user");
+          toast.error("Unable to determine user role. Please try signing out and back in.", {
+            duration: 8000,
+            action: {
+              label: "Sign Out",
+              onClick: signOut
+            }
+          });
+        }
+      }, 3000); // Wait 3 seconds before showing error
+
+      return () => clearTimeout(timer);
     }
-  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized, lastError, signOut]);
+  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized, hasShownRoleError, signOut]);
 
   // Only show loading for authenticated routes, not for initial page load
   const loading = user ? (sessionLoading || roleLoading) : false;
