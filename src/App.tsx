@@ -7,10 +7,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
-import Auth from "./pages/auth/Auth";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import TenantDashboard from "./pages/TenantDashboard";
-import ServiceProviderDashboard from "./pages/ServiceProviderDashboard";
+import TenantDashboard from "./pages/tenant/TenantDashboard";
+import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
 import AcceptInvitation from "./pages/auth/AcceptInvitation";
 import ResetPassword from "./pages/auth/ResetPassword";
 
