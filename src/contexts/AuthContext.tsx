@@ -19,7 +19,7 @@ const defaultContextValue: AuthContextType = {
   session: null,
   user: null,
   userRole: null,
-  loading: true,
+  loading: false, // Changed to false to prevent blocking
   signOut: async () => { console.error("AuthContext not initialized"); },
   refreshSession: async () => { console.error("AuthContext not initialized"); }
 };
@@ -49,14 +49,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       try {
-        if (!roleLoading) {
+        if (!roleLoading && user) { // Only clear if we have a user but no role
           sessionStorage.removeItem('userRole');
         }
       } catch (error) {
         console.error("Could not remove role from sessionStorage:", error);
       }
     }
-  }, [userRole, roleLoading]);
+  }, [userRole, roleLoading, user]);
 
   // Debug auth state and handle errors
   useEffect(() => {
@@ -64,19 +64,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session: session ? "exists" : "null", 
       user: user ? user.email : "null", 
       userRole,
-      loading: sessionLoading || roleLoading
+      loading: sessionLoading || roleLoading,
+      isInitialized
     });
     
-    // Mark context as initialized once the first auth check is complete
-    if (!sessionLoading && !roleLoading && !isInitialized) {
+    // Mark context as initialized after first auth check
+    if (!sessionLoading && !isInitialized) {
+      console.log("AuthProvider: Marking as initialized");
       setIsInitialized(true);
     }
 
-    // Handle authentication errors
-    if (session && !userRole && !roleLoading && isInitialized) {
+    // Handle authentication errors only for authenticated users
+    if (session && user && !userRole && !roleLoading && isInitialized) {
       const errorMsg = "Unable to determine user role. Please try signing out and back in.";
       if (lastError !== errorMsg) {
         setLastError(errorMsg);
+        console.error("AuthProvider: Role error for authenticated user");
         toast.error(errorMsg, {
           duration: 8000,
           action: {
@@ -90,7 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, user, userRole, sessionLoading, roleLoading, isInitialized, lastError, signOut]);
 
-  const loading = sessionLoading || roleLoading || !isInitialized;
+  // Only show loading for authenticated routes, not for initial page load
+  const loading = user ? (sessionLoading || roleLoading) : false;
 
   const contextValue: AuthContextType = {
     session, 

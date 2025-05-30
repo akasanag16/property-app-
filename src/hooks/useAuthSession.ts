@@ -7,26 +7,28 @@ import { toast } from 'sonner';
 export const useAuthSession = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false initially
 
   useEffect(() => {
-    console.log("Auth session hook initializing...");
+    console.log("useAuthSession: Initializing auth session hook...");
 
     let mounted = true;
 
     // Set up auth state listener first to prevent missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
+        console.log("useAuthSession: Auth state changed:", event, newSession ? "New session exists" : "No new session");
         
         if (!mounted) return;
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(newSession);
           setUser(newSession?.user ?? null);
+          setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
+          setLoading(false);
           // Clear any stored user data
           try {
             sessionStorage.removeItem('userRole');
@@ -36,42 +38,35 @@ export const useAuthSession = () => {
         } else if (event === 'USER_UPDATED') {
           setUser(newSession?.user ?? null);
         }
-        
-        // Handle auth errors
-        if (event === 'SIGNED_OUT' && newSession === null) {
-          console.log("User signed out or session expired");
-        }
       }
     );
 
-    // Then get initial session
+    // Then get initial session - but don't block rendering
     const initSession = async () => {
       try {
+        setLoading(true);
+        console.log("useAuthSession: Checking for existing session...");
+        
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
         if (error) {
-          console.error("Error getting initial session:", error);
-          toast.error("Authentication error. Please try signing in again.");
-          setLoading(false);
-          return;
-        }
-        
-        if (currentSession) {
-          console.log("Initial session found:", currentSession.user.email);
+          console.error("useAuthSession: Error getting initial session:", error);
+          // Don't show error toast for initial load, just log it
+          console.warn("Authentication initialization failed, proceeding without session");
+        } else if (currentSession) {
+          console.log("useAuthSession: Initial session found:", currentSession.user.email);
           setSession(currentSession);
           setUser(currentSession.user);
         } else {
-          console.log("No initial session found");
+          console.log("useAuthSession: No initial session found");
           setSession(null);
           setUser(null);
         }
       } catch (err) {
-        console.error("Unexpected error during session initialization:", err);
-        if (mounted) {
-          toast.error("Failed to initialize authentication. Please refresh the page.");
-        }
+        console.error("useAuthSession: Unexpected error during session initialization:", err);
+        // Don't block the app for auth errors
       } finally {
         if (mounted) {
           setLoading(false);
@@ -91,30 +86,36 @@ export const useAuthSession = () => {
 
   const signOut = async () => {
     try {
-      console.log("Signing out user...");
+      console.log("useAuthSession: Signing out user...");
+      setLoading(true);
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error("Error signing out:", error);
+        console.error("useAuthSession: Error signing out:", error);
         toast.error("Failed to sign out. Please try again.");
         throw error;
       }
       
-      console.log("User signed out successfully");
+      console.log("useAuthSession: User signed out successfully");
       toast.success("Signed out successfully");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("useAuthSession: Error signing out:", error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const refreshSession = async () => {
     try {
-      console.log("Refreshing session...");
+      console.log("useAuthSession: Refreshing session...");
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.refreshSession();
       
       if (error) {
-        console.error("Error refreshing session:", error);
+        console.error("useAuthSession: Error refreshing session:", error);
         toast.error("Session refresh failed. Please sign in again.");
         throw error;
       }
@@ -122,11 +123,13 @@ export const useAuthSession = () => {
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
-        console.log("Session refreshed successfully");
+        console.log("useAuthSession: Session refreshed successfully");
       }
     } catch (error) {
-      console.error("Error refreshing session:", error);
+      console.error("useAuthSession: Error refreshing session:", error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
