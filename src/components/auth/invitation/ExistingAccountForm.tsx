@@ -16,7 +16,7 @@ interface ExistingAccountFormProps {
   token: string;
   propertyId: string;
   role: UserRole;
-  onToggleMode: () => void;
+  onToggleMode: () => void; // Keep for backward compatibility but not used
   onBackToLogin: () => void;
   setError: (error: string) => void;
   error: string;
@@ -27,7 +27,6 @@ export function ExistingAccountForm({
   token,
   propertyId,
   role,
-  onToggleMode,
   onBackToLogin,
   setError: setGlobalError,
   error: globalError
@@ -164,23 +163,12 @@ export function ExistingAccountForm({
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Linking property...
+            Linking to property...
           </>
         ) : (
-          "Link to Property"
+          "Connect to Property"
         )}
       </Button>
-      
-      <div className="text-center text-sm">
-        <button 
-          type="button" 
-          className="text-primary hover:underline"
-          onClick={onToggleMode}
-          disabled={loading}
-        >
-          Create new account instead
-        </button>
-      </div>
       
       <Button 
         type="button" 

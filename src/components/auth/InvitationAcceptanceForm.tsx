@@ -1,8 +1,8 @@
 
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserRole } from "@/lib/auth";
-import { FormModeSwitcher } from "./invitation/FormModeSwitcher";
+import { ExistingAccountForm } from "./invitation/ExistingAccountForm";
+import { useState } from "react";
 
 interface InvitationAcceptanceFormProps {
   email: string;
@@ -21,28 +21,20 @@ export function InvitationAcceptanceForm({
 }: InvitationAcceptanceFormProps) {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [mode, setMode] = useState<'new' | 'existing'>('existing'); // Default to existing account mode
 
   const handleBackToLogin = () => {
     navigate("/auth");
   };
 
-  const toggleMode = () => {
-    setMode(mode === 'new' ? 'existing' : 'new');
-    setError("");
-  };
-
   return (
-    <FormModeSwitcher
-      mode={mode}
+    <ExistingAccountForm
       email={email}
       token={token}
       propertyId={propertyId}
       role={role}
-      invitationType={invitationType}
       error={error}
       setError={setError}
-      onToggleMode={toggleMode}
+      onToggleMode={() => {}} // Not used anymore
       onBackToLogin={handleBackToLogin}
     />
   );

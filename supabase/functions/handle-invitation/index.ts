@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateToken } from "./validate-token.ts";
-import { createInvitedUser } from "./create-invited-user.ts";
 import { linkExistingUser } from "./link-existing-user.ts";
 import { corsHeaders } from "./utils.ts";
 
@@ -28,17 +27,12 @@ serve(async (req) => {
       return await validateToken(requestData);
     }
     
-    // Handle creating an invited user
-    if (action === 'createInvitedUser') {
-      return await createInvitedUser(requestData);
-    }
-    
     // Handle linking an existing user to a property from an invitation token
     if (action === 'linkExistingUser') {
       return await linkExistingUser(requestData);
     }
 
-    throw new Error('Invalid action: ' + action);
+    throw new Error('Invalid action: ' + action + '. Available actions: validateToken, linkExistingUser');
   } catch (error: any) {
     console.error('Error:', error);
     return new Response(

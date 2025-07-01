@@ -2,11 +2,11 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useInvitationValidation } from "@/hooks/useInvitationValidation";
-import { InvitationAcceptanceForm } from "@/components/auth/InvitationAcceptanceForm";
 import { ValidationLoading, ValidationError } from "@/components/auth/InvitationValidationState";
+import { ExistingAccountForm } from "@/components/auth/invitation/ExistingAccountForm";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AcceptInvitation() {
@@ -95,9 +95,9 @@ export default function AcceptInvitation() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Accept Invitation</CardTitle>
+          <CardTitle className="text-2xl font-bold">Connect to Property</CardTitle>
           <CardDescription>
-            Create your account or link your existing account to access the property management portal
+            Sign in to your existing account to connect with the property
             {invitationData?.role && (
               <span className="block mt-1 font-medium">
                 You'll be joining as a {invitationData.role.replace('_', ' ')}
@@ -105,8 +105,35 @@ export default function AcceptInvitation() {
             )}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <InvitationAcceptanceForm {...invitationData!} />
+        <CardContent className="space-y-4">
+          {/* Information alert for users without accounts */}
+          <Alert className="border-blue-200 bg-blue-50">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <div className="space-y-2">
+                <p className="font-medium">Don't have an account yet?</p>
+                <p>You'll need to create an account first using the regular signup process. After creating your account, you can return to this invitation link to connect with the property.</p>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-blue-600 hover:text-blue-800"
+                  onClick={() => navigate("/auth")}
+                >
+                  Go to Sign Up →
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          <ExistingAccountForm 
+            email={invitationData!.email}
+            token={invitationData!.token}
+            propertyId={invitationData!.propertyId}
+            role={invitationData!.role}
+            error=""
+            setError={setSubmissionError}
+            onToggleMode={() => {}} // Not used anymore
+            onBackToLogin={() => navigate("/auth")}
+          />
         </CardContent>
       </Card>
     </div>
