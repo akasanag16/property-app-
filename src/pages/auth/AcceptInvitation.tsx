@@ -131,7 +131,6 @@ export default function AcceptInvitation() {
             role={invitationData!.role}
             error=""
             setError={setSubmissionError}
-            onToggleMode={() => {}} // Not used anymore
             onBackToLogin={() => navigate("/auth")}
           />
         </CardContent>

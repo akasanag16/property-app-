@@ -34,7 +34,6 @@ export function InvitationAcceptanceForm({
       role={role}
       error={error}
       setError={setError}
-      onToggleMode={() => {}} // Not used anymore
       onBackToLogin={handleBackToLogin}
     />
   );

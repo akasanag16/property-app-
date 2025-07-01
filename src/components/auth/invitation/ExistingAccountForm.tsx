@@ -10,6 +10,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { UserRole } from "@/lib/auth";
 import { EnhancedErrorAlert } from "./components/EnhancedErrorAlert";
 import { useExistingAccountSubmission } from "./hooks/useExistingAccountSubmission";
+import { parseApiError } from "./utils/errorHandling";
 
 interface ExistingAccountFormProps {
   email: string;
@@ -124,7 +125,7 @@ export function ExistingAccountForm({
       {/* Enhanced error display */}
       {error && (
         <EnhancedErrorAlert 
-          error={error} 
+          error={parseApiError(error)} 
           onRetry={retry}
           onClear={clearError}
         />
