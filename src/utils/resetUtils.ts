@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 export const extractAuthTokens = () => {
   const url = new URL(window.location.href);
   
+  console.log("Extracting auth tokens from URL:", url.href);
+  
   // Check query parameters first (newer Supabase format)
   const code = url.searchParams.get('code');
   if (code) {
-    console.log("Found auth code in query params:", code);
+    console.log("Found auth code in query params:", code.substring(0, 10) + "...");
     return { code, type: 'query' };
   }
   
@@ -23,7 +25,7 @@ export const extractAuthTokens = () => {
     const type = params.get('type');
     
     if (accessToken && type === 'recovery') {
-      console.log("Found recovery tokens in hash:", { accessToken: "***", refreshToken: "***", type });
+      console.log("Found recovery tokens in hash, type:", type);
       return { accessToken, refreshToken, type: 'hash' };
     }
   }
@@ -43,6 +45,8 @@ export const processAuthTokens = async () => {
   }
   
   try {
+    console.log("Processing auth tokens, type:", tokens.type);
+    
     if (tokens.type === 'query' && tokens.code) {
       // Handle PKCE flow with code
       console.log("Processing PKCE code exchange");
@@ -50,7 +54,12 @@ export const processAuthTokens = async () => {
       
       if (error) {
         console.error("Code exchange error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: `Failed to exchange code: ${error.message}` };
+      }
+      
+      if (!data.session) {
+        console.error("No session returned from code exchange");
+        return { success: false, error: "No session established after code exchange" };
       }
       
       console.log("Session established successfully via code exchange");
@@ -65,7 +74,12 @@ export const processAuthTokens = async () => {
       
       if (error) {
         console.error("Set session error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: `Failed to set session: ${error.message}` };
+      }
+      
+      if (!data.session) {
+        console.error("No session returned from setSession");
+        return { success: false, error: "No session established after setting tokens" };
       }
       
       console.log("Session established successfully via token");
@@ -75,7 +89,10 @@ export const processAuthTokens = async () => {
     return { success: false, error: "Invalid token format" };
   } catch (error) {
     console.error("Token processing error:", error);
-    return { success: false, error: "Failed to process authentication tokens" };
+    return { 
+      success: false, 
+      error: `Failed to process authentication tokens: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
   }
 };
 
@@ -93,6 +110,7 @@ export const cleanupURL = () => {
  */
 export const validateResetSession = async () => {
   try {
+    console.log("Validating reset session...");
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -105,10 +123,38 @@ export const validateResetSession = async () => {
       return false;
     }
     
-    console.log("Valid reset session found for user:", session.user.email);
+    // Check if this is actually a password recovery session
+    const user = session.user;
+    if (!user) {
+      console.log("No user in session");
+      return false;
+    }
+    
+    console.log("Valid reset session found for user:", user.email);
     return true;
   } catch (error) {
     console.error("Session validation failed:", error);
     return false;
   }
+};
+
+/**
+ * Enhanced error handling for reset token processing
+ */
+export const handleResetTokenError = (error: any) => {
+  console.error("Reset token error:", error);
+  
+  if (error?.message?.includes('expired')) {
+    return "This password reset link has expired. Please request a new one.";
+  }
+  
+  if (error?.message?.includes('invalid')) {
+    return "This password reset link is invalid. Please request a new one.";
+  }
+  
+  if (error?.message?.includes('used')) {
+    return "This password reset link has already been used. Please request a new one.";
+  }
+  
+  return "There was an issue processing your password reset link. Please try requesting a new one.";
 };

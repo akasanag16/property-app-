@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
  * Gets the appropriate reset redirect URL for the current environment
  */
 export const getResetRedirectURL = () => {
-  return "https://prop-link-manage.lovable.app/auth/reset-password";
+  const origin = window.location.origin;
+  return `${origin}/auth/reset-password`;
 };
 
 /**
@@ -52,4 +53,18 @@ export const cleanAuthURL = () => {
   const cleanUrl = `${window.location.origin}${window.location.pathname}`;
   window.history.replaceState({}, document.title, cleanUrl);
   console.log("URL cleaned up:", cleanUrl);
+};
+
+/**
+ * Gets environment-specific configuration for password reset
+ */
+export const getPasswordResetConfig = () => {
+  const isDevelopment = window.location.hostname === 'localhost';
+  const origin = window.location.origin;
+  
+  return {
+    redirectUrl: `${origin}/auth/reset-password`,
+    isDevelopment,
+    origin
+  };
 };

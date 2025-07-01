@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { Loader2, AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { processAuthTokens, cleanupURL, validateResetSession } from "@/utils/resetUtils";
+import { processAuthTokens, cleanupURL, validateResetSession, handleResetTokenError } from "@/utils/resetUtils";
+import { getPasswordResetConfig } from "@/utils/authUtils";
 import type { Session } from "@supabase/supabase-js";
 
 export default function ResetPassword() {
@@ -20,6 +21,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     console.log("ResetPassword component mounted");
+    console.log("Password reset config:", getPasswordResetConfig());
     
     let mounted = true;
 
@@ -29,6 +31,8 @@ export default function ResetPassword() {
         const url = new URL(window.location.href);
         const hasCode = url.searchParams.get('code');
         const hasHashTokens = url.hash.includes('access_token') && url.hash.includes('type=recovery');
+        
+        console.log("URL analysis:", { hasCode: !!hasCode, hasHashTokens, fullUrl: url.href });
         
         if (hasCode || hasHashTokens) {
           console.log("Found auth tokens in URL, processing...");
@@ -40,9 +44,12 @@ export default function ResetPassword() {
             console.log("Tokens processed successfully, session established");
             setSession(result.session);
             cleanupURL();
+            toast.success("Password reset link verified successfully");
           } else if (mounted) {
             console.error("Token processing failed:", result.error);
-            setError(result.error || "Failed to process reset link");
+            const errorMessage = handleResetTokenError(result.error);
+            setError(errorMessage);
+            toast.error(errorMessage);
           }
           
           setProcessingTokens(false);
@@ -54,14 +61,18 @@ export default function ResetPassword() {
           if (isValidSession && mounted) {
             const { data: { session: currentSession } } = await supabase.auth.getSession();
             setSession(currentSession);
+            console.log("Using existing valid session");
           } else if (mounted) {
             setError("Invalid or expired reset link. Please request a new password reset.");
+            console.log("No valid session found");
           }
         }
       } catch (error) {
         console.error("Reset initialization error:", error);
         if (mounted) {
-          setError("An error occurred while processing your reset link");
+          const errorMessage = handleResetTokenError(error);
+          setError(errorMessage);
+          toast.error(errorMessage);
         }
       } finally {
         if (mounted) {
@@ -79,6 +90,7 @@ export default function ResetPassword() {
         setSession(session);
         setError(null);
         setLoading(false);
+        toast.success("Ready to reset your password");
       }
     });
 
@@ -92,17 +104,26 @@ export default function ResetPassword() {
   }, []);
 
   const handleRetryProcessing = () => {
+    console.log("Retrying password reset processing");
     setLoading(true);
     setError(null);
     window.location.reload();
   };
 
   const handleReturnToLogin = () => {
+    console.log("Returning to login page");
     navigate("/auth");
   };
 
   const handleGoHome = () => {
+    console.log("Going to homepage");
     navigate("/");
+  };
+
+  const handleRequestNewReset = () => {
+    console.log("Requesting new password reset");
+    navigate("/auth");
+    toast.info("Please use the 'Forgot Password' option to get a new reset link");
   };
 
   if (loading || processingTokens) {
@@ -149,13 +170,20 @@ export default function ResetPassword() {
                     <li>Check that you're using the complete link from your email</li>
                     <li>Make sure you haven't already used this reset link</li>
                     <li>Verify the link hasn't expired (usually expires after 1 hour)</li>
-                    <li>Ensure you're accessing the correct deployment URL</li>
+                    <li>Try opening the link in a different browser or incognito mode</li>
                   </ul>
                 </details>
               </div>
               
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={handleRequestNewReset}
+                    className="flex-1"
+                  >
+                    Get New Reset Link
+                  </Button>
+                  
                   <Button
                     onClick={handleRetryProcessing}
                     variant="outline"
@@ -164,14 +192,15 @@ export default function ResetPassword() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry
                   </Button>
-                  
-                  <Button
-                    onClick={handleReturnToLogin}
-                    className="flex-1"
-                  >
-                    Return to Login
-                  </Button>
                 </div>
+                
+                <Button
+                  onClick={handleReturnToLogin}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Return to Login
+                </Button>
                 
                 <Button
                   onClick={handleGoHome}
@@ -183,7 +212,7 @@ export default function ResetPassword() {
                 </Button>
                 
                 <p className="text-xs text-gray-500">
-                  You can request a new password reset link from the login page
+                  If you continue having issues, try clearing your browser cache or contact support
                 </p>
               </div>
             </div>

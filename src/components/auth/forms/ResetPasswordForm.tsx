@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { getResetRedirectURL } from "@/utils/authUtils";
 
 export function ResetPasswordForm({
   onModeChange,
@@ -26,8 +28,12 @@ export function ResetPasswordForm({
     try {
       console.log("Starting password reset process for:", email);
       
+      // Get dynamic redirect URL based on current environment
+      const redirectTo = getResetRedirectURL();
+      console.log("Using redirect URL:", redirectTo);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: "https://prop-link-manage.lovable.app/auth/reset-password",
+        redirectTo,
       });
 
       if (error) {
