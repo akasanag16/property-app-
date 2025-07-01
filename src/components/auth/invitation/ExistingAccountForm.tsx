@@ -9,14 +9,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { UserRole } from "@/lib/auth";
 import { EnhancedErrorAlert } from "./components/EnhancedErrorAlert";
-import { useEnhancedFormSubmission } from "./hooks/useEnhancedFormSubmission";
+import { useExistingAccountSubmission } from "./hooks/useExistingAccountSubmission";
 
 interface ExistingAccountFormProps {
   email: string;
   token: string;
   propertyId: string;
   role: UserRole;
-  onToggleMode: () => void; // Keep for backward compatibility but not used
   onBackToLogin: () => void;
   setError: (error: string) => void;
   error: string;
@@ -40,7 +39,7 @@ export function ExistingAccountForm({
     clearError, 
     retry, 
     linkExistingUser 
-  } = useEnhancedFormSubmission({
+  } = useExistingAccountSubmission({
     onSuccess: () => {
       // Navigate to appropriate dashboard
       setTimeout(() => {
