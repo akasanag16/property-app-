@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function LoginForm({
   onModeChange,
 }: {
-  onModeChange: (mode: "signup" | "reset") => void;
+  onModeChange: (mode: "signup") => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -134,7 +134,7 @@ export function LoginForm({
         </Button>
       </form>
 
-      <div className="text-center text-sm space-y-2">
+      <div className="text-center text-sm">
         <p>
           Don't have an account?{" "}
           <button
@@ -144,16 +144,6 @@ export function LoginForm({
             disabled={loading}
           >
             Sign up
-          </button>
-        </p>
-        <p>
-          <button
-            onClick={() => onModeChange("reset")}
-            className="text-[#8B5CF6] hover:text-[#D946EF] font-medium transition-colors"
-            type="button"
-            disabled={loading}
-          >
-            Forgot password?
           </button>
         </p>
       </div>

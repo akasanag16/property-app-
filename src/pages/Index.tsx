@@ -3,24 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Building, Users, Wrench } from "lucide-react";
-import { useEffect } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
-
-  // Check for password reset code and redirect appropriately
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const type = urlParams.get('type');
-    
-    // If there's a code parameter, it's likely a password reset
-    if (code) {
-      console.log("Found code parameter, redirecting to reset password page");
-      // Redirect to reset password page with the code
-      navigate(`/auth/reset-password?code=${code}${type ? `&type=${type}` : ''}`);
-    }
-  }, [navigate]);
 
   const container = {
     hidden: { opacity: 0 },

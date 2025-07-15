@@ -2,17 +2,17 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Gets the appropriate reset redirect URL for the current environment
+ * Gets the appropriate redirect URL for the current environment
  */
-export const getResetRedirectURL = () => {
+export const getRedirectURL = () => {
   const origin = window.location.origin;
-  return `${origin}/auth/reset-password`;
+  return `${origin}/auth`;
 };
 
 /**
- * Validates if a URL is properly formatted for reset redirects
+ * Validates if a URL is properly formatted for redirects
  */
-export const validateResetURL = (url: string): boolean => {
+export const validateURL = (url: string): boolean => {
   try {
     const parsedUrl = new URL(url);
     return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:';
@@ -22,9 +22,9 @@ export const validateResetURL = (url: string): boolean => {
 };
 
 /**
- * Validates if the current session is valid for password reset
+ * Validates if the current session is valid for authentication
  */
-export const validateResetSession = async () => {
+export const validateSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     
@@ -56,14 +56,14 @@ export const cleanAuthURL = () => {
 };
 
 /**
- * Gets environment-specific configuration for password reset
+ * Gets environment-specific configuration for authentication
  */
-export const getPasswordResetConfig = () => {
+export const getAuthConfig = () => {
   const isDevelopment = window.location.hostname === 'localhost';
   const origin = window.location.origin;
   
   return {
-    redirectUrl: `${origin}/auth/reset-password`,
+    redirectUrl: `${origin}/auth`,
     isDevelopment,
     origin
   };

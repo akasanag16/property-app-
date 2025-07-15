@@ -16,7 +16,6 @@ import PropertyMaintenanceRequests from "./pages/service-provider/PropertyMainte
 import ServiceProviderDashboard from "./pages/service-provider/ServiceProviderDashboard";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AcceptInvitation from "./pages/auth/AcceptInvitation";
-import ResetPassword from "./pages/auth/ResetPassword";
 import EmailConfirm from "./pages/auth/EmailConfirm";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
@@ -42,7 +41,6 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/auth/email-confirm" element={<EmailConfirm />} />
               <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
               <Route path="/invitation/accept" element={<AcceptInvitation />} />

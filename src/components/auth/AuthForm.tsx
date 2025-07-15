@@ -2,10 +2,9 @@
 import { useState } from "react";
 import { LoginForm } from "./forms/LoginForm";
 import { SignupForm } from "./forms/SignupForm";
-import { ResetPasswordForm } from "./forms/ResetPasswordForm";
 import { motion } from "framer-motion";
 
-type AuthMode = "login" | "signup" | "reset";
+type AuthMode = "login" | "signup";
 
 export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -22,9 +21,6 @@ export function AuthForm() {
       )}
       {mode === "signup" && (
         <SignupForm onModeChange={setMode} />
-      )}
-      {mode === "reset" && (
-        <ResetPasswordForm onModeChange={setMode} />
       )}
     </motion.div>
   );
