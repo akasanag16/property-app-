@@ -9,13 +9,9 @@ export const useAuthSession = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("Auth session hook initializing...");
-
     // Set up auth state listener first to prevent missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        console.log("Auth state changed:", event, newSession ? "New session exists" : "No new session");
-        
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(newSession);
           setUser(newSession?.user ?? null);
@@ -35,22 +31,26 @@ export const useAuthSession = () => {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Error getting initial session:", error);
+          // Only log in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error getting initial session:", error);
+          }
           setLoading(false);
           return;
         }
         
         if (currentSession) {
-          console.log("Initial session found:", currentSession.user.email);
           setSession(currentSession);
           setUser(currentSession.user);
         } else {
-          console.log("No initial session found");
           setSession(null);
           setUser(null);
         }
       } catch (err) {
-        console.error("Unexpected error during session initialization:", err);
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Unexpected error during session initialization:", err);
+        }
       } finally {
         setLoading(false);
       }
@@ -68,9 +68,10 @@ export const useAuthSession = () => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      console.log("User signed out successfully");
     } catch (error) {
-      console.error("Error signing out:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error signing out:", error);
+      }
       throw error;
     }
   };

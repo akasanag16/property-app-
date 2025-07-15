@@ -41,7 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         sessionStorage.setItem('userRole', userRole);
       } catch (error) {
-        console.error("Could not store role in sessionStorage:", error);
+        // Silently handle sessionStorage errors
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Could not store role in sessionStorage:", error);
+        }
       }
     } else {
       try {
@@ -50,25 +53,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.removeItem('userRole');
         }
       } catch (error) {
-        console.error("Could not remove role from sessionStorage:", error);
+        // Silently handle sessionStorage errors
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Could not remove role from sessionStorage:", error);
+        }
       }
     }
   }, [userRole, roleLoading]);
 
-  // Debug auth state
+  // Initialize context when auth check is complete
   useEffect(() => {
-    console.log("AuthProvider: Auth state updated", { 
-      session: session ? "exists" : "null", 
-      user: user ? user.email : "null", 
-      userRole,
-      loading: sessionLoading || roleLoading
-    });
-    
     // Mark context as initialized once the first auth check is complete
     if (!sessionLoading && !roleLoading && !isInitialized) {
       setIsInitialized(true);
     }
-  }, [session, user, userRole, sessionLoading, roleLoading, isInitialized]);
+  }, [sessionLoading, roleLoading, isInitialized]);
 
   // The loading state should be true if sessionLoading or roleLoading is true
   const loading = sessionLoading || roleLoading || !isInitialized;
