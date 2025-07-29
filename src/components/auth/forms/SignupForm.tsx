@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { signUp, type UserRole } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useSecureForm } from "@/hooks/useSecureForm";
 
 export function SignupForm({
   onModeChange,
@@ -23,41 +23,73 @@ export function SignupForm({
   onModeChange: (mode: "login") => void;
 }) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<UserRole>("owner");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmationSent, setConfirmationSent] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (!firstName.trim() || !lastName.trim()) {
-        throw new Error("Please provide both first and last name");
+  const {
+    getFieldProps,
+    handleSubmit: handleFormSubmit,
+    isSubmitting,
+    hasErrors,
+    isValid
+  } = useSecureForm(
+    {
+      email: "",
+      password: "",
+      confirmPassword: "",
+      firstName: "",
+      lastName: ""
+    },
+    {
+      onSubmit: async (data) => {
+        setError(null);
+        
+        try {
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Starting signup for email:", data.email);
+          }
+          
+          const response = await signUp({ 
+            email: data.email, 
+            password: data.password, 
+            role, 
+            firstName: data.firstName, 
+            lastName: data.lastName 
+          });
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Signup completed, response:", response);
+          }
+          
+          // Always set confirmation sent to true if there's no error
+          setConfirmationSent(true);
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account."
+          });
+          
+        } catch (error) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Auth error:", error);
+          }
+          const errorMessage = error instanceof Error ? error.message : "Registration failed";
+          setError(errorMessage);
+          toast({
+            title: "Registration failed",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        }
       }
-      
-      console.log("Starting signup for email:", email);
-      const response = await signUp({ email, password, role, firstName, lastName });
-      console.log("Signup completed, response:", response);
-      
-      // Always set confirmation sent to true if there's no error
-      setConfirmationSent(true);
-      toast.success("Account created! Please check your email to verify your account.");
-      
-    } catch (error) {
-      console.error("Auth error:", error);
-      setError(error instanceof Error ? error.message : "Registration failed");
-      toast.error(error instanceof Error ? error.message : "Registration failed");
-    } finally {
-      setLoading(false);
     }
-  }
+  );
+
+  const emailProps = getFieldProps("email");
+  const passwordProps = getFieldProps("password");
+  const confirmPasswordProps = getFieldProps("confirmPassword");
+  const firstNameProps = getFieldProps("firstName");
+  const lastNameProps = getFieldProps("lastName");
 
   if (confirmationSent) {
     return (
@@ -69,7 +101,7 @@ export function SignupForm({
       >
         <h3 className="text-xl font-medium text-gray-900">Check your email</h3>
         <p className="text-gray-600">
-          We've sent a confirmation link to <strong>{email}</strong>
+          We've sent a confirmation link to <strong>{emailProps.value}</strong>
         </p>
         <p className="text-gray-600 text-sm">
           Please check your inbox (and spam folder) and click the link to verify your account.
@@ -86,7 +118,7 @@ export function SignupForm({
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#D946EF]">
           Create Account
@@ -101,7 +133,7 @@ export function SignupForm({
       )}
 
       <motion.form 
-        onSubmit={handleSubmit} 
+        onSubmit={handleFormSubmit} 
         className="space-y-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -119,10 +151,13 @@ export function SignupForm({
               <Input
                 id="firstName"
                 type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                {...firstNameProps}
                 required
+                className={firstNameProps.hasError ? "border-red-500" : ""}
               />
+              {firstNameProps.error && (
+                <p className="text-sm text-red-500">{firstNameProps.error}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -130,10 +165,13 @@ export function SignupForm({
               <Input
                 id="lastName"
                 type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                {...lastNameProps}
                 required
+                className={lastNameProps.hasError ? "border-red-500" : ""}
               />
+              {lastNameProps.error && (
+                <p className="text-sm text-red-500">{lastNameProps.error}</p>
+              )}
             </div>
           </div>
 
@@ -157,11 +195,14 @@ export function SignupForm({
           <Input
             id="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            {...emailProps}
             required
             autoComplete="email"
+            className={emailProps.hasError ? "border-red-500" : ""}
           />
+          {emailProps.error && (
+            <p className="text-sm text-red-500">{emailProps.error}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -169,19 +210,37 @@ export function SignupForm({
           <Input
             id="password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            {...passwordProps}
             required
             autoComplete="new-password"
+            className={passwordProps.hasError ? "border-red-500" : ""}
           />
+          {passwordProps.error && (
+            <p className="text-sm text-red-500">{passwordProps.error}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            {...confirmPasswordProps}
+            required
+            autoComplete="new-password"
+            className={confirmPasswordProps.hasError ? "border-red-500" : ""}
+          />
+          {confirmPasswordProps.error && (
+            <p className="text-sm text-red-500">{confirmPasswordProps.error}</p>
+          )}
         </div>
 
         <Button 
           type="submit" 
           className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF] hover:from-[#7E5BD5] hover:to-[#C739D6] text-white" 
-          disabled={loading}
+          disabled={isSubmitting || hasErrors}
         >
-          {loading ? (
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating Account...
@@ -204,6 +263,6 @@ export function SignupForm({
           </button>
         </p>
       </div>
-    </>
+    </div>
   );
 }

@@ -3,8 +3,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' ? '*' : 'https://lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -21,10 +22,37 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, invitation_id, invitation_type, base_url } = await req.json();
+    const requestBody = await req.json();
+    const { action, invitation_id, invitation_type, base_url } = requestBody;
     
-    if (!invitation_id || !invitation_type) {
-      throw new Error("Missing required parameters");
+    // Input validation
+    if (!invitation_id || typeof invitation_id !== 'string') {
+      throw new Error("Invalid invitation_id parameter");
+    }
+    
+    if (!invitation_type || !['tenant', 'service_provider'].includes(invitation_type)) {
+      throw new Error("Invalid invitation_type parameter");
+    }
+    
+    if (!base_url || typeof base_url !== 'string' || !base_url.startsWith('http')) {
+      throw new Error("Invalid base_url parameter");
+    }
+    
+    // Rate limiting check (simple implementation)
+    const rateLimitKey = `invitation_${invitation_id}`;
+    const rateLimitStore = await supabaseClient
+      .from('invitation_rate_limits')
+      .select('attempts, last_attempt')
+      .eq('invitation_id', invitation_id)
+      .maybeSingle();
+      
+    const now = new Date();
+    if (rateLimitStore.data && rateLimitStore.data.attempts >= 3) {
+      const lastAttempt = new Date(rateLimitStore.data.last_attempt);
+      const timeDiff = now.getTime() - lastAttempt.getTime();
+      if (timeDiff < 300000) { // 5 minutes
+        throw new Error("Rate limit exceeded. Please try again later.");
+      }
     }
 
     console.log(`Processing invitation: ${invitation_id} of type ${invitation_type}`);

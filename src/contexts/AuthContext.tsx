@@ -35,31 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { userRole, fetching: roleLoading } = useUserRole(user);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Store user role in sessionStorage for access outside the auth context
-  useEffect(() => {
-    if (userRole) {
-      try {
-        sessionStorage.setItem('userRole', userRole);
-      } catch (error) {
-        // Silently handle sessionStorage errors
-        if (process.env.NODE_ENV === 'development') {
-          console.error("Could not store role in sessionStorage:", error);
-        }
-      }
-    } else {
-      try {
-        // Only remove if not loading - this prevents clearing during load state
-        if (!roleLoading) {
-          sessionStorage.removeItem('userRole');
-        }
-      } catch (error) {
-        // Silently handle sessionStorage errors
-        if (process.env.NODE_ENV === 'development') {
-          console.error("Could not remove role from sessionStorage:", error);
-        }
-      }
-    }
-  }, [userRole, roleLoading]);
+  // Note: We no longer store user role in sessionStorage for security reasons
+  // The role is always fetched fresh from the authenticated context
 
   // Initialize context when auth check is complete
   useEffect(() => {
