@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -678,6 +678,10 @@ export type Database = {
         Args: { reminder_id_param: string }
         Returns: undefined
       }
+      generate_secure_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_owner_invitations: {
         Args: { owner_id_param: string; invitation_type: string }
         Returns: {
@@ -1015,6 +1019,18 @@ export type Database = {
       update_invitation_expiry: {
         Args: { p_invitation_id: string; p_invitation_type: string }
         Returns: undefined
+      }
+      validate_email_format: {
+        Args: { email_input: string }
+        Returns: boolean
+      }
+      validate_role_change: {
+        Args: {
+          user_id: string
+          old_role: Database["public"]["Enums"]["user_role"]
+          new_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
       }
     }
     Enums: {
