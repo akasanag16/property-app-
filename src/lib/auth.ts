@@ -29,7 +29,7 @@ export async function signUp({
   }
 
   // Set the current origin for the email redirect
-  const redirectTo = `${window.location.origin}/auth/confirm`;
+  const redirectTo = `${window.location.origin}/auth/email-confirm`;
   console.log("Email redirect set to:", redirectTo);
 
   const { data, error } = await supabase.auth.signUp({
