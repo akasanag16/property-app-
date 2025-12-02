@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -601,98 +601,83 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      begin_transaction: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_and_send_rent_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      begin_transaction: { Args: never; Returns: undefined }
+      check_and_send_rent_notifications: { Args: never; Returns: number }
       check_owner_property_access: {
         Args: { owner_id_param: string; property_id_param: string }
         Returns: boolean
       }
       check_tenant_property_access: {
-        Args: { tenant_id_param: string; property_id_param: string }
+        Args: { property_id_param: string; tenant_id_param: string }
         Returns: boolean
       }
-      commit_transaction: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      commit_transaction: { Args: never; Returns: undefined }
       create_invitation: {
         Args: {
-          p_property_id: string
           p_email: string
           p_link_token: string
+          p_property_id: string
           p_type: string
         }
         Returns: string
       }
       create_maintenance_request: {
         Args: {
-          title_param: string
           description_param: string
           property_id_param: string
-          tenant_id_param: string
           status_param?: string
+          tenant_id_param: string
+          title_param: string
         }
         Returns: string
       }
       create_notification: {
         Args: {
-          user_id_param: string
-          title_param: string
           message_param: string
-          type_param: string
           related_entity_id_param?: string
           related_entity_type_param?: string
+          title_param: string
+          type_param: string
+          user_id_param: string
         }
         Returns: string
       }
       create_or_update_rent_reminder: {
         Args: {
+          amount_param: number
+          owner_notification_days_param?: number
           property_id_param: string
           reminder_day_param: number
-          amount_param: number
           tenant_notification_days_param?: number
-          owner_notification_days_param?: number
         }
         Returns: string
       }
       create_property: {
         Args: {
-          name_param: string
           address_param: string
-          owner_id_param: string
           details_param?: Json
+          name_param: string
+          owner_id_param: string
         }
         Returns: string
       }
-      generate_all_rent_reminder_instances: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      generate_all_rent_reminder_instances: { Args: never; Returns: number }
       generate_rent_reminder_instances: {
         Args: { reminder_id_param: string }
         Returns: undefined
       }
-      generate_secure_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_secure_token: { Args: never; Returns: string }
       get_owner_invitations: {
-        Args: { owner_id_param: string; invitation_type: string }
+        Args: { invitation_type: string; owner_id_param: string }
         Returns: {
-          id: string
+          created_at: string
           email: string
+          expires_at: string
+          id: string
+          link_token: string
           property_id: string
           property_name: string
           status: string
-          created_at: string
-          expires_at: string
-          link_token: string
         }[]
       }
       get_owner_properties: {
@@ -702,38 +687,38 @@ export type Database = {
       get_owner_rent_reminder_instances: {
         Args: { owner_id_param: string }
         Returns: {
+          amount: number
+          due_date: string
           id: string
-          reminder_id: string
+          paid_date: string
           property_id: string
           property_name: string
-          tenant_id: string
-          tenant_first_name: string
-          tenant_last_name: string
-          due_date: string
-          amount: number
+          reminder_id: string
           status: string
-          paid_date: string
+          tenant_first_name: string
+          tenant_id: string
+          tenant_last_name: string
         }[]
       }
       get_owner_rent_reminders: {
         Args: { owner_id_param: string }
         Returns: {
+          amount: number
           id: string
+          owner_notification_days: number
           property_id: string
           property_name: string
           reminder_day: number
-          amount: number
           tenant_notification_days: number
-          owner_notification_days: number
         }[]
       }
       get_owner_service_providers_with_details: {
         Args: { owner_id_param: string }
         Returns: {
-          id: string
-          first_name: string
-          last_name: string
           email: string
+          first_name: string
+          id: string
+          last_name: string
           property_id: string
           property_name: string
         }[]
@@ -741,16 +726,16 @@ export type Database = {
       get_owner_tenants_with_details: {
         Args: { owner_id_param: string }
         Returns: {
-          id: string
-          first_name: string
-          last_name: string
           email: string
-          property_id: string
-          property_name: string
+          first_name: string
+          id: string
+          last_name: string
           last_payment_date: string
           next_payment_date: string
           payment_amount: number
           payment_status: string
+          property_id: string
+          property_name: string
         }[]
       }
       get_property_invitations: {
@@ -773,10 +758,7 @@ export type Database = {
         Args: { provider_id_param: string }
         Returns: string[]
       }
-      get_tenant_properties: {
-        Args: { tenant_id: string }
-        Returns: string[]
-      }
+      get_tenant_properties: { Args: { tenant_id: string }; Returns: string[] }
       get_tenant_properties_by_id: {
         Args: { tenant_id_param: string }
         Returns: string[]
@@ -784,13 +766,13 @@ export type Database = {
       get_tenant_rent_reminder_instances: {
         Args: { tenant_id_param: string }
         Returns: {
+          amount: number
+          due_date: string
           id: string
+          paid_date: string
           property_id: string
           property_name: string
-          due_date: string
-          amount: number
           status: string
-          paid_date: string
         }[]
       }
       get_user_notifications: {
@@ -806,11 +788,14 @@ export type Database = {
           type: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      is_owner_of_property: {
-        Args: { property_id: string }
-        Returns: boolean
-      }
+      is_owner_of_property: { Args: { property_id: string }; Returns: boolean }
       is_service_provider_for_property: {
         Args: { property_id: string }
         Returns: boolean
@@ -820,7 +805,7 @@ export type Database = {
         Returns: boolean
       }
       list_public_tables: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           table_name: string
         }[]
@@ -841,154 +826,145 @@ export type Database = {
         Args: { instance_id_param: string }
         Returns: boolean
       }
-      process_rent_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      process_rent_reminder_generation: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      rollback_transaction: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      process_rent_notifications: { Args: never; Returns: number }
+      process_rent_reminder_generation: { Args: never; Returns: number }
+      rollback_transaction: { Args: never; Returns: undefined }
       safe_check_owner_property_link: {
         Args: { property_id_param: string; user_id_param: string }
         Returns: boolean
       }
       safe_check_tenant_property_access: {
-        Args: { tenant_id_param: string; property_id_param: string }
+        Args: { property_id_param: string; tenant_id_param: string }
         Returns: boolean
       }
       safe_get_owner_maintenance_requests: {
         Args: { owner_id_param: string }
         Returns: {
-          id: string
-          title: string
-          description: string
-          status: string
+          assigned_service_provider_id: string
           created_at: string
+          description: string
+          id: string
           property_id: string
           property_name: string
-          tenant_id: string
-          tenant_first_name: string
-          tenant_last_name: string
-          assigned_service_provider_id: string
           provider_first_name: string
           provider_last_name: string
+          status: string
+          tenant_first_name: string
+          tenant_id: string
+          tenant_last_name: string
+          title: string
         }[]
       }
       safe_get_owner_properties: {
         Args: { owner_id_param: string }
         Returns: {
-          id: string
-          name: string
           address: string
           details: Json
+          id: string
+          name: string
           owner_id: string
         }[]
       }
       safe_get_property_by_id_for_service_provider: {
         Args: { property_id_param: string; service_provider_id_param: string }
         Returns: {
-          id: string
-          name: string
           address: string
           details: Json
+          id: string
+          name: string
         }[]
       }
       safe_get_property_maintenance_requests_for_provider: {
-        Args: { service_provider_id_param: string; property_id_param: string }
+        Args: { property_id_param: string; service_provider_id_param: string }
         Returns: {
-          id: string
-          title: string
-          description: string
-          status: string
+          assigned_service_provider_id: string
           created_at: string
+          description: string
+          id: string
           property_id: string
           property_name: string
-          tenant_id: string
+          status: string
           tenant_first_name: string
+          tenant_id: string
           tenant_last_name: string
-          assigned_service_provider_id: string
+          title: string
         }[]
       }
       safe_get_property_service_providers: {
         Args: { property_id_param: string }
         Returns: {
-          id: string
-          first_name: string
-          last_name: string
           email: string
+          first_name: string
+          id: string
+          last_name: string
         }[]
       }
       safe_get_service_provider_maintenance_requests: {
         Args: { provider_id_param: string }
         Returns: {
-          id: string
-          title: string
-          description: string
-          status: string
+          assigned_service_provider_id: string
           created_at: string
+          description: string
+          id: string
           property_id: string
           property_name: string
-          tenant_id: string
+          status: string
           tenant_first_name: string
+          tenant_id: string
           tenant_last_name: string
-          assigned_service_provider_id: string
+          title: string
         }[]
       }
       safe_get_service_provider_properties: {
         Args: { provider_id_param: string }
         Returns: {
-          id: string
-          name: string
           address: string
           details: Json
+          id: string
+          name: string
         }[]
       }
       safe_get_service_provider_property_links: {
         Args: { owner_id_param: string }
         Returns: {
-          service_provider_id: string
           property_id: string
           property_name: string
+          service_provider_id: string
         }[]
       }
       safe_get_tenant_maintenance_requests: {
         Args: { tenant_id_param: string }
         Returns: {
-          id: string
-          title: string
-          description: string
-          status: string
+          assigned_service_provider_id: string
           created_at: string
+          description: string
+          id: string
           property_id: string
           property_name: string
+          status: string
           tenant_id: string
-          assigned_service_provider_id: string
+          title: string
         }[]
       }
       safe_get_tenant_properties: {
         Args: { tenant_id_param: string }
         Returns: {
-          id: string
-          name: string
           address: string
           details: Json
+          id: string
+          name: string
         }[]
       }
       safe_get_tenant_property_links: {
         Args: { owner_id_param: string }
         Returns: {
-          tenant_id: string
           property_id: string
           property_name: string
+          tenant_id: string
         }[]
       }
       safe_is_owner_of_property: {
-        Args: { user_id_param: string; property_id_param: string }
+        Args: { property_id_param: string; user_id_param: string }
         Returns: boolean
       }
       safe_service_provider_update_request: {
@@ -1001,18 +977,18 @@ export type Database = {
       }
       safe_update_maintenance_request: {
         Args: {
-          request_id_param: string
           owner_id_param: string
-          status_param: string
+          request_id_param: string
           service_provider_id_param?: string
+          status_param: string
         }
         Returns: boolean
       }
       safe_update_property_details: {
         Args: {
-          property_id_param: string
-          owner_id_param: string
           name_param: string
+          owner_id_param: string
+          property_id_param: string
         }
         Returns: boolean
       }
@@ -1020,15 +996,12 @@ export type Database = {
         Args: { p_invitation_id: string; p_invitation_type: string }
         Returns: undefined
       }
-      validate_email_format: {
-        Args: { email_input: string }
-        Returns: boolean
-      }
+      validate_email_format: { Args: { email_input: string }; Returns: boolean }
       validate_role_change: {
         Args: {
-          user_id: string
-          old_role: Database["public"]["Enums"]["user_role"]
           new_role: Database["public"]["Enums"]["user_role"]
+          old_role: Database["public"]["Enums"]["user_role"]
+          user_id: string
         }
         Returns: boolean
       }
