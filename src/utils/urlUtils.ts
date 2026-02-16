@@ -5,12 +5,8 @@
  * without needing Lovable project access.
  */
 export function getInvitationBaseUrl(): string {
-  const publishedUrl = "https://property-app-.lovable.app";
-  
-  // In local development, use localhost
-  if (window.location.hostname === "localhost") {
-    return window.location.origin;
-  }
-  
-  return publishedUrl;
+  // Use the current origin - this works correctly when:
+  // - Owner sends invite from published app → generates published URL
+  // - Owner sends invite from localhost → generates localhost URL
+  return window.location.origin;
 }
