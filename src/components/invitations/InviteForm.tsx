@@ -59,7 +59,7 @@ export function InviteForm({ propertyId, onInviteSuccess }: InviteFormProps) {
       console.log("Invitation created with ID:", inviteData);
 
       // 2. Generate and send invitation link
-      const baseUrl = window.location.origin;
+      const baseUrl = (await import("@/utils/urlUtils")).getInvitationBaseUrl();
       const { data, error: sendError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: inviteData,

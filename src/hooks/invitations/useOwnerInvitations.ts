@@ -91,7 +91,7 @@ export function useOwnerInvitations(
       if (updateError) throw updateError;
       
       // Send the invitation email
-      const baseUrl = window.location.origin;
+      const baseUrl = (await import("@/utils/urlUtils")).getInvitationBaseUrl();
       const { error: emailError } = await supabase.functions.invoke("send-invitation", {
         body: { 
           invitation_id: id,
