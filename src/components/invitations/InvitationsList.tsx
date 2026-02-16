@@ -61,7 +61,7 @@ export function InvitationsList({ propertyId, type, refreshKey = 0, onError }: I
       if (updateError) throw updateError;
       
       // Then, send the invitation email
-      const baseUrl = window.location.origin;
+      const baseUrl = (await import("@/utils/urlUtils")).getInvitationBaseUrl();
       const { data, error: emailError } = await supabase.functions.invoke('send-invitation', {
         body: { 
           invitation_id: id,
